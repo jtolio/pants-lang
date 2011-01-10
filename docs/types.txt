@@ -1,0 +1,14 @@
+types:
+
+  function
+  integer
+  charstring
+  bytestring
+  float
+  list
+  dictionary
+  tuple
+  null
+  object
+  
+  

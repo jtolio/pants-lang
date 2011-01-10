@@ -1,0 +1,61 @@
+
+#expected, integer, string, float, variable
+
+<program> ::= <explist>
+
+<explist> ::= <exp> [; [<explist>]]
+
+<exp> ::= <non-record-exp> [, [<exp>]]
+
+<non-record-exp> ::= <term>+
+                  |  <assignment>
+
+<term> ::= <value>
+        |  <list-expansion>
+           
+<value> ::= (<explist>)
+         |  <function>
+         |  <variable>
+         |  <application>
+         |  <value>.<variable>
+         |  <value>\[<exp>\]
+         |  <integer>
+         |  <string>
+         |  <float>
+         |  <record>
+
+<application> ::= <value><indicator>
+
+<indicator> ::= . | ?
+
+<assignment> ::= <variable-list> = <exp>
+              |  <variable-list> := <exp>
+              
+<variable-list> ::= <variable> [, [<variable-list>]]
+                 |  <value>.<variable> [, [<variable-list>]]
+                 |  <value>\[<exp>\] [, [<variable-list]]
+              
+<function> ::= {<explist>}
+            |  {|<arglist>| <explist>}
+            
+<arglist> ::= [<leftvars>;] <rightvars>
+
+<leftvars> ::= [[<variable>(<explist>)] <variable>*,] <variable>*
+            | <variable>(<explist>) <variable>*
+
+<rightvars> ::= <variable>* [,<variable>* [<variable>(<explist>)]]
+             |  <variable>* <variable>(<explist>)
+             
+<list-expansion> ::= *(<explist>)
+
+<record> ::= \[<exp>\]
+          |  \[<definition>+\]
+          |  \[\]
+          |  \[:\]
+          
+<definition> ::= <non-record-exp>: <non-record-exp>
+
+  `-=[]\;',./~!@#$%^&*()_+{}|:"<>?
+  
+# variables are alphanumeric and can contain any characters but ,.{}()[]#;'"\:?
+
