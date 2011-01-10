@@ -6,166 +6,96 @@
 namespace jtlang {
 namespace ast {
 
-  union Expression;
-  union Term;
-  union Assignee;
+  struct Expression { virtual ~Expression() {} protected: Expression() {} };
+  struct Term : public Expression { protected: Term() {} };
+  struct Value : public Term { protected: Value() {} };
 
   struct Program {
-    std::vector<Expression> expressions;
+    std::vector<PTR<Expression> > expressions;
   };
   
-  enum AsigneeType { VARIABLE, LOOKUP, INDEX, LIST };
+  struct Record : public Expression {
+    std::vector<PTR<Expression> > expressions;
+  };
   
-  struct VariableAssignee {
-    AssigneeType type;
+  struct Application : public Expression {
+    std::vector<PTR<Term> > terms;
+  };
+
+  struct ListExpansion : public Term {
+    std::vector<PTR<Expression> > expressions;
+  };
+  
+  struct SubExpression : public Value {
+    std::vector<PTR<Expression> > expressions;
+  };
+  
+  struct Call : public Value {
+    PTR<Value> function;
+  };
+  
+  struct Variable : public Value {
     std::string name;
   };
-  
-  struct LookupAssignee {
-    AssigneeType type;
-    PTR<Term> object;
-    std::string field;
+
+  struct Lookup : public Value {
+    PTR<Value> object;
+    Variable field;
   };
   
-  struct IndexAssignee {
-    AssigneeType type;
-    PTR<Term> record;
+  struct Index : public Value {
+    PTR<Value> record;
     std::vector<PTR<Expression> > index;
   };
   
-  struct ListAssignee {
-    AssigneeType type;
-    std::vector<Assignee> assignees;
-  };
-
-  union Assignee {
-    AssigneeType type;
-    VariableAssignee variable;
-    LookupAssignee lookup;
-    IndexAssignee index;
-    ListAssignee list;
-  };
-
-  enum ExpressionType { REASSIGNMENT,
-                        DEFINITION,
-                        TUPLE,
-                        APPLICATION };
+  struct Assignee { protected: Assignee() {} };
+  struct VariableAssignee { Variable variable; };
+  struct LookupAssignee { Lookup lookup; };
+  struct IndexAssignee { Index index; };
+  struct AssigneeList { std::vector<PTR<Assignee> > assignees; };
   
-  struct Assignment {
-    ExpressionType type;
-    Assignee assignee;
-    PTR<Expression> assignment;    
-  }
+  struct Assignment : public Expression { protected: Assignment() {} public:
+    PTR<Assignee> assignee;
+    PTR<Expression> expression;
+  };
+ 
+  struct Reassignment : public Assignment {};
+  struct Definition : public Assignment {};
+
+  struct Function : public Value {
+    std::vector<PTR<Expression> > expressions;
+    Variable left_var_args;
+    std::vector<PTR<Expression> > left_var_arg_length;
+    std::vector<Variable> left_optional_args;
+    std::vector<Variable> left_args;
+    std::vector<Variable> right_args;
+    std::vector<Variable> right_optional_args;
+    Variable right_var_args;
+    std::vector<PTR<Expression> > right_var_arg_length;
+  };
   
-  struct Tuple {
-    ExpressionType type;
+  struct Integer : public Value {
+    long long value;
+  };
+  
+  struct CharString : public Value {
+    std::string value;
+  };
+  
+  struct ByteString : public Value {
+    std::string value;
+  };
+  
+  struct Float : public Value {
+    double value;
+  };
+  
+  struct List : public Value {
     std::vector<PTR<Expression> > values;
   };
   
-  struct Application {
-    ExpressionType type;
-    std::vector<PTR<Term> > terms;
-  }
-
-  union Expression {
-    ExpressionType type;
-    Assignment assignment;
-    Tuple tuple;
-    Application application;
-  };
-
-  enum TermType { LISTEXPANSION,
-                  SUBEXPRESSION,
-                  FUNCTION,
-                  VARIABLE,
-                  CALL,
-                  LOOKUP,
-                  INDEX,
-                  INTEGER,
-                  BYTESTRING,
-                  CHARSTRING,
-                  FLOAT,
-                  LIST,
-                  MAP };
-                  
-  struct ListExpansion {
-    TermType type;
-    std::vector<PTR<Expression> > expressions;
-  };
-  struct SubExpression {
-    TermType type;
-    std::vector<PTR<Expression> > expressions;
-  };
-  struct Variable {
-    TermType type;
-    std::string name;
-  };
-  struct Function {
-    TermType type;
-    std::vector<PTR<Expression> > expressions;
-    std::string left_var_args;
-    std::vector<PTR<Expression> > left_var_arg_length;
-    std::vector<std::string> left_optional_args;
-    std::vector<std::string> left_args;
-    std::vector<std::string> right_args;
-    std::vector<std::string> right_optional_args;
-    std::string right_var_args;
-    std::vector<PTR<Expression> > right_var_arg_length;
-  };
-  struct Call {
-    TermType type;
-    PTR<Term> function;
-  };
-  struct Lookup {
-    TermType type;
-    PTR<Term> object;
-    std::string field;
-  };
-  struct Index {
-    TermType type;
-    PTR<Term> record;
-    std::vector<PTR<Expression> > index;
-  };
-  struct Integer {
-    TermType type;
-    long long value;
-  };
-  struct ByteString {
-    TermType type;
-    std::string value;
-  };
-  struct CharString {
-    TermType type;
-    std::string value;
-  };
-  struct Float {
-    TermType type;
-    double value;
-  };
-  struct List {
-    TermType type;
-    std::vector<PTR<Application> > values;
-  };
-  struct Map {
-    TermType type;
-    std::vector<std::pair<PTR<Application>, PTR<Application> > > values;
-  };
-  
-  union Term {
-    TermType type;
-    ListExpansion listexpansion;
-    SubExpression subexpression;
-    Function function;
-    Variable variable;
-    Call call;
-    Lookup lookup;
-    Index index;
-    Integer integer;
-    ByteString bytestring;
-    CharString charstring;
-    Float float_;
-    List list;
-    Map map;
+  struct Dictionary : public Value {
+    std::vector<std::pair<PTR<Expression>, PTR<Expression> > > values;
   };
   
 }}
