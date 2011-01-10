@@ -10,10 +10,6 @@ namespace ast {
   struct Term { virtual ~Term() {} protected: Term() {} };
   struct Assignee { virtual ~Assignee() {} protected: Assignee() {} };
   
-  struct Program {
-    std::vector<PTR<Expression> > expressions;
-  };
-  
   struct Variable : public Term {
     std::string name;
   };

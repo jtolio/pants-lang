@@ -13,8 +13,8 @@ namespace parser {
   using namespace jtlang::ast;
   
   template <typename Iterator>
-  struct grammar : qi::grammar<Iterator, Program(), ascii::space_type>{
-    qi::rule<Iterator, Program(), ascii::space_type> program;
+  struct grammar : qi::grammar<Iterator, std::vector<PTR<Expression> >(),
+      ascii::space_type>{
     qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
         explist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> expression;
@@ -38,9 +38,13 @@ namespace parser {
     qi::rule<Iterator, PTR<Term>(), ascii::space_type> map;
     qi::rule<Iterator, Assignee(), ascii::space_type> assignee;
 
-    grammar() : grammar::base_type(program) {
+    grammar() : grammar::base_type(explist) {
 
-      qi::on_error<qi::fail>(program,
+      explist = expression % ';' >> -qi::lit(';');
+
+      expression = qi::lit("x")[qi::_val = phx::construct<PTR<Expression> >()];
+
+      qi::on_error<qi::fail>(explist,
         std::cout << phx::val("Error! Expecting ") << qi::_4
                   << phx::val(" here: \"")
                   << phx::construct<std::string>(qi::_3, qi::_2)
@@ -63,7 +67,7 @@ int main(int argc, char** argv) {
   str = os.str();
   
   parser::grammar<std::string::const_iterator> g;
-  ast::Program p;
+  std::vector<PTR<ast::Expression> > p;
   std::string::const_iterator iter = str.begin();
   std::string::const_iterator end = str.end();
   bool r = boost::spirit::qi::phrase_parse(iter, end, g,
