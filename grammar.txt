@@ -33,13 +33,13 @@
 
 <assignment> ::= <reassignment> | <definition>
 
-<reassignment> ::= <variable-list> = <exp>
+<reassignment> ::= <assignee> = <exp>
 
-<definition> ::= <variable-list> := <exp>
+<definition> ::= <assignee> := <exp>
               
-<variable-list> ::= <variable> [, [<variable-list>]]
-                 |  <value>.<variable> [, [<variable-list>]]
-                 |  <value>\[<explist>\] [, [<variable-list]]
+<assignee> ::= <variable> [, [<assignee>]]
+            |  <value>.<variable> [, [<assignee>]]
+            |  <value>\[<explist>\] [, [<assignee>]]
               
 <function> ::= {<explist>}
             |  {|<arglist>| <explist>}

@@ -18,6 +18,25 @@ namespace parser {
     qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
         explist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> expression;
+    qi::rule<Iterator, PTR<Expression>(), ascii::space_type> assignment;
+    qi::rule<Iterator, PTR<Expression>(), ascii::space_type> reassignment;
+    qi::rule<Iterator, PTR<Expression>(), ascii::space_type> definition;
+    qi::rule<Iterator, PTR<Expression>(), ascii::space_type> list;
+    qi::rule<Iterator, PTR<Expression>(), ascii::space_type> application;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> term;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> value;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> listexpansion;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> function;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> variable;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> call;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> lookup;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> index;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> integer;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> bytestring;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> charstring;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> floating;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> map;
+    qi::rule<Iterator, Assignee(), ascii::space_type> assignee;
 
     grammar() : grammar::base_type(program) {
 
