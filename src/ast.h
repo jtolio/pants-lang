@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-namespace jtlang {
+namespace cirth {
 namespace ast {
 
   struct Expression { virtual ~Expression() {} protected: Expression() {} };

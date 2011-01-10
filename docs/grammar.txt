@@ -5,35 +5,41 @@
 
 <explist> ::= <exp> [; [<explist>]]
 
-<exp> ::= <non-record-exp> [, [<exp>]]
+<exp> ::= <assignment>
+       |  <list>
+       |  <application>
 
-<non-record-exp> ::= <term>+
-                  |  <assignment>
+<list> ::= <application>, [<list>]
 
+<application> ::= <term>+
+       
 <term> ::= <value>
         |  <list-expansion>
            
 <value> ::= (<explist>)
          |  <function>
          |  <variable>
-         |  <application>
+         |  <call>
          |  <value>.<variable>
-         |  <value>\[<exp>\]
+         |  <value>\[<explist>\]
          |  <integer>
          |  <string>
          |  <float>
-         |  <record>
+         |  <map>
 
-<application> ::= <value><indicator>
+<call> ::= <value><indicator>
 
 <indicator> ::= . | ?
 
-<assignment> ::= <variable-list> = <exp>
-              |  <variable-list> := <exp>
+<assignment> ::= <reassignment> | <definition>
+
+<reassignment> ::= <assignee> = <exp>
+
+<definition> ::= <assignee> := <exp>
               
-<variable-list> ::= <variable> [, [<variable-list>]]
-                 |  <value>.<variable> [, [<variable-list>]]
-                 |  <value>\[<exp>\] [, [<variable-list]]
+<assignee> ::= <variable> [, [<assignee>]]
+            |  <value>.<variable> [, [<assignee>]]
+            |  <value>\[<explist>\] [, [<assignee>]]
               
 <function> ::= {<explist>}
             |  {|<arglist>| <explist>}
@@ -48,12 +54,9 @@
              
 <list-expansion> ::= *(<explist>)
 
-<record> ::= \[<exp>\]
-          |  \[<definition>+\]
-          |  \[\]
-          |  \[:\]
+<map> ::= \[[<map-definition>]\]
           
-<definition> ::= <non-record-exp>: <non-record-exp>
+<map-definition> ::= <application>: <application> [, [<map-definition>]]
 
   `-=[]\;',./~!@#$%^&*()_+{}|:"<>?
   

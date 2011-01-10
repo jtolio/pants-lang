@@ -4,13 +4,13 @@
 #include "common.h"
 #include "ast.h"
 
-namespace jtlang {
+namespace cirth {
 namespace parser {
 
   namespace qi = boost::spirit::qi;
   namespace ascii = boost::spirit::ascii;
   namespace phx = boost::phoenix;
-  using namespace jtlang::ast;
+  using namespace cirth::ast;
   
   template <typename Iterator>
   struct grammar : qi::grammar<Iterator, std::vector<PTR<Expression> >(),
@@ -18,7 +18,6 @@ namespace parser {
     qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
         explist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> expression;
-    qi::rule<Iterator, PTR<Expression>(), ascii::space_type> assignment;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> reassignment;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> definition;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> list;
@@ -42,7 +41,12 @@ namespace parser {
 
       explist = expression % ';' >> -qi::lit(';');
 
-      expression = qi::lit("x")[qi::_val = phx::construct<PTR<Expression> >()];
+      expression = reassignment | definition | list | application;
+      
+      reassignment = qi::lit("re")[qi::_val = phx::construct<PTR<Expression> >()];
+      definition = qi::lit("def")[qi::_val = phx::construct<PTR<Expression> >()];
+      list = qi::lit("lst")[qi::_val = phx::construct<PTR<Expression> >()];
+      application = qi::lit("app")[qi::_val = phx::construct<PTR<Expression> >()];
 
       qi::on_error<qi::fail>(explist,
         std::cout << phx::val("Error! Expecting ") << qi::_4
@@ -57,7 +61,7 @@ namespace parser {
 int main(int argc, char** argv) {
   std::cout << "started" << std::endl;
 
-  using namespace jtlang;
+  using namespace cirth;
   std::string str;
   std::ostringstream os;
   while(getline(std::cin, str)) {
