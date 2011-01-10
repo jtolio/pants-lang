@@ -18,7 +18,6 @@ namespace parser {
     qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
         explist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> expression;
-    qi::rule<Iterator, 
 
     grammar() : grammar::base_type(program) {
 

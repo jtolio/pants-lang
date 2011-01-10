@@ -7,15 +7,37 @@ namespace jtlang {
 namespace ast {
 
   struct Expression { virtual ~Expression() {} protected: Expression() {} };
-  struct Term : public Expression { protected: Term() {} };
-  struct Value : public Term { protected: Value() {} };
+  struct Term { virtual ~Term() {} protected: Term() {} };
+  struct Assignee { virtual ~Assignee() {} protected: Assignee() {} };
+  
+  struct Variable : public Term {
+    std::string name;
+  };
+
+  struct VariableAssignee : public Assignee { Variable name; };
+  struct LookupAssignee : public Assignee
+    { PTR<Term> object; Variable field; };
+  struct IndexAssignee : public Assignee
+    { PTR<Term> record; PTR<Expression> index; };
+  struct AssigneeList : public Assignee
+    { std::vector<PTR<Assignee> > assignees; };
 
   struct Program {
     std::vector<PTR<Expression> > expressions;
   };
   
-  struct Record : public Expression {
-    std::vector<PTR<Expression> > expressions;
+  struct Reassignment : public Expression {
+    Assignee assignee;
+    PTR<Expression> assignment;
+  };
+  
+  struct Definition : public Expression {
+    Assignee assignee;
+    PTR<Expression> assignment;
+  };
+  
+  struct Tuple : public Expression {
+    std::vector<PTR<Expression> > values;
   };
   
   struct Application : public Expression {
@@ -26,43 +48,25 @@ namespace ast {
     std::vector<PTR<Expression> > expressions;
   };
   
-  struct SubExpression : public Value {
+  struct SubExpression : public Term {
     std::vector<PTR<Expression> > expressions;
   };
   
-  struct Call : public Value {
-    PTR<Value> function;
+  struct Call : public Term {
+    PTR<Term> function;
   };
   
-  struct Variable : public Value {
-    std::string name;
-  };
-
-  struct Lookup : public Value {
-    PTR<Value> object;
+  struct Lookup : public Term {
+    PTR<Term> object;
     Variable field;
   };
   
-  struct Index : public Value {
-    PTR<Value> record;
+  struct Index : public Term {
+    PTR<Term> record;
     std::vector<PTR<Expression> > index;
   };
   
-  struct Assignee { protected: Assignee() {} };
-  struct VariableAssignee { Variable variable; };
-  struct LookupAssignee { Lookup lookup; };
-  struct IndexAssignee { Index index; };
-  struct AssigneeList { std::vector<PTR<Assignee> > assignees; };
-  
-  struct Assignment : public Expression { protected: Assignment() {} public:
-    PTR<Assignee> assignee;
-    PTR<Expression> expression;
-  };
- 
-  struct Reassignment : public Assignment {};
-  struct Definition : public Assignment {};
-
-  struct Function : public Value {
+  struct Function : public Term {
     std::vector<PTR<Expression> > expressions;
     Variable left_var_args;
     std::vector<PTR<Expression> > left_var_arg_length;
@@ -74,27 +78,27 @@ namespace ast {
     std::vector<PTR<Expression> > right_var_arg_length;
   };
   
-  struct Integer : public Value {
+  struct Integer : public Term {
     long long value;
   };
   
-  struct CharString : public Value {
+  struct CharString : public Term {
     std::string value;
   };
   
-  struct ByteString : public Value {
+  struct ByteString : public Term {
     std::string value;
   };
   
-  struct Float : public Value {
+  struct Float : public Term {
     double value;
   };
   
-  struct List : public Value {
+  struct List : public Term {
     std::vector<PTR<Expression> > values;
   };
   
-  struct Dictionary : public Value {
+  struct Dictionary : public Term {
     std::vector<std::pair<PTR<Expression>, PTR<Expression> > > values;
   };
   
