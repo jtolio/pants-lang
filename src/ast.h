@@ -10,6 +10,10 @@ namespace ast {
   struct Term { virtual ~Term() {} protected: Term() {} };
   struct Assignee { virtual ~Assignee() {} protected: Assignee() {} };
   
+  struct Program {
+    std::vector<PTR<Expression> > expressions;
+  };
+  
   struct Variable : public Term {
     std::string name;
   };
@@ -22,10 +26,6 @@ namespace ast {
   struct AssigneeList : public Assignee
     { std::vector<PTR<Assignee> > assignees; };
 
-  struct Program {
-    std::vector<PTR<Expression> > expressions;
-  };
-  
   struct Reassignment : public Expression {
     Assignee assignee;
     PTR<Expression> assignment;
@@ -36,7 +36,7 @@ namespace ast {
     PTR<Expression> assignment;
   };
   
-  struct Tuple : public Expression {
+  struct List : public Expression {
     std::vector<PTR<Expression> > values;
   };
   
@@ -94,11 +94,7 @@ namespace ast {
     double value;
   };
   
-  struct List : public Term {
-    std::vector<PTR<Expression> > values;
-  };
-  
-  struct Dictionary : public Term {
+  struct Map : public Term {
     std::vector<std::pair<PTR<Expression>, PTR<Expression> > > values;
   };
   
