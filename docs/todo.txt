@@ -1,0 +1,3 @@
+ * figure out assignment versus lists
+ * named arguments
+ * default values
