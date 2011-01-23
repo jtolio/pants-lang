@@ -12,22 +12,20 @@
 <list> ::= <application>, [<list>]
 
 <application> ::= <term>+
-       
+
 <term> ::= <value>
         |  <list-expansion>
-           
+
 <value> ::= (<explist>)
          |  <function>
          |  <variable>
-         |  <call>
-         |  <value>.<variable>
-         |  <value>\[<explist>\]
          |  <integer>
          |  <string>
          |  <float>
          |  <map>
-
-<call> ::= <value><indicator>
+         |  <value><indicator>    # call
+         |  <value>.<variable>    # lookup
+         |  <value>\[<explist>\]  # index
 
 <indicator> ::= . | ?
 
@@ -36,14 +34,14 @@
 <reassignment> ::= <assignee> = <exp>
 
 <definition> ::= <assignee> := <exp>
-              
+
 <assignee> ::= <variable> [, [<assignee>]]
             |  <value>.<variable> [, [<assignee>]]
             |  <value>\[<explist>\] [, [<assignee>]]
-              
+
 <function> ::= {<explist>}
             |  {|<arglist>| <explist>}
-            
+
 <arglist> ::= [<leftvars>;] <rightvars>
 
 <leftvars> ::= [[<variable>(<explist>)] <variable>*,] <variable>*
@@ -51,14 +49,13 @@
 
 <rightvars> ::= <variable>* [,<variable>* [<variable>(<explist>)]]
              |  <variable>* <variable>(<explist>)
-             
+
 <list-expansion> ::= *(<explist>)
 
 <map> ::= \[[<map-definition>]\]
-          
+
 <map-definition> ::= <application>: <application> [, [<map-definition>]]
 
   `-=[]\;',./~!@#$%^&*()_+{}|:"<>?
-  
-# variables are alphanumeric and can contain any characters but ,.{}()[]#;'"\:?
 
+# variables are alphanumeric and can contain any characters but ,.{}()[]#;'"\:?
