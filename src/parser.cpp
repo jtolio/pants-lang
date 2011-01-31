@@ -16,6 +16,8 @@ namespace parser {
   struct grammar : qi::grammar<Iterator, std::vector<PTR<Expression> >(),
       ascii::space_type>{
     qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
+        program;
+    qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
         explist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> expression;
 //    qi::rule<Iterator, PTR<Expression>(), ascii::space_type> reassignment;
@@ -40,15 +42,22 @@ namespace parser {
     qi::rule<Iterator, PTR<Term>(), ascii::space_type> charstring;
     qi::rule<Iterator, PTR<Term>(), ascii::space_type> floating;
     qi::rule<Iterator, PTR<Term>(), ascii::space_type> map;
+    qi::rule<Iterator, MapDefinition(), ascii::space_type> mapdefinition;
+    qi::rule<Iterator, std::vector<MapDefinition>(), ascii::space_type>
+        mapdefinitionlist;
     qi::rule<Iterator, Assignee(), ascii::space_type> assignee;
     qi::rule<Iterator, std::string(), ascii::space_type> identifier;
     qi::rule<Iterator, std::string(), ascii::space_type> charstringvalue;
     qi::rule<Iterator, std::string(), ascii::space_type> bytestringvalue;
+    
+    qi::rule<Iterator, ArgList(), ascii::space_type> arglist;
+    qi::rule<Iterator, PartialArgs(), ascii::space_type> leftargs;
+    qi::rule<Iterator, PartialArgs(), ascii::space_type> rightargs;
 
-    grammar() : grammar::base_type(explist) {
-
+    grammar() : grammar::base_type(program) {
+      program = -explist;
       explist = expression % ';' >> -qi::lit(';');
-      appcommalist = application >> ',' > -(application % ',');
+      appcommalist = application >> ',' >> -(application % ',');
       termlist = +term;
       expression = list | application; // reassignment | definition
       list = appcommalist[
@@ -93,10 +102,30 @@ namespace parser {
           phx::new_<CharString>(qi::_1))];
       bytestring = bytestringvalue[qi::_val = phx::construct<PTR<Term> >(
           phx::new_<ByteString>(qi::_1))];
-      map = qi::lit("map")[
-          qi::_val = phx::construct<PTR<Term> >()];
-      function = qi::lit("function")[
-          qi::_val = phx::construct<PTR<Term> >()];
+      map = (qi::lit("[") > mapdefinitionlist >> qi::lit("]"))[
+          qi::_val = phx::construct<PTR<Term> >(phx::new_<Map>(qi::_1))]; 
+      mapdefinitionlist = (*(mapdefinition >> qi::lit(',')) >> -(mapdefinition
+          >> -qi::lit(',')))[qi::_val = qi::_1];
+      mapdefinition = (application >> ':' >> application)[phx::bind(
+          &MapDefinition::key, qi::_val) = qi::_1, phx::bind(
+          &MapDefinition::value, qi::_val) = qi::_2];
+      function = (qi::lit("{") > -arglist >> program >> qi::lit("}"))[
+          qi::_val = phx::construct<PTR<Term> >(phx::new_<Function>(
+          qi::_1, qi::_2))];
+      arglist = (qi::lit("|") > -(leftargs >> ';') >> rightargs >>
+          qi::lit("|"))[phx::bind(&ArgList::leftargs, qi::_val) = qi::_1,
+          phx::bind(&ArgList::rightargs, qi::_val) = qi::_2];
+
+      leftargs = qi::lit("leftargs")[phx::bind(&PartialArgs::args, qi::_val) = phx::construct<std::vector<Variable> >()];
+      rightargs = qi::lit("rightargs")[phx::bind(&PartialArgs::args, qi::_val) = phx::construct<std::vector<Variable> >()];
+      
+
+/*      leftargs = (-(-(variable >> qi::lit("(") > explist >> qi::lit(")")) >>
+          *variable >> qi::lit(",")) >> *variable) | (variable >> qi::lit("(")
+          > explist >> qi::lit(")") >> *variable);
+      rightargs = (*variable >> -(qi::lit(",") > *variable >> -(variable >>
+          qi::lit("(") > explist >> qi::lit(")")))) | (*variable >> variable >
+          qi::lit("(") > explist >> qi::lit")");*/
 
       qi::on_error<qi::fail>(explist,
         std::cout << phx::val("Error! Expecting ") << qi::_4

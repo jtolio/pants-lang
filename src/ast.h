@@ -74,18 +74,6 @@ namespace ast {
     std::vector<PTR<Expression> > index;
   };
 
-  struct Function : public Term {
-    std::vector<PTR<Expression> > expressions;
-    Variable left_var_args;
-    std::vector<PTR<Expression> > left_var_arg_length;
-    std::vector<Variable> left_optional_args;
-    std::vector<Variable> left_args;
-    std::vector<Variable> right_args;
-    std::vector<Variable> right_optional_args;
-    Variable right_var_args;
-    std::vector<PTR<Expression> > right_var_arg_length;
-  };
-
   struct Integer : public Term {
     Integer(const long long& value_) : value(value_) {}
     long long value;
@@ -106,8 +94,40 @@ namespace ast {
     double value;
   };
 
+  struct MapDefinition {
+    PTR<Expression> key;
+    PTR<Expression> value;
+  };
+
   struct Map : public Term {
-    std::vector<std::pair<PTR<Expression>, PTR<Expression> > > values;
+    Map(const std::vector<MapDefinition>& values_) : values(values_) {}
+    std::vector<MapDefinition> values;
+  };
+  
+  struct VarArg {
+    VarArg(const Variable& name_, PTR<Term> subexpression_)
+      : name(name_), subexpression(subexpression_) {}
+    Variable name;
+    PTR<Term> subexpression;
+  };
+  
+  struct PartialArgs {
+    boost::optional<VarArg> var_args;
+    std::vector<Variable> optional_args;
+    std::vector<Variable> args;
+  };
+
+  struct ArgList {
+    boost::optional<PartialArgs> leftargs;
+    PartialArgs rightargs;
+  };
+
+  struct Function : public Term {
+    Function(const boost::optional<ArgList>& args_,
+        const std::vector<PTR<Expression> >& expressions_)
+        : args(args_), expressions(expressions_) {}
+    boost::optional<ArgList> args;
+    std::vector<PTR<Expression> > expressions;
   };
 
 }}

@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <utility>
 #include <sstream>
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>

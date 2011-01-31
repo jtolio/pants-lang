@@ -1,7 +1,7 @@
 
 #expected, integer, string, float, variable
 
-<program> ::= <explist>
+<program> ::= [<explist>]
 
 <explist> ::= <exp> [; [<explist>]]
 
@@ -39,8 +39,8 @@
             |  <value>.<variable> [, [<assignee>]]
             |  <value>\[<explist>\] [, [<assignee>]]
 
-<function> ::= {<explist>}
-            |  {|<arglist>| <explist>}
+<function> ::= {<program>}
+            |  {|<arglist>| <program>}
 
 <arglist> ::= [<leftvars>;] <rightvars>
 
