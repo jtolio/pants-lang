@@ -11,6 +11,7 @@ namespace ast {
   struct Assignee { virtual ~Assignee() {} protected: Assignee() {} };
 
   struct Variable : public Term {
+    Variable() {}
     Variable(const std::string& name_) : name(name_) {}
     std::string name;
   };
@@ -105,21 +106,23 @@ namespace ast {
   };
   
   struct VarArg {
-    VarArg(const Variable& name_, PTR<Term> subexpression_)
-      : name(name_), subexpression(subexpression_) {}
     Variable name;
     PTR<Term> subexpression;
   };
   
-  struct PartialArgs {
-    boost::optional<VarArg> var_args;
+  struct OptionalArgs {
+    boost::optional<VarArg> var_arg;
     std::vector<Variable> optional_args;
+  };
+
+  struct HalfArgs {
+    boost::optional<OptionalArgs> optional_args;
     std::vector<Variable> args;
   };
 
   struct ArgList {
-    boost::optional<PartialArgs> leftargs;
-    PartialArgs rightargs;
+    boost::optional<HalfArgs> leftargs;
+    HalfArgs rightargs;
   };
 
   struct Function : public Term {
