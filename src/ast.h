@@ -116,7 +116,9 @@ namespace ast {
   };
 
   struct HalfArgs {
+    // ONE of the following two will be set
     boost::optional<OptionalArgs> optional_args;
+    boost::optional<VarArg> var_arg;
     std::vector<Variable> args;
   };
 

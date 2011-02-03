@@ -131,7 +131,7 @@ namespace parser {
           phx::bind(&HalfArgs::optional_args, qi::_val) = qi::_1,
           phx::bind(&HalfArgs::args, qi::_val) = qi::_2];
       leftargsnoopts = (vararg >> *variable)[
-          // TODO get vararg
+          phx::bind(&HalfArgs::var_arg, qi::_val) = qi::_1,
           phx::bind(&HalfArgs::args, qi::_val) = qi::_2];
       rightoptargs = (qi::lit(',') >> *variable >> -vararg)[
           phx::bind(&OptionalArgs::optional_args, qi::_val) = qi::_1,
@@ -140,7 +140,7 @@ namespace parser {
           phx::bind(&HalfArgs::args, qi::_val) = qi::_1,
           phx::bind(&HalfArgs::optional_args, qi::_val) = qi::_2];
       rightargsnoopts = (*variable >> vararg)[
-          // TODO get vararg
+          phx::bind(&HalfArgs::var_arg, qi::_val) = qi::_2,
           phx::bind(&HalfArgs::args, qi::_val) = qi::_1];
 
       qi::on_error<qi::fail>(explist,
