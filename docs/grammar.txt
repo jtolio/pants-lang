@@ -13,7 +13,7 @@
 
 <application> ::= <term>+
 
-<term> ::= <value>
+<term> ::= <value><trailer>*
         |  <list-expansion>
 
 <value> ::= (<explist>)
@@ -23,9 +23,10 @@
          |  <string>
          |  <float>
          |  <map>
-         |  <value><indicator>    # call
-         |  <value>.<variable>    # lookup
-         |  <value>\[<explist>\]  # index
+
+<trailer> ::= <indicator>         # call
+           |  .<variable>         # lookup
+           |  \[<explist>\]       # index
 
 <indicator> ::= . | ?
 
@@ -36,8 +37,8 @@
 <definition> ::= <assignee> := <exp>
 
 <assignee> ::= <variable> [, [<assignee>]]
-            |  <value>.<variable> [, [<assignee>]]
-            |  <value>\[<explist>\] [, [<assignee>]]
+            |  <value><trailer>*.<variable> [, [<assignee>]]
+            |  <value><trailer>*\[<explist>\] [, [<assignee>]]
 
 <function> ::= {<program>}
             |  {|<arglist>| <program>}
