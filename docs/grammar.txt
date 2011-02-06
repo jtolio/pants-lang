@@ -13,8 +13,10 @@
 
 <application> ::= <term>+
 
-<term> ::= <value><trailer>*
+<term> ::= <fullvalue>
         |  <list-expansion>
+
+<fullvalue> ::= <value><trailer>*
 
 <value> ::= (<explist>)
          |  <function>
@@ -37,8 +39,8 @@
 <definition> ::= <assignee> := <exp>
 
 <assignee> ::= <variable> [, [<assignee>]]
-            |  <value><trailer>*.<variable> [, [<assignee>]]
-            |  <value><trailer>*\[<explist>\] [, [<assignee>]]
+            |  <fullvalue>.<variable> [, [<assignee>]]
+            |  <fullvalue>\[<explist>\] [, [<assignee>]]
 
 <function> ::= {<program>}
             |  {|<arglist>| <program>}

@@ -20,36 +20,34 @@ namespace parser {
     qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
         explist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> expression;
-//    qi::rule<Iterator, PTR<Expression>(), ascii::space_type> reassignment;
-//    qi::rule<Iterator, PTR<Expression>(), ascii::space_type> definition;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> list;
     qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
         appcommalist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> application;
     qi::rule<Iterator, PTR<Term>(), ascii::space_type> term;
     qi::rule<Iterator, std::vector<PTR<Term> >(), ascii::space_type> termlist;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> value;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> fullvalue;
+    qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> trailer;
+    qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> call;
+    qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> index;
+    qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> lookup;
+    qi::rule<Iterator, PTR<Value>(), ascii::space_type> value;
     qi::rule<Iterator, PTR<Term>(), ascii::space_type> listexpansion;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> subexpression;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> function;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> termvariable;
+    qi::rule<Iterator, PTR<Value>(), ascii::space_type> subexpression;
+    qi::rule<Iterator, PTR<Value>(), ascii::space_type> function;
+    qi::rule<Iterator, PTR<Value>(), ascii::space_type> valvariable;
     qi::rule<Iterator, Variable(), ascii::space_type> variable;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> call;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> lookup;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> index;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> integer;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> bytestring;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> charstring;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> floating;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> map;
+    qi::rule<Iterator, PTR<Value>(), ascii::space_type> integer;
+    qi::rule<Iterator, PTR<Value>(), ascii::space_type> bytestring;
+    qi::rule<Iterator, PTR<Value>(), ascii::space_type> charstring;
+    qi::rule<Iterator, PTR<Value>(), ascii::space_type> floating;
+    qi::rule<Iterator, PTR<Value>(), ascii::space_type> map;
     qi::rule<Iterator, MapDefinition(), ascii::space_type> mapdefinition;
     qi::rule<Iterator, std::vector<MapDefinition>(), ascii::space_type>
         mapdefinitionlist;
-    qi::rule<Iterator, Assignee(), ascii::space_type> assignee;
     qi::rule<Iterator, std::string(), ascii::space_type> identifier;
     qi::rule<Iterator, std::string(), ascii::space_type> charstringvalue;
     qi::rule<Iterator, std::string(), ascii::space_type> bytestringvalue;
-    
     qi::rule<Iterator, ArgList(), ascii::space_type> arglist;
     qi::rule<Iterator, HalfArgs(), ascii::space_type> leftargs;
     qi::rule<Iterator, HalfArgs(), ascii::space_type> rightargs;
@@ -64,58 +62,58 @@ namespace parser {
       explist = expression % ';' >> -qi::lit(';');
       appcommalist = application >> ',' >> -(application % ',');
       termlist = +term;
-      expression = list | application; // reassignment | definition
+      expression = list | application; 
       list = appcommalist[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<List>(qi::_1))];
       application = termlist[qi::_val = phx::construct<PTR<Expression> >(
           phx::new_<Application>(qi::_1))];
-      term = value | listexpansion;
-      value = subexpression
-              | function
-              | termvariable
-              | call
-              | lookup
-              | index
-              | integer
-              | bytestring
-              | charstring
-              | floating
-              | map;
-      listexpansion = (qi::lit("(") > explist > ")")[
+      term = fullvalue | listexpansion;
+      listexpansion = (qi::lit("*(") > explist > ")")[
           qi::_val = phx::construct<PTR<Term> >(
           phx::new_<ListExpansion>(qi::_1))];
+      fullvalue = (value >> *trailer)[qi::_val = phx::construct<PTR<Term> >(
+          phx::new_<FullValue>(qi::_1, qi::_2))];
+      trailer = call | index | lookup;
+      call = qi::char_(".?")[qi::_val = phx::construct<PTR<Trailer> >(
+          phx::new_<Call>())];
+      index = (qi::lit("[") > explist >> qi::lit("]"))[
+          qi::_val = phx::construct<PTR<Trailer> >(phx::new_<Index>(qi::_1))];
+      lookup = (qi::lit(".") >> variable)[
+          qi::_val = phx::construct<PTR<Trailer> >(phx::new_<Lookup>(qi::_1))];
+      value = subexpression
+            | function
+            | valvariable
+            | integer
+            | bytestring
+            | charstring
+            | floating
+            | map;
       subexpression = (qi::lit("(") > explist > ")")[
-          qi::_val = phx::construct<PTR<Term> >(
+          qi::_val = phx::construct<PTR<Value> >(
           phx::new_<SubExpression>(qi::_1))];
       identifier = qi::lexeme[qi::alpha >> *qi::alnum];
       variable = identifier[phx::bind(&Variable::name, qi::_val) = qi::_1];
-      termvariable = identifier[qi::_val = phx::construct<PTR<Term> >(
+      valvariable = identifier[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<Variable>(qi::_1))];
-      integer = qi::long_long[qi::_val = phx::construct<PTR<Term> >(
+      integer = qi::long_long[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<Integer>(qi::_1))];
-      floating = qi::double_[qi::_val = phx::construct<PTR<Term> >(
+      floating = qi::double_[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<Float>(qi::_1))];
-      call = qi::lit("call")[
-          qi::_val = phx::construct<PTR<Term> >()];
-      lookup = qi::lit("lookup")[
-          qi::_val = phx::construct<PTR<Term> >()];
-      index = qi::lit("index")[
-          qi::_val = phx::construct<PTR<Term> >()];
       charstringvalue = qi::lexeme['"' > +(qi::char_ - '"') > '"'];
       bytestringvalue = qi::lexeme["b\"" > +(qi::char_ - '"') > '"'];
-      charstring = charstringvalue[qi::_val = phx::construct<PTR<Term> >(
+      charstring = charstringvalue[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<CharString>(qi::_1))];
-      bytestring = bytestringvalue[qi::_val = phx::construct<PTR<Term> >(
+      bytestring = bytestringvalue[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<ByteString>(qi::_1))];
       map = (qi::lit("[") > mapdefinitionlist >> qi::lit("]"))[
-          qi::_val = phx::construct<PTR<Term> >(phx::new_<Map>(qi::_1))]; 
+          qi::_val = phx::construct<PTR<Value> >(phx::new_<Map>(qi::_1))]; 
       mapdefinitionlist = (*(mapdefinition >> qi::lit(',')) >> -(mapdefinition
           >> -qi::lit(',')))[qi::_val = qi::_1];
       mapdefinition = (application >> ':' >> application)[phx::bind(
           &MapDefinition::key, qi::_val) = qi::_1, phx::bind(
           &MapDefinition::value, qi::_val) = qi::_2];
       function = (qi::lit("{") > -arglist >> program >> qi::lit("}"))[
-          qi::_val = phx::construct<PTR<Term> >(phx::new_<Function>(
+          qi::_val = phx::construct<PTR<Value> >(phx::new_<Function>(
           qi::_1, qi::_2))];
       arglist = (qi::lit("|") > -((leftargs | leftargsnoopts) >> ';') >> 
           (rightargs | rightargsnoopts) >> qi::lit("|"))[

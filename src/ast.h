@@ -8,31 +8,8 @@ namespace ast {
 
   struct Expression { virtual ~Expression() {} protected: Expression() {} };
   struct Term { virtual ~Term() {} protected: Term() {} };
-  struct Assignee { virtual ~Assignee() {} protected: Assignee() {} };
-
-  struct Variable : public Term {
-    Variable() {}
-    Variable(const std::string& name_) : name(name_) {}
-    std::string name;
-  };
-
-  struct VariableAssignee : public Assignee { Variable name; };
-  struct LookupAssignee : public Assignee
-    { PTR<Term> object; Variable field; };
-  struct IndexAssignee : public Assignee
-    { PTR<Term> record; PTR<Expression> index; };
-  struct AssigneeList : public Assignee
-    { std::vector<PTR<Assignee> > assignees; };
-
-  struct Reassignment : public Expression {
-    Assignee assignee;
-    PTR<Expression> assignment;
-  };
-
-  struct Definition : public Expression {
-    Assignee assignee;
-    PTR<Expression> assignment;
-  };
+  struct Value { virtual ~Value() {} protected: Value() {} };
+  struct Trailer { virtual ~Trailer() {} protected: Trailer() {} };
 
   struct List : public Expression {
     List(const std::vector<PTR<Expression> >& values_) : values(values_) {}
@@ -49,48 +26,42 @@ namespace ast {
       : expressions(expressions_) {}
     std::vector<PTR<Expression> > expressions;
   };
+  
+  struct FullValue : public Term {
+    FullValue(PTR<Value> value_, const std::vector<PTR<Trailer> >& trailers_)
+      : value(value_), trailers(trailers_) {}
+    PTR<Value> value;
+    std::vector<PTR<Trailer> > trailers;
+  };
+  
+  struct Variable : public Value {
+    Variable() {}
+    Variable(const std::string& name_) : name(name_) {}
+    std::string name;
+  };  
 
-  struct SubExpression : public Term {
+  struct SubExpression : public Value {
     SubExpression(const std::vector<PTR<Expression> >& expressions_)
       : expressions(expressions_) {}
     std::vector<PTR<Expression> > expressions;
   };
 
-  struct Call : public Term {
-    Call(const PTR<Term>& function_) : function(function_) {}
-    PTR<Term> function;
-  };
-
-  struct Lookup : public Term {
-    Lookup(const PTR<Term>& object_, const Variable& field_)
-      : object(object_), field(field_) {}
-    PTR<Term> object;
-    Variable field;
-  };
-
-  struct Index : public Term {
-    Index(const PTR<Term>& record_, const std::vector<PTR<Expression> >& index_)
-      : record(record_), index(index_) {}
-    PTR<Term> record;
-    std::vector<PTR<Expression> > index;
-  };
-
-  struct Integer : public Term {
+  struct Integer : public Value {
     Integer(const long long& value_) : value(value_) {}
     long long value;
   };
 
-  struct CharString : public Term {
+  struct CharString : public Value {
     CharString(const std::string& value_) : value(value_) {}
     std::string value;
   };
 
-  struct ByteString : public Term {
+  struct ByteString : public Value {
     ByteString(const std::string& value_) : value(value_) {}
     std::string value;
   };
 
-  struct Float : public Term {
+  struct Float : public Value {
     Float(const double& value_) : value(value_) {}
     double value;
   };
@@ -100,14 +71,14 @@ namespace ast {
     PTR<Expression> value;
   };
 
-  struct Map : public Term {
+  struct Map : public Value {
     Map(const std::vector<MapDefinition>& values_) : values(values_) {}
     std::vector<MapDefinition> values;
   };
   
   struct VarArg {
     Variable name;
-    PTR<Term> subexpression;
+    PTR<Value> subexpression;
   };
   
   struct OptionalArgs {
@@ -127,7 +98,7 @@ namespace ast {
     HalfArgs rightargs;
   };
 
-  struct Function : public Term {
+  struct Function : public Value {
     Function(const boost::optional<ArgList>& args_,
         const std::vector<PTR<Expression> >& expressions_)
         : args(args_), expressions(expressions_) {}
@@ -135,6 +106,19 @@ namespace ast {
     std::vector<PTR<Expression> > expressions;
   };
 
+  struct Call : public Trailer {};
+
+  struct Lookup : public Trailer {
+    Lookup(const Variable& variable_) : variable(variable_) {}
+    Variable variable;
+  };
+  
+  struct Index : public Trailer {
+    Index(const std::vector<PTR<Expression> >& expressions_)
+      : expressions(expressions_) {}
+    std::vector<PTR<Expression> > expressions;
+  };
+  
 }}
 
 #endif
