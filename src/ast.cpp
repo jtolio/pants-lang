@@ -167,9 +167,9 @@ std::string cirth::ast::Function::format() const {
 
 std::string cirth::ast::Call::format() const { return "Call()"; }
 
-std::string cirth::ast::Lookup::format() const {
+std::string cirth::ast::Field::format() const {
   std::ostringstream os;
-  os << "Lookup(" << variable.format() << ")";
+  os << "Field(" << variable.format() << ")";
   return os.str();
 }
 

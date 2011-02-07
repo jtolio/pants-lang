@@ -28,7 +28,7 @@ namespace parser {
     qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> trailer;
     qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> call;
     qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> index;
-    qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> lookup;
+    qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> field;
     qi::rule<Iterator, PTR<Value>(), ascii::space_type> value;
     qi::rule<Iterator, PTR<Term>(), ascii::space_type> listexpansion;
     qi::rule<Iterator, PTR<Value>(), ascii::space_type> subexpression;
@@ -90,7 +90,7 @@ namespace parser {
           phx::new_<FullValue>(qi::_1, qi::_2))];
       fullvalue.name("value with trailer");
       
-      trailer = call | index | lookup;
+      trailer = call | index | field;
       trailer.name("value trailer");
       
       call = qi::char_(".?")[qi::_val = phx::construct<PTR<Trailer> >(
@@ -101,9 +101,9 @@ namespace parser {
           qi::_val = phx::construct<PTR<Trailer> >(phx::new_<Index>(qi::_1))];
       index.name("index trailer");
       
-      lookup = (qi::lit(".") >> variable)[
-          qi::_val = phx::construct<PTR<Trailer> >(phx::new_<Lookup>(qi::_1))];
-      lookup.name("lookup trailer");
+      field = (qi::lit(".") >> variable)[
+          qi::_val = phx::construct<PTR<Trailer> >(phx::new_<Field>(qi::_1))];
+      field.name("field trailer");
       
       value = subexpression
             | function

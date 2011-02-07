@@ -142,8 +142,8 @@ namespace ast {
     std::string format() const;
   };
 
-  struct Lookup : public Trailer {
-    Lookup(const Variable& variable_) : variable(variable_) {}
+  struct Field : public Trailer {
+    Field(const Variable& variable_) : variable(variable_) {}
     Variable variable;
     std::string format() const;
   };
