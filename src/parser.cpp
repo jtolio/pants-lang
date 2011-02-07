@@ -81,7 +81,7 @@ namespace parser {
       term = fullvalue | listexpansion;
       term.name("term");
       
-      listexpansion = (qi::lit("*(") > explist > ")")[
+      listexpansion = (qi::lit("*(") > explist >> ")")[
           qi::_val = phx::construct<PTR<Term> >(
           phx::new_<ListExpansion>(qi::_1))];
       listexpansion.name("list expansion");
@@ -115,7 +115,7 @@ namespace parser {
             | map;
       value.name("value");
       
-      subexpression = (qi::lit("(") > explist > ")")[
+      subexpression = (qi::lit("(") > explist >> ")")[
           qi::_val = phx::construct<PTR<Value> >(
           phx::new_<SubExpression>(qi::_1))];
       subexpression.name("subexpression");
@@ -138,13 +138,13 @@ namespace parser {
           phx::new_<Float>(qi::_1))];
       floating.name("floating point number");
       
-      charstringvalue = qi::lexeme['"' > +(qi::char_ - '"') > '"'];
+      charstringvalue = qi::lexeme['"' > +(qi::char_ - '"') >> '"'];
       charstringvalue.name("character string");
       charstring = charstringvalue[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<CharString>(qi::_1))];
       charstring.name("character string");
       
-      bytestringvalue = qi::lexeme["b\"" > +(qi::char_ - '"') > '"'];
+      bytestringvalue = qi::lexeme["b\"" > +(qi::char_ - '"') >> '"'];
       bytestringvalue.name("byte string");
       bytestring = bytestringvalue[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<ByteString>(qi::_1))];
