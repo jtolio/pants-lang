@@ -1,8 +1,6 @@
+#include "parser.h"
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
-
-#include "common.h"
-#include "ast.h"
 
 namespace cirth {
 namespace parser {
@@ -58,7 +56,7 @@ namespace parser {
     qi::rule<Iterator, VarArg(), ascii::space_type> vararg;
 
     grammar() : grammar::base_type(program) {
-    
+
       program = -explist;
       program.name("program");
       
@@ -209,35 +207,16 @@ namespace parser {
                   << phx::construct<std::string>(qi::_3, qi::_2)
                   << phx::val("\"") << std::endl
       );
+
     }
   };
 }}
 
-int main(int argc, char** argv) {
-  std::cout << "started" << std::endl;
-
-  using namespace cirth;
-  std::string str;
-  std::ostringstream os;
-  while(getline(std::cin, str)) {
-    if(str.empty()) break;
-    os << str;
-  }
-  str = os.str();
-
-  parser::grammar<std::string::const_iterator> g;
-  std::vector<PTR<ast::Expression> > p;
-  std::string::const_iterator iter = str.begin();
-  std::string::const_iterator end = str.end();
-  bool r = boost::spirit::qi::phrase_parse(iter, end, g,
-      boost::spirit::ascii::space, p);
-  if(r && iter == str.end()) {
-    for(unsigned int i = 0; i < p.size(); ++i) {
-      std::cout << p[i]->format() << std::endl;
-    }
-  } else {
-    std::cout << "Failed parsing!" << std::endl;
-  }
-  // do stuff
-  return 0;
+bool cirth::parser::parse(const std::string& src,
+    std::vector<PTR<cirth::ast::Expression> >& ast) {
+  grammar<std::string::const_iterator> g;
+  std::string::const_iterator iter = src.begin();
+  bool r = boost::spirit::qi::phrase_parse(iter, src.end(), g,
+      boost::spirit::ascii::space, ast);
+  return r && iter == src.end();
 }

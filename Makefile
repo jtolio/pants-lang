@@ -1,7 +1,7 @@
-all: parser
+all: cirth
 
-parser: src/parser.cpp src/ast.h src/common.h
-	clang++ -isystem /home/jt/dev/boost_1_45_0 -o src/parser src/parser.cpp
+cirth:
+	cd src && make cirth
 
 clean:
-	rm -f src/*.o src/parser
+	cd src && make clean
