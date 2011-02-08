@@ -22,30 +22,30 @@ namespace parser {
     qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
         appcommalist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> application;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> term;
     qi::rule<Iterator, std::vector<PTR<Term> >(), ascii::space_type> termlist;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> fullvalue;
-    qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> trailer;
-    qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> call;
-    qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> index;
-    qi::rule<Iterator, PTR<Trailer>(), ascii::space_type> field;
-    qi::rule<Iterator, PTR<Value>(), ascii::space_type> value;
+    qi::rule<Iterator, PTR<Term>(), ascii::space_type> term;
     qi::rule<Iterator, PTR<Term>(), ascii::space_type> listexpansion;
-    qi::rule<Iterator, PTR<Value>(), ascii::space_type> subexpression;
-    qi::rule<Iterator, PTR<Value>(), ascii::space_type> function;
-    qi::rule<Iterator, PTR<Value>(), ascii::space_type> valvariable;
-    qi::rule<Iterator, Variable(), ascii::space_type> variable;
-    qi::rule<Iterator, PTR<Value>(), ascii::space_type> integer;
-    qi::rule<Iterator, PTR<Value>(), ascii::space_type> bytestring;
-    qi::rule<Iterator, PTR<Value>(), ascii::space_type> charstring;
-    qi::rule<Iterator, PTR<Value>(), ascii::space_type> floating;
-    qi::rule<Iterator, PTR<Value>(), ascii::space_type> map;
-    qi::rule<Iterator, MapDefinition(), ascii::space_type> mapdefinition;
+    qi::rule<Iterator, PTR<Term>()> fullvalue;
+    qi::rule<Iterator, PTR<Trailer>()> trailer;
+    qi::rule<Iterator, PTR<Trailer>()> call;
+    qi::rule<Iterator, PTR<Trailer>()> index;
+    qi::rule<Iterator, PTR<Trailer>()> field;
+    qi::rule<Iterator, PTR<Value>()> value;
+    qi::rule<Iterator, PTR<Value>()> subexpression;
+    qi::rule<Iterator, PTR<Value>()> function;
+    qi::rule<Iterator, PTR<Value>()> valvariable;
+    qi::rule<Iterator, Variable()> variable;
+    qi::rule<Iterator, PTR<Value>()> integer;
+    qi::rule<Iterator, PTR<Value>()> bytestring;
+    qi::rule<Iterator, PTR<Value>()> charstring;
+    qi::rule<Iterator, PTR<Value>()> floating;
+    qi::rule<Iterator, PTR<Value>()> map;
     qi::rule<Iterator, std::vector<MapDefinition>(), ascii::space_type>
         mapdefinitionlist;
-    qi::rule<Iterator, std::string(), ascii::space_type> identifier;
-    qi::rule<Iterator, std::string(), ascii::space_type> charstringvalue;
-    qi::rule<Iterator, std::string(), ascii::space_type> bytestringvalue;
+    qi::rule<Iterator, MapDefinition(), ascii::space_type> mapdefinition;
+    qi::rule<Iterator, std::string()> identifier;
+    qi::rule<Iterator, std::string()> charstringvalue;
+    qi::rule<Iterator, std::string()> bytestringvalue;
     qi::rule<Iterator, ArgList(), ascii::space_type> arglist;
     qi::rule<Iterator, HalfArgs(), ascii::space_type> leftargs;
     qi::rule<Iterator, HalfArgs(), ascii::space_type> rightargs;
@@ -53,17 +53,17 @@ namespace parser {
     qi::rule<Iterator, HalfArgs(), ascii::space_type> rightargsnoopts;
     qi::rule<Iterator, OptionalArgs(), ascii::space_type> leftoptargs;
     qi::rule<Iterator, OptionalArgs(), ascii::space_type> rightoptargs;
-    qi::rule<Iterator, VarArg(), ascii::space_type> vararg;
+    qi::rule<Iterator, VarArg()> vararg;
 
     grammar() : grammar::base_type(program) {
-
+  
       program = -explist;
       program.name("program");
-      
+            
       explist = expression % ';' >> -qi::lit(';');
       explist.name("expression list");
       
-      appcommalist = application >> ',' >> -(application % ',');
+      appcommalist = +(application >> ',') > -application;
       appcommalist.name("list");
       list = appcommalist[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<List>(qi::_1))];
@@ -93,11 +93,11 @@ namespace parser {
       trailer = call | index | field;
       trailer.name("value trailer");
       
-      call = qi::char_(".?")[qi::_val = phx::construct<PTR<Trailer> >(
+      call = qi::char_("'")[qi::_val = phx::construct<PTR<Trailer> >(
           phx::new_<Call>())];
       call.name("call trailer");
       
-      index = (qi::lit("[") > explist >> qi::lit("]"))[
+      index = (qi::lit("[") > qi::skip(ascii::space)[explist >> qi::lit("]")])[
           qi::_val = phx::construct<PTR<Trailer> >(phx::new_<Index>(qi::_1))];
       index.name("index trailer");
       
@@ -115,12 +115,12 @@ namespace parser {
             | map;
       value.name("value");
       
-      subexpression = (qi::lit("(") > explist >> ")")[
+      subexpression = (qi::lit("(") > qi::skip(ascii::space)[explist >> ")"])[
           qi::_val = phx::construct<PTR<Value> >(
           phx::new_<SubExpression>(qi::_1))];
       subexpression.name("subexpression");
       
-      identifier = qi::lexeme[qi::alpha >> *qi::alnum];
+      identifier = qi::alpha >> *qi::alnum;
       identifier.name("identifier");
       
       variable = identifier[phx::bind(&Variable::name, qi::_val) = qi::_1];
@@ -138,24 +138,25 @@ namespace parser {
           phx::new_<Float>(qi::_1))];
       floating.name("floating point number");
       
-      charstringvalue = qi::lexeme['"' > +(qi::char_ - '"') >> '"'];
+      charstringvalue = '"' > +(qi::char_ - '"') >> '"';
       charstringvalue.name("character string");
       charstring = charstringvalue[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<CharString>(qi::_1))];
       charstring.name("character string");
       
-      bytestringvalue = qi::lexeme["b\"" > +(qi::char_ - '"') >> '"'];
+      bytestringvalue = "b\"" > +(qi::char_ - '"') >> '"';
       bytestringvalue.name("byte string");
       bytestring = bytestringvalue[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<ByteString>(qi::_1))];
       bytestring.name("byte string");
       
-      map = (qi::lit("[") > mapdefinitionlist >> qi::lit("]"))[
-          qi::_val = phx::construct<PTR<Value> >(phx::new_<Map>(qi::_1))]; 
+      map = (qi::lit("[") > qi::skip(ascii::space)[mapdefinitionlist >>
+          qi::lit("]")])[qi::_val = phx::construct<PTR<Value> >(
+          phx::new_<Map>(qi::_1))]; 
       map.name("map");
       
       mapdefinitionlist = (*(mapdefinition >> qi::lit(',')) >> -(mapdefinition
-          >> -qi::lit(',')))[qi::_val = qi::_1];
+          >> -qi::lit(',')));
       mapdefinitionlist.name("map definition list");
       
       mapdefinition = (application >> ':' >> application)[phx::bind(
@@ -163,9 +164,9 @@ namespace parser {
           &MapDefinition::value, qi::_val) = qi::_2];
       mapdefinition.name("map definition");
       
-      function = (qi::lit("{") > -arglist >> program >> qi::lit("}"))[
-          qi::_val = phx::construct<PTR<Value> >(phx::new_<Function>(
-          qi::_1, qi::_2))];
+      function = (qi::lit("{") > qi::skip(ascii::space)[-arglist] >>
+          qi::skip(ascii::space)[program >> "}"])[qi::_val =
+          phx::construct<PTR<Value> >(phx::new_<Function>(qi::_1, qi::_2))];
       function.name("function");
       arglist = (qi::lit("|") > -((leftargs | leftargsnoopts) >> ';') >> 
           (rightargs | rightargsnoopts) >> qi::lit("|"))[
