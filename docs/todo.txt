@@ -1,3 +1,14 @@
- * figure out assignment versus lists
- * named arguments
- * default values
+parser
+ * assignment
+ * strings
+ * comments
+ * more unit tests
+
+rest
+ * wrap
+ * desugar
+ * cps_transform
+ * rename
+ * output c
+  * scopes
+  * labels
