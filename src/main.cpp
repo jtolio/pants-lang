@@ -1,5 +1,6 @@
 #include "common.h"
 #include "parser.h"
+#include "wrap.h"
 #include <iostream>
 
 int main(int argc, char** argv) {
@@ -17,6 +18,7 @@ int main(int argc, char** argv) {
   std::vector<PTR<ast::Expression> > p;
   bool r = parser::parse(str, p);
   if(r) {
+    wrap::wrap(p);
     for(unsigned int i = 0; i < p.size(); ++i) {
       std::cout << p[i]->format() << std::endl;
     }

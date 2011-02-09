@@ -6,8 +6,10 @@
 <explist> ::= <exp> [; [<explist>]]
 
 <exp> ::= <assignment>
-       |  <list>
-       |  <application>
+       |  <stmt>
+        
+<stmt> ::= <list>
+        |  <application>
 
 <list> ::= <application>, [<list>]
 
@@ -32,11 +34,11 @@
 
 <indicator> ::= . | ?
 
-<assignment> ::= <reassignment> | <definition>
+<assignment> ::= <mutation> | <definition>
 
-<reassignment> ::= <assignee> = <exp>
+<mutation> ::= <assignee> := <exp>
 
-<definition> ::= <assignee> := <exp>
+<definition> ::= <assignee> = <exp>
 
 <assignee> ::= <variable> [, [<assignee>]]
             |  <fullvalue>.<variable> [, [<assignee>]]

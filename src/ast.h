@@ -27,6 +27,11 @@ namespace ast {
     virtual std::string format() const = 0;
     protected: Trailer() {} };
 
+  struct Assignee {
+    virtual ~Assignee() {}
+    virtual std::string format() const = 0;
+    protected: Assignee() {} };
+
   struct List : public Expression {
     List(const std::vector<PTR<Expression> >& values_) : values(values_) {}
     std::vector<PTR<Expression> > values;
@@ -37,6 +42,23 @@ namespace ast {
     Application(const std::vector<PTR<Term> >& terms_) : terms(terms_) {}
     std::vector<PTR<Term> > terms;
     std::string format() const;
+  };
+  
+  struct Assignment : public Expression {
+    Assignment(PTR<Assignee> assignee_, PTR<Expression> exp_)
+      : assignee(assignee_), exp(exp_) {}
+    PTR<Assignee> assignee;
+    PTR<Expression> exp;
+    virtual std::string name() const = 0;
+    std::string format() const;
+  };
+  
+  struct Mutation : public Assignment {
+    std::string name() const { return "Mutation"; }
+  };
+  
+  struct Definition : public Assignment {
+    std::string name() const { return "Definition"; }
   };
 
   struct ListExpansion : public Term {
@@ -55,9 +77,12 @@ namespace ast {
   };
   
   struct Variable : public Value {
-    Variable() {}
-    Variable(const std::string& name_) : name(name_) {}
+    Variable() : user_provided(true) {}
+    Variable(const std::string& name_) : name(name_), user_provided(true) {}
+    Variable(const std::string& name_, bool user_provided_)
+      : name(name_), user_provided(user_provided_) {}
     std::string name;
+    bool user_provided;
     std::string format() const;
   };  
 
@@ -152,6 +177,30 @@ namespace ast {
     Index(const std::vector<PTR<Expression> >& expressions_)
       : expressions(expressions_) {}
     std::vector<PTR<Expression> > expressions;
+    std::string format() const;
+  };
+  
+  struct VariableAssignee : public Assignee {
+    Variable name;
+    std::string format() const;
+  };
+  
+  struct FieldAssignee : public Assignee {
+    PTR<Term> fullvalue;
+    Variable field;
+    std::string format() const;
+  };
+  
+  struct IndexAssignee : public Assignee {
+    PTR<Term> fullvalue;
+    std::vector<PTR<Expressio> > expressions;
+    std::string format() const;
+  };
+  
+  struct AssigneeList : public Assignee {
+    AssigneeList(const std::vector<PTR<Assignee> > assignees_)
+      : assignees(assignees_) {}
+    std::vector<PTR<Assignee> > assignees;
     std::string format() const;
   };
   

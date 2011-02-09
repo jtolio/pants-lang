@@ -22,6 +22,12 @@ std::string cirth::ast::Application::format() const {
   return os.str();
 }
 
+std::string cirth::ast::Assignment::format() const {
+  std::ostringstream os;
+  os << name() << "(" << assignee->format() << ", " << exp->format() << ")";
+  return os.str();
+}
+
 std::string cirth::ast::ListExpansion::format() const {
   std::ostringstream os;
   os << "ListExpansion(";
@@ -45,7 +51,8 @@ std::string cirth::ast::FullValue::format() const {
 
 std::string cirth::ast::Variable::format() const {
   std::ostringstream os;
-  os << "Variable(" << name << ")";
+  os << "Variable(" << name << (user_provided ? ", user_provided)" :
+      ", compiler_provided)");
   return os.str();
 }
 
