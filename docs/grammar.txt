@@ -6,11 +6,10 @@
 <explist> ::= <exp> [; [<explist>]]
 
 <exp> ::= <assignment>
-       |  <stmt>
+       |  <list>
+       |  <mutation>
+       |  <definition>
         
-<stmt> ::= <list>
-        |  <application>
-
 <list> ::= <application>, [<list>]
 
 <application> ::= <term>+
@@ -33,8 +32,6 @@
            |  \[<explist>\]       # index
 
 <indicator> ::= . | ?
-
-<assignment> ::= <mutation> | <definition>
 
 <mutation> ::= <assignee> := <exp>
 

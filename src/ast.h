@@ -33,7 +33,7 @@ namespace ast {
     protected: Assignee() {} };
 
   struct List : public Expression {
-    List(const std::vector<PTR<Expression> >& values_) : values(values_) {}
+    List(const std::vector<PTR<Expression> >& values_);
     std::vector<PTR<Expression> > values;
     std::string format() const;
   };
@@ -54,10 +54,12 @@ namespace ast {
   };
   
   struct Mutation : public Assignment {
+    Mutation(PTR<Assignee> a, PTR<Expression> e) : Assignment(a, e) {}
     std::string name() const { return "Mutation"; }
   };
   
   struct Definition : public Assignment {
+    Definition(PTR<Assignee> a, PTR<Expression> e) : Assignment(a, e) {}
     std::string name() const { return "Definition"; }
   };
 
@@ -124,7 +126,7 @@ namespace ast {
   };
 
   struct Map : public Value {
-    Map(const std::vector<MapDefinition>& values_) : values(values_) {}
+    Map(const std::vector<MapDefinition>& values_);
     std::vector<MapDefinition> values;
     std::string format() const;
   };
@@ -181,25 +183,30 @@ namespace ast {
   };
   
   struct VariableAssignee : public Assignee {
+    VariableAssignee(const Variable& name_) : name(name_) {}
     Variable name;
     std::string format() const;
   };
   
   struct FieldAssignee : public Assignee {
+    FieldAssignee(PTR<Term> fullvalue_, const Variable& field_)
+      : fullvalue(fullvalue_), field(field_) {}
     PTR<Term> fullvalue;
     Variable field;
     std::string format() const;
   };
   
   struct IndexAssignee : public Assignee {
+    IndexAssignee(PTR<Term> fullvalue_,
+        const std::vector<PTR<Expression> >& expressions_)
+      : fullvalue(fullvalue_), expressions(expressions_) {}
     PTR<Term> fullvalue;
-    std::vector<PTR<Expressio> > expressions;
+    std::vector<PTR<Expression> > expressions;
     std::string format() const;
   };
   
   struct AssigneeList : public Assignee {
-    AssigneeList(const std::vector<PTR<Assignee> > assignees_)
-      : assignees(assignees_) {}
+    AssigneeList(const std::vector<PTR<Assignee> > assignees_);
     std::vector<PTR<Assignee> > assignees;
     std::string format() const;
   };

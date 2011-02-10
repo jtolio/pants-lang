@@ -19,6 +19,8 @@ namespace parser {
         explist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> expression;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> list;
+    qi::rule<Iterator, PTR<Expression>(), ascii::space_type> mutation;
+    qi::rule<Iterator, PTR<Expression>(), ascii::space_type> definition;
     qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
         appcommalist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> application;
@@ -54,6 +56,14 @@ namespace parser {
     qi::rule<Iterator, OptionalArgs(), ascii::space_type> leftoptargs;
     qi::rule<Iterator, OptionalArgs(), ascii::space_type> rightoptargs;
     qi::rule<Iterator, VarArg()> vararg;
+    qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> assignee;
+    qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> assignee_list;
+    qi::rule<Iterator, std::vector<PTR<Assignee> >(), ascii::space_type>
+        assignee_vect;
+    qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> single_assignee;
+    qi::rule<Iterator, PTR<Assignee>()> variable_assignee;
+    qi::rule<Iterator, PTR<Assignee>()> field_assignee;
+    qi::rule<Iterator, PTR<Assignee>()> index_assignee;
 
     grammar() : grammar::base_type(program) {
   
@@ -63,7 +73,7 @@ namespace parser {
       explist = expression % ';' >> -qi::lit(';');
       explist.name("expression list");
       
-      appcommalist = +(application >> ',') > -application;
+      appcommalist = +(application >> ',') >> application;
       appcommalist.name("list");
       list = appcommalist[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<List>(qi::_1))];
@@ -75,13 +85,13 @@ namespace parser {
           phx::new_<Application>(qi::_1))];
       application.name("application");
       
-      expression = list | application;
+      expression = mutation | definition | list | application;
       expression.name("expression");
        
       term = fullvalue | listexpansion;
       term.name("term");
       
-      listexpansion = (qi::lit("*(") > explist >> ")")[
+      listexpansion = (qi::lit("*(") >> explist >> ")")[
           qi::_val = phx::construct<PTR<Term> >(
           phx::new_<ListExpansion>(qi::_1))];
       listexpansion.name("list expansion");
@@ -97,7 +107,7 @@ namespace parser {
           phx::new_<Call>())];
       call.name("call trailer");
       
-      index = (qi::lit("[") > qi::skip(ascii::space)[explist >> qi::lit("]")])[
+      index = (qi::lit("[") >> qi::skip(ascii::space)[explist >> qi::lit("]")])[
           qi::_val = phx::construct<PTR<Trailer> >(phx::new_<Index>(qi::_1))];
       index.name("index trailer");
       
@@ -115,7 +125,7 @@ namespace parser {
             | map;
       value.name("value");
       
-      subexpression = (qi::lit("(") > qi::skip(ascii::space)[explist >> ")"])[
+      subexpression = (qi::lit("(") >> qi::skip(ascii::space)[explist >> ")"])[
           qi::_val = phx::construct<PTR<Value> >(
           phx::new_<SubExpression>(qi::_1))];
       subexpression.name("subexpression");
@@ -138,19 +148,19 @@ namespace parser {
           phx::new_<Float>(qi::_1))];
       floating.name("floating point number");
       
-      charstringvalue = '"' > +(qi::char_ - '"') >> '"';
+      charstringvalue = '"' >> +(qi::char_ - '"') >> '"';
       charstringvalue.name("character string");
       charstring = charstringvalue[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<CharString>(qi::_1))];
       charstring.name("character string");
       
-      bytestringvalue = "b\"" > +(qi::char_ - '"') >> '"';
+      bytestringvalue = "b\"" >> +(qi::char_ - '"') >> '"';
       bytestringvalue.name("byte string");
       bytestring = bytestringvalue[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<ByteString>(qi::_1))];
       bytestring.name("byte string");
       
-      map = (qi::lit("[") > qi::skip(ascii::space)[mapdefinitionlist >>
+      map = (qi::lit("[") >> qi::skip(ascii::space)[mapdefinitionlist >>
           qi::lit("]")])[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<Map>(qi::_1))]; 
       map.name("map");
@@ -164,11 +174,11 @@ namespace parser {
           &MapDefinition::value, qi::_val) = qi::_2];
       mapdefinition.name("map definition");
       
-      function = (qi::lit("{") > qi::skip(ascii::space)[-arglist] >>
+      function = (qi::lit("{") >> qi::skip(ascii::space)[-arglist] >>
           qi::skip(ascii::space)[program >> "}"])[qi::_val =
           phx::construct<PTR<Value> >(phx::new_<Function>(qi::_1, qi::_2))];
       function.name("function");
-      arglist = (qi::lit("|") > -((leftargs | leftargsnoopts) >> ';') >> 
+      arglist = (qi::lit("|") >> -((leftargs | leftargsnoopts) >> ';') >> 
           (rightargs | rightargsnoopts) >> qi::lit("|"))[
           phx::bind(&ArgList::leftargs, qi::_val) = qi::_1,
           phx::bind(&ArgList::rightargs, qi::_val) = qi::_2];
@@ -201,6 +211,41 @@ namespace parser {
           phx::bind(&HalfArgs::var_arg, qi::_val) = qi::_2,
           phx::bind(&HalfArgs::args, qi::_val) = qi::_1];
       rightargsnoopts.name("right arguments with no optionals");
+      
+      mutation = (assignee >> ":=" >> expression)[
+          qi::_val = phx::construct<PTR<Expression> >(phx::new_<Mutation>(
+          qi::_1, qi::_2))];
+      mutation.name("mutation");
+      
+      definition = (assignee >> "=" >> expression)[
+          qi::_val = phx::construct<PTR<Expression> >(phx::new_<Definition>(
+          qi::_1, qi::_2))];
+      definition.name("definition");
+      
+      assignee = assignee_list | single_assignee;
+      assignee.name("assignee");
+      
+      assignee_vect = +(single_assignee >> ',') >> -single_assignee;
+      assignee_vect.name("assignee list");
+      assignee_list = assignee_vect[qi::_val = phx::construct<PTR<Assignee> >(
+          phx::new_<AssigneeList>(qi::_1))];
+      assignee_list.name("assignee list");
+      
+      single_assignee = variable_assignee | field_assignee | index_assignee;
+      single_assignee.name("single assignee");
+
+      variable_assignee = variable[qi::_val = phx::construct<PTR<Assignee> >(
+          phx::new_<VariableAssignee>(qi::_1))];
+      variable_assignee.name("variable assignee");
+      field_assignee = (fullvalue >> '.' >> variable)[
+          qi::_val = phx::construct<PTR<Assignee> >(phx::new_<FieldAssignee>(
+          qi::_1, qi::_2))];
+      field_assignee.name("field assignee");
+      index_assignee = (fullvalue >> '[' >>
+          qi::skip(ascii::space)[explist >> ']'])[
+          qi::_val = phx::construct<PTR<Assignee> >(phx::new_<IndexAssignee>(
+          qi::_1, qi::_2))];
+      index_assignee.name("index assignee");      
 
       qi::on_error<qi::fail>(explist,
         std::cout << phx::val("Error! Expecting ") << qi::_4

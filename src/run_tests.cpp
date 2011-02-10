@@ -11,6 +11,7 @@ class ParserTest : public CPPUNIT_NS::TestFixture {
   CPPUNIT_TEST(testSimpleParse);
   CPPUNIT_TEST(testMapVsIndex);
   CPPUNIT_TEST(testCallVsField);
+  CPPUNIT_TEST(testSingleLists);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -93,6 +94,27 @@ public:
     CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(call, "
         "user_provided), Call()), FullValue(Variable(function, user_provided), "
         "Call(), Field(Variable(afuncfield, user_provided)), Call()))");    
+  }
+  
+  void testSingleLists() {
+    std::vector<PTR<cirth::ast::Expression> > exps;
+    CPPUNIT_ASSERT(cirth::parser::parse("z,", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    std::cout << std::endl << exps[0]->format() << std::endl;
+    CPPUNIT_ASSERT(exps[0]->format() == "");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("z, = 3", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    std::cout << std::endl << exps[0]->format() << std::endl;
+    CPPUNIT_ASSERT(exps[0]->format() == "");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("[test:test,]", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    std::cout << std::endl << exps[0]->format() << std::endl;
+    CPPUNIT_ASSERT(exps[0]->format() == "");
   }
   
 };

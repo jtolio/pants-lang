@@ -1,5 +1,12 @@
 #include "ast.h"
 
+cirth::ast::List::List(const std::vector<PTR<Expression> >& values_) {
+  values.reserve(values_.size());
+  for(unsigned int i = 0; i < values_.size(); ++i) {
+    if(values_[i].get()) values.push_back(values_[i]);
+  }
+}
+
 std::string cirth::ast::List::format() const {
   std::ostringstream os;
   os << "List(";
@@ -97,6 +104,13 @@ std::string cirth::ast::MapDefinition::format() const {
   return os.str();
 }
 
+cirth::ast::Map::Map(const std::vector<MapDefinition>& values_) {
+  values.reserve(values_.size());
+  for(unsigned int i = 0; i < values_.size(); ++i) {
+    if(values_[i].key.get()) values.push_back(values_[i]);
+  }
+}
+
 std::string cirth::ast::Map::format() const {
   std::ostringstream os;
   os << "Map(";
@@ -186,6 +200,48 @@ std::string cirth::ast::Index::format() const {
   for(unsigned int i = 0; i < expressions.size(); ++i) {
     if(i > 0) os << ", ";
     os << expressions[i]->format();
+  }
+  os << ")";
+  return os.str();
+}
+
+std::string cirth::ast::VariableAssignee::format() const {
+  std::ostringstream os;
+  os << "VariableAssignee(" << name.format() << ")";
+  return os.str();
+}
+
+std::string cirth::ast::FieldAssignee::format() const {
+  std::ostringstream os;
+  os << "FieldAssignee(" << fullvalue->format() << ", " << field.format()
+     << ")";
+  return os.str();
+}
+
+std::string cirth::ast::IndexAssignee::format() const {
+  std::ostringstream os;
+  os << "IndexAssignee(" << fullvalue->format();
+  for(unsigned int i = 0; i < expressions.size(); ++i) {
+    os << ", " << expressions[i]->format();
+  }
+  os << ")";
+  return os.str();
+}
+
+cirth::ast::AssigneeList::AssigneeList(
+    const std::vector<PTR<Assignee> > assignees_) {
+  assignees.reserve(assignees_.size());
+  for(unsigned int i = 0; i < assignees_.size(); ++i) {
+    if(assignees_[i].get()) assignees.push_back(assignees_[i]);
+  }
+}
+
+std::string cirth::ast::AssigneeList::format() const {
+  std::ostringstream os;
+  os << "AssigneeList(";
+  for(unsigned int i = 0; i < assignees.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << assignees[i]->format();
   }
   os << ")";
   return os.str();
