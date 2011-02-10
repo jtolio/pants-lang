@@ -205,26 +205,9 @@ std::string cirth::ast::Index::format() const {
   return os.str();
 }
 
-std::string cirth::ast::VariableAssignee::format() const {
+std::string cirth::ast::SingleAssignee::format() const {
   std::ostringstream os;
-  os << "VariableAssignee(" << name.format() << ")";
-  return os.str();
-}
-
-std::string cirth::ast::FieldAssignee::format() const {
-  std::ostringstream os;
-  os << "FieldAssignee(" << fullvalue->format() << ", " << field.format()
-     << ")";
-  return os.str();
-}
-
-std::string cirth::ast::IndexAssignee::format() const {
-  std::ostringstream os;
-  os << "IndexAssignee(" << fullvalue->format();
-  for(unsigned int i = 0; i < expressions.size(); ++i) {
-    os << ", " << expressions[i]->format();
-  }
-  os << ")";
+  os << "SingleAssignee(" << fullvalue->format() << ")";
   return os.str();
 }
 

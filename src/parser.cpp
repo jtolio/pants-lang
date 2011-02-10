@@ -61,9 +61,6 @@ namespace parser {
     qi::rule<Iterator, std::vector<PTR<Assignee> >(), ascii::space_type>
         assignee_vect;
     qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> single_assignee;
-    qi::rule<Iterator, PTR<Assignee>()> variable_assignee;
-    qi::rule<Iterator, PTR<Assignee>()> field_assignee;
-    qi::rule<Iterator, PTR<Assignee>()> index_assignee;
 
     grammar() : grammar::base_type(program) {
   
@@ -73,7 +70,7 @@ namespace parser {
       explist = expression % ';' >> -qi::lit(';');
       explist.name("expression list");
       
-      appcommalist = +(application >> ',') >> application;
+      appcommalist = +(application >> ',') >> -application;
       appcommalist.name("list");
       list = appcommalist[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<List>(qi::_1))];
@@ -85,7 +82,7 @@ namespace parser {
           phx::new_<Application>(qi::_1))];
       application.name("application");
       
-      expression = mutation | definition | list | application;
+      expression = definition | mutation | list | application;
       expression.name("expression");
        
       term = fullvalue | listexpansion;
@@ -231,21 +228,9 @@ namespace parser {
           phx::new_<AssigneeList>(qi::_1))];
       assignee_list.name("assignee list");
       
-      single_assignee = variable_assignee | field_assignee | index_assignee;
+      single_assignee = fullvalue[qi::_val = phx::construct<PTR<Assignee> >(
+          phx::new_<SingleAssignee>(qi::_1))];
       single_assignee.name("single assignee");
-
-      variable_assignee = variable[qi::_val = phx::construct<PTR<Assignee> >(
-          phx::new_<VariableAssignee>(qi::_1))];
-      variable_assignee.name("variable assignee");
-      field_assignee = (fullvalue >> '.' >> variable)[
-          qi::_val = phx::construct<PTR<Assignee> >(phx::new_<FieldAssignee>(
-          qi::_1, qi::_2))];
-      field_assignee.name("field assignee");
-      index_assignee = (fullvalue >> '[' >>
-          qi::skip(ascii::space)[explist >> ']'])[
-          qi::_val = phx::construct<PTR<Assignee> >(phx::new_<IndexAssignee>(
-          qi::_1, qi::_2))];
-      index_assignee.name("index assignee");      
 
       qi::on_error<qi::fail>(explist,
         std::cout << phx::val("Error! Expecting ") << qi::_4

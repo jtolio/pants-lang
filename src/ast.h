@@ -182,26 +182,9 @@ namespace ast {
     std::string format() const;
   };
   
-  struct VariableAssignee : public Assignee {
-    VariableAssignee(const Variable& name_) : name(name_) {}
-    Variable name;
-    std::string format() const;
-  };
-  
-  struct FieldAssignee : public Assignee {
-    FieldAssignee(PTR<Term> fullvalue_, const Variable& field_)
-      : fullvalue(fullvalue_), field(field_) {}
+  struct SingleAssignee : public Assignee {
+    SingleAssignee(PTR<Term> fullvalue_) : fullvalue(fullvalue_) {}
     PTR<Term> fullvalue;
-    Variable field;
-    std::string format() const;
-  };
-  
-  struct IndexAssignee : public Assignee {
-    IndexAssignee(PTR<Term> fullvalue_,
-        const std::vector<PTR<Expression> >& expressions_)
-      : fullvalue(fullvalue_), expressions(expressions_) {}
-    PTR<Term> fullvalue;
-    std::vector<PTR<Expression> > expressions;
     std::string format() const;
   };
   

@@ -12,6 +12,7 @@ class ParserTest : public CPPUNIT_NS::TestFixture {
   CPPUNIT_TEST(testMapVsIndex);
   CPPUNIT_TEST(testCallVsField);
   CPPUNIT_TEST(testSingleLists);
+  CPPUNIT_TEST(testParses);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -101,20 +102,49 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("z,", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    std::cout << std::endl << exps[0]->format() << std::endl;
-    CPPUNIT_ASSERT(exps[0]->format() == "");
+    CPPUNIT_ASSERT(exps[0]->format() == "List(Application(FullValue(Variable("
+        "z, user_provided))))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("z, = 3", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    std::cout << std::endl << exps[0]->format() << std::endl;
-    CPPUNIT_ASSERT(exps[0]->format() == "");
+    CPPUNIT_ASSERT(exps[0]->format() == "Definition(AssigneeList("
+        "SingleAssignee(FullValue(Variable(z, user_provided)))), "
+        "Application(FullValue(Integer(3))))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("[test:test,]", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    std::cout << std::endl << exps[0]->format() << std::endl;
-    CPPUNIT_ASSERT(exps[0]->format() == "");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Map("
+        "MapDefinition(Application(FullValue(Variable(test, user_provided))), "
+        "Application(FullValue(Variable(test, user_provided)))))))");
+  }
+  
+  void testParses() {
+    std::vector<PTR<cirth::ast::Expression> > exps;
+    CPPUNIT_ASSERT(cirth::parser::parse("x = 1", exps));
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("x, = 1,", exps));
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("x, y = 1, 2", exps));
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("x, y, = 1, 2,", exps));
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("x,", exps));
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("x, y", exps));
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("x, y,", exps));
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("(a b).thing", exps));
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("(a b).thing = 3", exps));
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("(a b).thing, (a b)[\"thing\"] = 3, 4",
+        exps));
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("z.thing = 3; x[4] = 5", exps));
+    exps.clear();
   }
   
 };
