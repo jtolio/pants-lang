@@ -1,6 +1,10 @@
 parser
+ * c-style function call support
+ * scheme-style function call support
+ * list-expansion assignee
+ * sub-list assignee
+ * default args, list-expansion args
  * call indicator flexibility
- * assignment
  * strings
  * comments
  * more unit tests

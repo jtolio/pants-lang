@@ -85,7 +85,7 @@ namespace parser {
       expression = definition | mutation | list | application;
       expression.name("expression");
        
-      term = fullvalue | listexpansion;
+      term = listexpansion | fullvalue;
       term.name("term");
       
       listexpansion = (qi::lit("*(") >> explist >> ")")[
@@ -114,9 +114,9 @@ namespace parser {
       
       value = subexpression
             | function
+            | bytestring
             | valvariable
             | integer
-            | bytestring
             | charstring
             | floating
             | map;
@@ -127,7 +127,10 @@ namespace parser {
           phx::new_<SubExpression>(qi::_1))];
       subexpression.name("subexpression");
       
-      identifier = qi::alpha >> *qi::alnum;
+      char const* exclude = " \n\r\t;,()[]{}|'\".?:=";
+      char const* digits = "0123456789";
+      identifier = ((qi::char_ - qi::char_(exclude)) - qi::char_(digits)) >>
+          *(qi::char_ - qi::char_(exclude));
       identifier.name("identifier");
       
       variable = identifier[phx::bind(&Variable::name, qi::_val) = qi::_1];

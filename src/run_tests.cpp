@@ -13,6 +13,8 @@ class ParserTest : public CPPUNIT_NS::TestFixture {
   CPPUNIT_TEST(testCallVsField);
   CPPUNIT_TEST(testSingleLists);
   CPPUNIT_TEST(testParses);
+  CPPUNIT_TEST(testListExpansion);
+  CPPUNIT_TEST(testByteString);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -118,6 +120,40 @@ public:
     CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Map("
         "MapDefinition(Application(FullValue(Variable(test, user_provided))), "
         "Application(FullValue(Variable(test, user_provided)))))))");
+  }
+  
+  void testListExpansion() {
+    std::vector<PTR<cirth::ast::Expression> > exps;
+    CPPUNIT_ASSERT(cirth::parser::parse("f' *(thing) thing", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(f, "
+        "user_provided), Call()), ListExpansion(Application(FullValue(Variable("
+        "thing, user_provided)))), FullValue(Variable(thing, user_provided)))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("f' * (thing) thing", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(f, "
+        "user_provided), Call()), FullValue(Variable(*, user_provided)), "
+        "FullValue(SubExpression(Application(FullValue(Variable(thing, "
+        "user_provided))))), FullValue(Variable(thing, user_provided)))");
+  }
+  
+  void testByteString() {
+    std::vector<PTR<cirth::ast::Expression> > exps;
+    CPPUNIT_ASSERT(cirth::parser::parse("f' b\"thing\"", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(f, "
+        "user_provided), Call()), FullValue(ByteString(thing)))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("f' b \"thing\"", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(f, "
+        "user_provided), Call()), FullValue(Variable(b, user_provided)), "
+        "FullValue(CharString(thing)))");
   }
   
   void testParses() {
