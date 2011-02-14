@@ -17,7 +17,7 @@
 <term> ::= <fullvalue>
         |  <list-expansion>
 
-<fullvalue> ::= <value><trailer>*
+<fullvalue> ::= <header>*<value><trailer>*
 
 <value> ::= (<explist>)
          |  <function>
@@ -27,11 +27,16 @@
          |  <float>
          |  <map>
 
-<trailer> ::= <indicator>         # call
+<header> ::= <left-indicator>     # open call
+
+<trailer> ::= <right-indicator>   # open call
            |  .<variable>         # lookup
            |  \[<explist>\]       # index
+           |  ((<application> ,)* [<application>]) # closed call
 
-<indicator> ::= . | ?
+<left-indicator> ::= @
+
+<right-indicator> ::= ' | ?
 
 <mutation> ::= <assignee> := <exp>
 
@@ -52,7 +57,7 @@
 <rightvars> ::= <variable>* [,<variable>* [<variable>(<explist>)]]
              |  <variable>* <variable>(<explist>)
 
-<list-expansion> ::= *(<explist>)
+<list-expansion> ::= \*(<explist>)
 
 <map> ::= \[[<map-definition>]\]
 

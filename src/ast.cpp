@@ -48,11 +48,17 @@ std::string cirth::ast::ListExpansion::format() const {
 
 std::string cirth::ast::FullValue::format() const {
   std::ostringstream os;
-  os << "FullValue(" << value->format();
-  for(unsigned int i = 0; i < trailers.size(); ++i) {
-    os << ", " << trailers[i]->format();
+  os << "FullValue(Headers(";
+  for(unsigned int i = 0; i < headers.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << headers[i]->format();
   }
-  os << ")";
+  os << "), Value(" << value->format() << "), Trailers(";
+  for(unsigned int i = 0; i < trailers.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << trailers[i]->format();
+  }
+  os << "))";
   return os.str();
 }
 
@@ -186,7 +192,7 @@ std::string cirth::ast::Function::format() const {
   return os.str();
 }
 
-std::string cirth::ast::Call::format() const { return "Call()"; }
+std::string cirth::ast::OpenCall::format() const { return "OpenCall()"; }
 
 std::string cirth::ast::Field::format() const {
   std::ostringstream os;
@@ -205,6 +211,25 @@ std::string cirth::ast::Index::format() const {
   return os.str();
 }
 
+cirth::ast::ClosedCall::ClosedCall(
+    const std::vector<PTR<Expression> >& arguments_) {
+  arguments.reserve(arguments_.size());
+  for(unsigned int i = 0; i < arguments_.size(); ++i) {
+    if(arguments_[i].get()) arguments.push_back(arguments_[i]);
+  }
+}
+
+std::string cirth::ast::ClosedCall::format() const {
+  std::ostringstream os;
+  os << "ClosedCall(";
+  for(unsigned int i = 0; i < arguments.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << arguments[i]->format();
+  }
+  os << ")";
+  return os.str();
+}
+
 std::string cirth::ast::SingleAssignee::format() const {
   std::ostringstream os;
   os << "SingleAssignee(" << fullvalue->format() << ")";
@@ -212,7 +237,7 @@ std::string cirth::ast::SingleAssignee::format() const {
 }
 
 cirth::ast::AssigneeList::AssigneeList(
-    const std::vector<PTR<Assignee> > assignees_) {
+    const std::vector<PTR<Assignee> >& assignees_) {
   assignees.reserve(assignees_.size());
   for(unsigned int i = 0; i < assignees_.size(); ++i) {
     if(assignees_[i].get()) assignees.push_back(assignees_[i]);

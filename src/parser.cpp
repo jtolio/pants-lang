@@ -23,15 +23,19 @@ namespace parser {
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> definition;
     qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
         appcommalist;
+    qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
+        closedcallarglist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> application;
     qi::rule<Iterator, std::vector<PTR<Term> >(), ascii::space_type> termlist;
     qi::rule<Iterator, PTR<Term>(), ascii::space_type> term;
     qi::rule<Iterator, PTR<Term>(), ascii::space_type> listexpansion;
     qi::rule<Iterator, PTR<Term>()> fullvalue;
-    qi::rule<Iterator, PTR<Trailer>()> trailer;
-    qi::rule<Iterator, PTR<Trailer>()> call;
-    qi::rule<Iterator, PTR<Trailer>()> index;
-    qi::rule<Iterator, PTR<Trailer>()> field;
+    qi::rule<Iterator, PTR<ValueModifier>()> header;
+    qi::rule<Iterator, PTR<ValueModifier>()> trailer;
+    qi::rule<Iterator, PTR<ValueModifier>()> rightopencall;
+    qi::rule<Iterator, PTR<ValueModifier>()> closedcall;
+    qi::rule<Iterator, PTR<ValueModifier>()> index;
+    qi::rule<Iterator, PTR<ValueModifier>()> field;
     qi::rule<Iterator, PTR<Value>()> value;
     qi::rule<Iterator, PTR<Value>()> subexpression;
     qi::rule<Iterator, PTR<Value>()> function;
@@ -93,23 +97,39 @@ namespace parser {
           phx::new_<ListExpansion>(qi::_1))];
       listexpansion.name("list expansion");
       
-      fullvalue = (value >> *trailer)[qi::_val = phx::construct<PTR<Term> >(
-          phx::new_<FullValue>(qi::_1, qi::_2))];
+      fullvalue = (*header >> value >> *trailer)[
+          qi::_val = phx::construct<PTR<Term> >(phx::new_<FullValue>(qi::_1,
+          qi::_2, qi::_3))];
       fullvalue.name("value with trailer");
       
-      trailer = call | index | field;
+      trailer = rightopencall | index | field | closedcall;
       trailer.name("value trailer");
+            
+      header = qi::char_("@")[
+          qi::_val = phx::construct<PTR<ValueModifier> >(
+          phx::new_<OpenCall>())];
+      header.name("open call header");
       
-      call = qi::char_("'")[qi::_val = phx::construct<PTR<Trailer> >(
-          phx::new_<Call>())];
-      call.name("call trailer");
+      rightopencall = qi::char_("'?")[
+          qi::_val = phx::construct<PTR<ValueModifier> >(
+          phx::new_<OpenCall>())];
+      rightopencall.name("open call trailer");
+      
+      closedcallarglist = *(application >> qi::lit(',')) >> -application;
+      closedcallarglist.name("closed call argument list");
+      closedcall = (qi::lit("(") >> qi::skip(ascii::space)[
+          closedcallarglist >> qi::lit(")")])[qi::_val =
+          phx::construct<PTR<ValueModifier> >(phx::new_<ClosedCall>(qi::_1))];
+      closedcall.name("closed call trailer");
       
       index = (qi::lit("[") >> qi::skip(ascii::space)[explist >> qi::lit("]")])[
-          qi::_val = phx::construct<PTR<Trailer> >(phx::new_<Index>(qi::_1))];
+          qi::_val = phx::construct<PTR<ValueModifier> >(
+          phx::new_<Index>(qi::_1))];
       index.name("index trailer");
       
       field = (qi::lit(".") >> variable)[
-          qi::_val = phx::construct<PTR<Trailer> >(phx::new_<Field>(qi::_1))];
+          qi::_val = phx::construct<PTR<ValueModifier> >(phx::new_<Field>(
+          qi::_1))];
       field.name("field trailer");
       
       value = subexpression
@@ -127,7 +147,7 @@ namespace parser {
           phx::new_<SubExpression>(qi::_1))];
       subexpression.name("subexpression");
       
-      char const* exclude = " \n\r\t;,()[]{}|'\".?:=";
+      char const* exclude = " \n\r\t;,()[]{}|'\".?:=@";
       char const* digits = "0123456789";
       identifier = ((qi::char_ - qi::char_(exclude)) - qi::char_(digits)) >>
           *(qi::char_ - qi::char_(exclude));
@@ -165,8 +185,7 @@ namespace parser {
           phx::new_<Map>(qi::_1))]; 
       map.name("map");
       
-      mapdefinitionlist = (*(mapdefinition >> qi::lit(',')) >> -(mapdefinition
-          >> -qi::lit(',')));
+      mapdefinitionlist = *(mapdefinition >> qi::lit(',')) >> -mapdefinition;
       mapdefinitionlist.name("map definition list");
       
       mapdefinition = (application >> ':' >> application)[phx::bind(

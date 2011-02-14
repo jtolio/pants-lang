@@ -15,6 +15,7 @@ class ParserTest : public CPPUNIT_NS::TestFixture {
   CPPUNIT_TEST(testParses);
   CPPUNIT_TEST(testListExpansion);
   CPPUNIT_TEST(testByteString);
+  CPPUNIT_TEST(testClosedCall);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -25,8 +26,7 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("hey' there", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(hey, "
-        "user_provided), Call()), FullValue(Variable(there, user_provided)))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(hey, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(Variable(there, user_provided)), Trailers()))");
   }
   
   void testMapVsIndex() {
@@ -34,38 +34,22 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("call' thing [key: value]", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(call, "
-        "user_provided), Call()), FullValue(Variable(thing, user_provided)), "
-        "FullValue(Map(MapDefinition(Application(FullValue(Variable(key, "
-        "user_provided))), Application(FullValue(Variable(value, "
-        "user_provided)))))))");    
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(call, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(Variable(thing, user_provided)), Trailers()), FullValue(Headers(), Value(Map(MapDefinition(Application(FullValue(Headers(), Value(Variable(key, user_provided)), Trailers())), Application(FullValue(Headers(), Value(Variable(value, user_provided)), Trailers()))))), Trailers()))");
     exps.clear();
-    CPPUNIT_ASSERT(cirth::parser::parse("call' thing [key1: value1, "
-        "key2: value2]", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("call' thing [key1: value1, key2: value2]", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(call, "
-        "user_provided), Call()), FullValue(Variable(thing, user_provided)), "
-        "FullValue(Map(MapDefinition(Application(FullValue(Variable(key1, "
-        "user_provided))), Application(FullValue(Variable(value1, "
-        "user_provided)))), MapDefinition(Application(FullValue(Variable(key2, "
-        "user_provided))), Application(FullValue(Variable(value2, "
-        "user_provided)))))))");    
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(call, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(Variable(thing, user_provided)), Trailers()), FullValue(Headers(), Value(Map(MapDefinition(Application(FullValue(Headers(), Value(Variable(key1, user_provided)), Trailers())), Application(FullValue(Headers(), Value(Variable(value1, user_provided)), Trailers()))), MapDefinition(Application(FullValue(Headers(), Value(Variable(key2, user_provided)), Trailers())), Application(FullValue(Headers(), Value(Variable(value2, user_provided)), Trailers()))))), Trailers()))");    
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("call' thing[key]", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(call, "
-        "user_provided), Call()), FullValue(Variable(thing, user_provided), "
-        "Index(Application(FullValue(Variable(key, user_provided))))))");    
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(call, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(Variable(thing, user_provided)), Trailers(Index(Application(FullValue(Headers(), Value(Variable(key, user_provided)), Trailers()))))))");    
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("call' thing[key1, key2]", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(call, "
-        "user_provided), Call()), FullValue(Variable(thing, user_provided), "
-        "Index(List(Application(FullValue(Variable(key1, user_provided))), "
-        "Application(FullValue(Variable(key2, user_provided)))))))");    
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(call, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(Variable(thing, user_provided)), Trailers(Index(List(Application(FullValue(Headers(), Value(Variable(key1, user_provided)), Trailers())), Application(FullValue(Headers(), Value(Variable(key2, user_provided)), Trailers())))))))");    
   }
   
   void testCallVsField() {
@@ -73,30 +57,45 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("call' thing1' notafield", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(call, "
-        "user_provided), Call()), FullValue(Variable(thing1, user_provided), "
-        "Call()), FullValue(Variable(notafield, user_provided)))");    
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(call, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(Variable(thing1, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(Variable(notafield, user_provided)), Trailers()))");    
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("call' thing1.afield", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(call, "
-        "user_provided), Call()), FullValue(Variable(thing1, user_provided), "
-        "Field(Variable(afield, user_provided))))");    
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(call, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(Variable(thing1, user_provided)), Trailers(Field(Variable(afield, user_provided)))))");    
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("call' function'.afield", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(call, "
-        "user_provided), Call()), FullValue(Variable(function, user_provided), "
-        "Call(), Field(Variable(afield, user_provided))))");    
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(call, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(Variable(function, user_provided)), Trailers(OpenCall(), Field(Variable(afield, user_provided)))))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("call' function'.afuncfield'", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(call, "
-        "user_provided), Call()), FullValue(Variable(function, user_provided), "
-        "Call(), Field(Variable(afuncfield, user_provided)), Call()))");    
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(call, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(Variable(function, user_provided)), Trailers(OpenCall(), Field(Variable(afuncfield, user_provided)), OpenCall())))");
+  }
+  
+  void testClosedCall() {
+    std::vector<PTR<cirth::ast::Expression> > exps;
+    CPPUNIT_ASSERT(cirth::parser::parse("f(arg1, arg2)", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(f, user_provided)), Trailers(ClosedCall(Application(FullValue(Headers(), Value(Variable(arg1, user_provided)), Trailers())), Application(FullValue(Headers(), Value(Variable(arg2, user_provided)), Trailers()))))))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("f (arg1, arg2)", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(f, user_provided)), Trailers()), FullValue(Headers(), Value(SubExpression(List(Application(FullValue(Headers(), Value(Variable(arg1, user_provided)), Trailers())), Application(FullValue(Headers(), Value(Variable(arg2, user_provided)), Trailers()))))), Trailers()))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("f'(arg1, arg2)", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(f, user_provided)), Trailers(OpenCall(), ClosedCall(Application(FullValue(Headers(), Value(Variable(arg1, user_provided)), Trailers())), Application(FullValue(Headers(), Value(Variable(arg2, user_provided)), Trailers()))))))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("f' (arg1, arg2)", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(f, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(SubExpression(List(Application(FullValue(Headers(), Value(Variable(arg1, user_provided)), Trailers())), Application(FullValue(Headers(), Value(Variable(arg2, user_provided)), Trailers()))))), Trailers()))");
   }
   
   void testSingleLists() {
@@ -104,22 +103,32 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("z,", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "List(Application(FullValue(Variable("
-        "z, user_provided))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "List(Application(FullValue(Headers(), Value(Variable(z, user_provided)), Trailers())))");    
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("z, = 3", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Definition(AssigneeList("
-        "SingleAssignee(FullValue(Variable(z, user_provided)))), "
-        "Application(FullValue(Integer(3))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Definition(AssigneeList(SingleAssignee(FullValue(Headers(), Value(Variable(z, user_provided)), Trailers()))), Application(FullValue(Headers(), Value(Integer(3)), Trailers())))");    
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("[test:test,]", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Map("
-        "MapDefinition(Application(FullValue(Variable(test, user_provided))), "
-        "Application(FullValue(Variable(test, user_provided)))))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Map(MapDefinition(Application(FullValue(Headers(), Value(Variable(test, user_provided)), Trailers())), Application(FullValue(Headers(), Value(Variable(test, user_provided)), Trailers()))))), Trailers()))");    
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("f(arg1,)", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(f, user_provided)), Trailers(ClosedCall(Application(FullValue(Headers(), Value(Variable(arg1, user_provided)), Trailers()))))))");    
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("f(arg1)", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(f, user_provided)), Trailers(ClosedCall(Application(FullValue(Headers(), Value(Variable(arg1, user_provided)), Trailers()))))))");    
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("f(arg1, arg2)", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(f, user_provided)), Trailers(ClosedCall(Application(FullValue(Headers(), Value(Variable(arg1, user_provided)), Trailers())), Application(FullValue(Headers(), Value(Variable(arg2, user_provided)), Trailers()))))))");    
   }
   
   void testListExpansion() {
@@ -127,17 +136,12 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("f' *(thing) thing", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(f, "
-        "user_provided), Call()), ListExpansion(Application(FullValue(Variable("
-        "thing, user_provided)))), FullValue(Variable(thing, user_provided)))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(f, user_provided)), Trailers(OpenCall())), ListExpansion(Application(FullValue(Headers(), Value(Variable(thing, user_provided)), Trailers()))), FullValue(Headers(), Value(Variable(thing, user_provided)), Trailers()))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("f' * (thing) thing", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(f, "
-        "user_provided), Call()), FullValue(Variable(*, user_provided)), "
-        "FullValue(SubExpression(Application(FullValue(Variable(thing, "
-        "user_provided))))), FullValue(Variable(thing, user_provided)))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(f, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(Variable(*, user_provided)), Trailers()), FullValue(Headers(), Value(SubExpression(Application(FullValue(Headers(), Value(Variable(thing, user_provided)), Trailers())))), Trailers()), FullValue(Headers(), Value(Variable(thing, user_provided)), Trailers()))");
   }
   
   void testByteString() {
@@ -145,15 +149,12 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("f' b\"thing\"", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(f, "
-        "user_provided), Call()), FullValue(ByteString(thing)))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(f, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(ByteString(thing)), Trailers()))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("f' b \"thing\"", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Variable(f, "
-        "user_provided), Call()), FullValue(Variable(b, user_provided)), "
-        "FullValue(CharString(thing)))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Variable(f, user_provided)), Trailers(OpenCall())), FullValue(Headers(), Value(Variable(b, user_provided)), Trailers()), FullValue(Headers(), Value(CharString(thing)), Trailers()))");
   }
   
   void testParses() {
