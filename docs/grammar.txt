@@ -19,7 +19,7 @@
 
 <fullvalue> ::= <header>*<value><trailer>*
 
-<value> ::= (<explist>)
+<value> ::= \(<explist>)
          |  <function>
          |  <variable>
          |  <integer>
@@ -32,7 +32,7 @@
 <trailer> ::= <right-indicator>   # open call
            |  .<variable>         # lookup
            |  \[<explist>\]       # index
-           |  ((<application> ,)* [<application>]) # closed call
+           |  \((<application> ,)* [<application>]\) # closed call
 
 <left-indicator> ::= @
 
@@ -49,15 +49,13 @@
 <function> ::= {<program>}
             |  {|<arglist>| <program>}
 
-<arglist> ::= [<leftvars>;] <rightvars>
+<arglist> ::= [(<argument>, )* <argument>;] (<argument>, )* <argument>
 
-<leftvars> ::= [[<variable>(<explist>)] <variable>*,] <variable>*
-            | <variable>(<explist>) <variable>*
+<argument> ::= <variable>
+            |  <variable> : <fullvalue>
+            |  \*\(<variable>\)
 
-<rightvars> ::= <variable>* [,<variable>* [<variable>(<explist>)]]
-             |  <variable>* <variable>(<explist>)
-
-<list-expansion> ::= \*(<explist>)
+<list-expansion> ::= \*\(<explist>\)
 
 <map> ::= \[[<map-definition>]\]
 

@@ -53,19 +53,17 @@ namespace parser {
     qi::rule<Iterator, std::string()> charstringvalue;
     qi::rule<Iterator, std::string()> bytestringvalue;
     qi::rule<Iterator, ArgList(), ascii::space_type> arglist;
-    qi::rule<Iterator, HalfArgs(), ascii::space_type> leftargs;
-    qi::rule<Iterator, HalfArgs(), ascii::space_type> rightargs;
-    qi::rule<Iterator, HalfArgs(), ascii::space_type> leftargsnoopts;
-    qi::rule<Iterator, HalfArgs(), ascii::space_type> rightargsnoopts;
-    qi::rule<Iterator, OptionalArgs(), ascii::space_type> leftoptargs;
-    qi::rule<Iterator, OptionalArgs(), ascii::space_type> rightoptargs;
-    qi::rule<Iterator, VarArg()> vararg;
+    qi::rule<Iterator, std::vector<PTR<Argument> >(), ascii::space_type> argvec;
+    qi::rule<Iterator, PTR<Argument>(), ascii::space_type> argument;
+    qi::rule<Iterator, PTR<Argument>(), ascii::space_type> required_argument;
+    qi::rule<Iterator, PTR<Argument>(), ascii::space_type> optional_argument;
+    qi::rule<Iterator, PTR<Argument>(), ascii::space_type> variadic_argument;
     qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> assignee;
     qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> assignee_list;
     qi::rule<Iterator, std::vector<PTR<Assignee> >(), ascii::space_type>
         assignee_vect;
     qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> single_assignee;
-
+    
     grammar() : grammar::base_type(program) {
   
       program = -explist;
@@ -197,39 +195,31 @@ namespace parser {
           qi::skip(ascii::space)[program >> "}"])[qi::_val =
           phx::construct<PTR<Value> >(phx::new_<Function>(qi::_1, qi::_2))];
       function.name("function");
-      arglist = (qi::lit("|") >> -((leftargs | leftargsnoopts) >> ';') >> 
-          (rightargs | rightargsnoopts) >> qi::lit("|"))[
-          phx::bind(&ArgList::leftargs, qi::_val) = qi::_1,
-          phx::bind(&ArgList::rightargs, qi::_val) = qi::_2];
+      arglist = (qi::lit("|") >> -(argvec >> ";") >> argvec >> "|")[
+          phx::bind(&ArgList::left_args, qi::_val) = qi::_1,
+          phx::bind(&ArgList::right_args, qi::_val) = qi::_2];
       arglist.name("argument list");
-      vararg = (variable >> subexpression)[
-          phx::bind(&VarArg::name, qi::_val) = qi::_1,
-          phx::bind(&VarArg::subexpression, qi::_val) = qi::_2];
-      vararg.name("variadic argument");
-      leftoptargs = (-vararg >> *variable >> ',')[
-          phx::bind(&OptionalArgs::var_arg, qi::_val) = qi::_1,
-          phx::bind(&OptionalArgs::optional_args, qi::_val) = qi::_2];
-      leftoptargs.name("left optional arguments");
-      leftargs = (-leftoptargs >> *variable)[
-          phx::bind(&HalfArgs::optional_args, qi::_val) = qi::_1,
-          phx::bind(&HalfArgs::args, qi::_val) = qi::_2];
-      leftargs.name("left arguments");
-      leftargsnoopts = (vararg >> *variable)[
-          phx::bind(&HalfArgs::var_arg, qi::_val) = qi::_1,
-          phx::bind(&HalfArgs::args, qi::_val) = qi::_2];
-      leftargsnoopts.name("left arguments with no optionals");
-      rightoptargs = (qi::lit(',') >> *variable >> -vararg)[
-          phx::bind(&OptionalArgs::optional_args, qi::_val) = qi::_1,
-          phx::bind(&OptionalArgs::var_arg, qi::_val) = qi::_2];
-      rightoptargs.name("right optional arguments");
-      rightargs = (*variable >> -rightoptargs)[
-          phx::bind(&HalfArgs::args, qi::_val) = qi::_1,
-          phx::bind(&HalfArgs::optional_args, qi::_val) = qi::_2];
-      rightargs.name("right arguments");
-      rightargsnoopts = (*variable >> vararg)[
-          phx::bind(&HalfArgs::var_arg, qi::_val) = qi::_2,
-          phx::bind(&HalfArgs::args, qi::_val) = qi::_1];
-      rightargsnoopts.name("right arguments with no optionals");
+      
+      argvec = *(argument >> ",") >> -argument;
+      argvec.name("argument list");
+
+      argument = variadic_argument | optional_argument | required_argument;
+      argument.name("argument");
+      
+      required_argument = variable[
+          qi::_val = phx::construct<PTR<Argument> >(phx::new_<RequiredArgument>(
+          qi::_1))];
+      required_argument.name("required argument");
+      
+      optional_argument = (variable >> ":" >> fullvalue)[
+          qi::_val = phx::construct<PTR<Argument> >(phx::new_<OptionalArgument>(
+          qi::_1, qi::_2))];
+      optional_argument.name("optional argument");
+      
+      variadic_argument = (qi::lit("*(") >> variable >> ")")[
+          qi::_val = phx::construct<PTR<Argument> >(phx::new_<VariadicArgument>(
+          qi::_1))];
+      variadic_argument.name("variadic argument");
       
       mutation = (assignee >> ":=" >> expression)[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Mutation>(

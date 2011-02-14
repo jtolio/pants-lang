@@ -128,62 +128,117 @@ std::string cirth::ast::Map::format() const {
   return os.str();
 }
 
-cirth::ast::Function::Function(const boost::optional<ArgList>& args,
+std::string cirth::ast::RequiredArgument::format() const {
+  std::ostringstream os;
+  os << "RequiredArgument(" << name.format() << ")";
+  return os.str();
+}
+  
+std::string cirth::ast::OptionalArgument::format() const {
+  std::ostringstream os;
+  os << "OptionalArgument(" << name.format() << ", " << value->format() << ")";
+  return os.str();
+}
+  
+std::string cirth::ast::VariadicArgument::format() const {
+  std::ostringstream os;
+  os << "VariadicArgument(" << name.format() << ")";
+  return os.str();
+}
+  
+cirth::ast::Function::Function(const boost::optional<ArgList>& args_,
     const std::vector<PTR<Expression> >& expressions_)
   : expressions(expressions_)
 {
-  if(!args) return;
-  right_args = args->rightargs.args;
-  if(!!args->rightargs.optional_args) {
-    assert(!args->rightargs.var_arg);
-    right_optional_args = args->rightargs.optional_args->optional_args;
-    right_var_arg = args->rightargs.optional_args->var_arg;
-  } else if(!!args->rightargs.var_arg) {
-    right_var_arg = args->rightargs.var_arg;
+  if(!args_) return;
+  enum StateMachine {
+    REQUIRED,
+    OPTIONAL,
+    VARIADIC
+  };
+  StateMachine state = VARIADIC;
+
+  if(!!args_->left_args) {
+    const std::vector<PTR<Argument> > &left_args_ = args_->left_args.get();
+    left_required_args.reserve(left_args_.size());
+    left_optional_args.reserve(left_args_.size());
+    for(unsigned int i = 0; i < left_args_.size(); ++i) {
+      if(!left_args_[i].get()) continue;
+      if(dynamic_cast<VariadicArgument*>(left_args_[i].get())) {
+        if(state != VARIADIC)
+          throw expectation_failure("only one variadic argument expected");
+        state = OPTIONAL;
+        left_variadic_arg = *((VariadicArgument*)left_args_[i].get());
+      } else if(dynamic_cast<OptionalArgument*>(left_args_[i].get())) {
+        if(state == VARIADIC) state = OPTIONAL;
+        if(state != OPTIONAL)
+          throw expectation_failure("optional argument not expected");
+        left_optional_args.push_back(*((OptionalArgument*)left_args_[i].get()));
+      } else if(dynamic_cast<RequiredArgument*>(left_args_[i].get())) {
+        state = REQUIRED;
+        left_required_args.push_back(*((RequiredArgument*)left_args_[i].get()));
+      } else {
+        throw expectation_failure("unknown argument type");
+      }
+    }
   }
-  if(!args->leftargs) return;
-  left_args = args->leftargs->args;
-  if(!!args->leftargs->optional_args) {
-    assert(!args->leftargs->var_arg);
-    left_optional_args = args->leftargs->optional_args->optional_args;
-    left_var_arg = args->leftargs->optional_args->var_arg;
-  } else if(!!args->leftargs->var_arg) {
-    left_var_arg = args->leftargs->var_arg;
+
+  const std::vector<PTR<Argument> > &right_args_ = args_->right_args;
+  right_required_args.reserve(right_args_.size());
+  right_optional_args.reserve(right_args_.size());
+  state = REQUIRED;
+  for(unsigned int i = 0; i < right_args_.size(); ++i) {
+    if(!right_args_[i].get()) continue;
+    if(dynamic_cast<RequiredArgument*>(right_args_[i].get())) {
+      if(state != REQUIRED)
+        throw expectation_failure("required argument not expected");
+      right_required_args.push_back(*((RequiredArgument*)right_args_[i].get()));
+    } else if(dynamic_cast<OptionalArgument*>(right_args_[i].get())) {
+      if(state == REQUIRED) state = OPTIONAL;
+      if(state != OPTIONAL)
+        throw expectation_failure("optional argument not expected");
+      right_optional_args.push_back(*((OptionalArgument*)right_args_[i].get()));
+    } else if(dynamic_cast<VariadicArgument*>(right_args_[i].get())) {
+      if(state == VARIADIC)
+        throw expectation_failure("only one variadic argument expected");
+      state = VARIADIC;
+      right_variadic_arg = *((VariadicArgument*)right_args_[i].get());
+    } else {
+      throw expectation_failure("unknown argument type");
+    }
   }
 }
 
 std::string cirth::ast::Function::format() const {
   std::ostringstream os;
   os << "Function(";
-  os << "LeftArgs(";
-  for(unsigned int i = 0; i < left_args.size(); ++i) {
+  os << "Left(Required(";
+  for(unsigned int i = 0; i < left_required_args.size(); ++i) {
     if(i > 0) os << ", ";
-    os << left_args[i].format();
+    os << left_required_args[i].format();
   }
-  os << "), LeftOptionalArgs(";
+  os << "), Optional(";
   for(unsigned int i = 0; i < left_optional_args.size(); ++i) {
     if(i > 0) os << ", ";
     os << left_optional_args[i].format();
   }
-  os << "), ";
-  if(!!left_var_arg)
-    os << "LeftVariadicArg(" << left_var_arg->name.format() << ", " <<
-        left_var_arg->subexpression->format() << "), ";
-  os << "RightArgs(";
-  for(unsigned int i = 0; i < right_args.size(); ++i) {
+  os << ")";
+  if(!!left_variadic_arg)
+    os << ", Variadic(" << left_variadic_arg->name.format() << ")";
+  os << "), Right(Required(";
+  for(unsigned int i = 0; i < right_required_args.size(); ++i) {
     if(i > 0) os << ", ";
-    os << right_args[i].format();
+    os << right_required_args[i].format();
   }
-  os << "), RightOptionalArgs(";
+  os << "), Optional(";
   for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
     if(i > 0) os << ", ";
     os << right_optional_args[i].format();
   }
-  os << "), ";
-  if(!!right_var_arg)
-    os << "RightVariadicArg(" << right_var_arg->name.format() << ", " <<
-        right_var_arg->subexpression->format() << "), ";
-  os << "Expressions(";
+  os << ")";
+  if(!!right_variadic_arg)
+    os << ", Variadic(" << right_variadic_arg->name.format() << ")";
+  os << "), Expressions(";
   for(unsigned int i = 0; i < expressions.size(); ++i) {
     if(i > 0) os << ", ";
     os << expressions[i]->format();

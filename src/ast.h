@@ -7,6 +7,12 @@
 namespace cirth {
 namespace ast {
 
+  struct expectation_failure : std::runtime_error {
+    expectation_failure(const std::string& msg_) throw ()
+      : std::runtime_error(msg_) {}
+    ~expectation_failure() throw() {}
+  };
+
   struct Expression {
     virtual ~Expression() {} 
     virtual std::string format() const = 0;
@@ -31,6 +37,11 @@ namespace ast {
     virtual ~Assignee() {}
     virtual std::string format() const = 0;
     protected: Assignee() {} };
+
+  struct Argument {
+    virtual ~Argument() {}
+    virtual std::string format() const = 0;
+    protected: Argument() {} };
 
   struct List : public Expression {
     List(const std::vector<PTR<Expression> >& values_);
@@ -133,36 +144,40 @@ namespace ast {
     std::string format() const;
   };
   
-  struct VarArg {
+  struct RequiredArgument : public Argument {
+    RequiredArgument(const Variable& name_) : name(name_) {}
     Variable name;
-    PTR<Value> subexpression;
+    std::string format() const;
   };
   
-  struct OptionalArgs {
-    boost::optional<VarArg> var_arg;
-    std::vector<Variable> optional_args;
+  struct OptionalArgument : public Argument {
+    OptionalArgument(const Variable& name_, PTR<Term> value_)
+      : name(name_), value(value_) {}
+    Variable name;
+    PTR<Term> value;
+    std::string format() const;
   };
-
-  struct HalfArgs {
-    boost::optional<OptionalArgs> optional_args;
-    boost::optional<VarArg> var_arg;
-    std::vector<Variable> args;
+  
+  struct VariadicArgument : public Argument {
+    VariadicArgument(const Variable& name_) : name(name_) {}
+    Variable name;
+    std::string format() const;
   };
-
+  
   struct ArgList {
-    boost::optional<HalfArgs> leftargs;
-    HalfArgs rightargs;
+    boost::optional<std::vector<PTR<Argument> > > left_args;
+    std::vector<PTR<Argument> > right_args;
   };
-
+  
   struct Function : public Value {
-    Function(const boost::optional<ArgList>& args,
+    Function(const boost::optional<ArgList>& args_,
         const std::vector<PTR<Expression> >& expressions_);
-    std::vector<Variable> right_args;
-    std::vector<Variable> right_optional_args;
-    boost::optional<VarArg> right_var_arg;
-    std::vector<Variable> left_args;
-    std::vector<Variable> left_optional_args;
-    boost::optional<VarArg> left_var_arg;
+    std::vector<RequiredArgument> left_required_args;
+    std::vector<OptionalArgument> left_optional_args;
+    boost::optional<VariadicArgument> left_variadic_arg;
+    std::vector<RequiredArgument> right_required_args;
+    std::vector<OptionalArgument> right_optional_args;
+    boost::optional<VariadicArgument> right_variadic_arg;
     std::vector<PTR<Expression> > expressions;
     std::string format() const;
   };
