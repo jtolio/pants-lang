@@ -1,7 +1,8 @@
 parser
+ * figure out kwargs
  * list-expansion assignee
  * sub-list assignee
- * default args, list-expansion args
+ * c-style named args, list-expansion
  * strings
  * comments
  * more unit tests

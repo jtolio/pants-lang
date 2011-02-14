@@ -57,7 +57,8 @@ namespace parser {
     qi::rule<Iterator, PTR<Argument>(), ascii::space_type> argument;
     qi::rule<Iterator, PTR<Argument>(), ascii::space_type> required_argument;
     qi::rule<Iterator, PTR<Argument>(), ascii::space_type> optional_argument;
-    qi::rule<Iterator, PTR<Argument>(), ascii::space_type> variadic_argument;
+    qi::rule<Iterator, PTR<Argument>(), ascii::space_type> arbitrary_argument;
+    qi::rule<Iterator, PTR<Argument>(), ascii::space_type> keyword_argument;
     qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> assignee;
     qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> assignee_list;
     qi::rule<Iterator, std::vector<PTR<Assignee> >(), ascii::space_type>
@@ -203,7 +204,10 @@ namespace parser {
       argvec = *(argument >> ",") >> -argument;
       argvec.name("argument list");
 
-      argument = variadic_argument | optional_argument | required_argument;
+      argument = keyword_argument
+               | arbitrary_argument
+               | optional_argument
+               | required_argument;
       argument.name("argument");
       
       required_argument = variable[
@@ -216,10 +220,15 @@ namespace parser {
           qi::_1, qi::_2))];
       optional_argument.name("optional argument");
       
-      variadic_argument = (qi::lit("*(") >> variable >> ")")[
-          qi::_val = phx::construct<PTR<Argument> >(phx::new_<VariadicArgument>(
+      arbitrary_argument = (qi::lit("*(") >> variable >> ")")[
+          qi::_val = phx::construct<PTR<Argument> >(
+          phx::new_<ArbitraryArgument>(qi::_1))];
+      arbitrary_argument.name("arbitrary argument");
+      
+      keyword_argument = (qi::lit("**(") >> variable >> ")")[
+          qi::_val = phx::construct<PTR<Argument> >(phx::new_<KeywordArgument>(
           qi::_1))];
-      variadic_argument.name("variadic argument");
+      keyword_argument.name("keyword argument");
       
       mutation = (assignee >> ":=" >> expression)[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Mutation>(

@@ -182,7 +182,7 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("{|a,b,c:3,d:4,*(remainder)|}", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Function(Left(Required(), Optional()), Right(Required(RequiredArgument(Variable(a, user_provided)), RequiredArgument(Variable(b, user_provided))), Optional(OptionalArgument(Variable(c, user_provided), FullValue(Headers(), Value(Integer(3)), Trailers())), OptionalArgument(Variable(d, user_provided), FullValue(Headers(), Value(Integer(4)), Trailers()))), Variadic(Variable(remainder, user_provided))), Expressions())), Trailers()))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Function(Left(Required(), Optional()), Right(Required(RequiredArgument(Variable(a, user_provided)), RequiredArgument(Variable(b, user_provided))), Optional(OptionalArgument(Variable(c, user_provided), FullValue(Headers(), Value(Integer(3)), Trailers())), OptionalArgument(Variable(d, user_provided), FullValue(Headers(), Value(Integer(4)), Trailers()))), Arbitrary(Variable(remainder, user_provided))), Expressions())), Trailers()))");
     exps.clear();
     CPPUNIT_ASSERT(!cirth::parser::parse("{|a,b,c:3,d:4,q(remainder)|}", exps));
     exps.clear();
@@ -219,26 +219,17 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("{|*(var),c:3,a,b,;|}", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Function(Left(Required(RequiredArgument(Variable(a, user_provided)), RequiredArgument(Variable(b, user_provided))), Optional(OptionalArgument(Variable(c, user_provided), FullValue(Headers(), Value(Integer(3)), Trailers()))), Variadic(Variable(var, user_provided))), Right(Required(), Optional()), Expressions())), Trailers()))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Function(Left(Required(RequiredArgument(Variable(a, user_provided)), RequiredArgument(Variable(b, user_provided))), Optional(OptionalArgument(Variable(c, user_provided), FullValue(Headers(), Value(Integer(3)), Trailers()))), Arbitrary(Variable(var, user_provided))), Right(Required(), Optional()), Expressions())), Trailers()))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("{|*(var),c:3,a,b,d;e,f,g:5,h:7,*(j)|}", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Function(Left(Required(RequiredArgument(Variable(a, user_provided)), RequiredArgument(Variable(b, user_provided)), RequiredArgument(Variable(d, user_provided))), Optional(OptionalArgument(Variable(c, user_provided), FullValue(Headers(), Value(Integer(3)), Trailers()))), Variadic(Variable(var, user_provided))), Right(Required(RequiredArgument(Variable(e, user_provided)), RequiredArgument(Variable(f, user_provided))), Optional(OptionalArgument(Variable(g, user_provided), FullValue(Headers(), Value(Integer(5)), Trailers())), OptionalArgument(Variable(h, user_provided), FullValue(Headers(), Value(Integer(7)), Trailers()))), Variadic(Variable(j, user_provided))), Expressions())), Trailers()))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Function(Left(Required(RequiredArgument(Variable(a, user_provided)), RequiredArgument(Variable(b, user_provided)), RequiredArgument(Variable(d, user_provided))), Optional(OptionalArgument(Variable(c, user_provided), FullValue(Headers(), Value(Integer(3)), Trailers()))), Arbitrary(Variable(var, user_provided))), Right(Required(RequiredArgument(Variable(e, user_provided)), RequiredArgument(Variable(f, user_provided))), Optional(OptionalArgument(Variable(g, user_provided), FullValue(Headers(), Value(Integer(5)), Trailers())), OptionalArgument(Variable(h, user_provided), FullValue(Headers(), Value(Integer(7)), Trailers()))), Arbitrary(Variable(j, user_provided))), Expressions())), Trailers()))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("{|*(a);*(b)|}", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Function(Left(Required(), Optional(), Variadic(Variable(a, user_provided))), Right(Required(), Optional(), Variadic(Variable(b, user_provided))), Expressions())), Trailers()))");
-/*  TODO: get failures to fail gracefully
-    exps.clear();
-    CPPUNIT_ASSERT(!cirth::parser::parse("{|c,*(a);|}", exps));
-    exps.clear();
-    CPPUNIT_ASSERT(!cirth::parser::parse("{|*(a),c|}", exps));
-    exps.clear();
-    CPPUNIT_ASSERT(!cirth::parser::parse("{|a:3,c|}", exps));
-    exps.clear();
-    CPPUNIT_ASSERT(!cirth::parser::parse("{|a,c:3;|}", exps));*/
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(FullValue(Headers(), Value(Function(Left(Required(), Optional(), Arbitrary(Variable(a, user_provided))), Right(Required(), Optional(), Arbitrary(Variable(b, user_provided))), Expressions())), Trailers()))");
   }
   
   void testListExpansion() {

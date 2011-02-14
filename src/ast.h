@@ -158,8 +158,14 @@ namespace ast {
     std::string format() const;
   };
   
-  struct VariadicArgument : public Argument {
-    VariadicArgument(const Variable& name_) : name(name_) {}
+  struct ArbitraryArgument : public Argument {
+    ArbitraryArgument(const Variable& name_) : name(name_) {}
+    Variable name;
+    std::string format() const;
+  };
+  
+  struct KeywordArgument : public Argument {
+    KeywordArgument(const Variable& name_) : name(name_) {}
     Variable name;
     std::string format() const;
   };
@@ -174,10 +180,12 @@ namespace ast {
         const std::vector<PTR<Expression> >& expressions_);
     std::vector<RequiredArgument> left_required_args;
     std::vector<OptionalArgument> left_optional_args;
-    boost::optional<VariadicArgument> left_variadic_arg;
+    boost::optional<ArbitraryArgument> left_arbitrary_arg;
+    boost::optional<KeywordArgument> left_keyword_arg;
     std::vector<RequiredArgument> right_required_args;
     std::vector<OptionalArgument> right_optional_args;
-    boost::optional<VariadicArgument> right_variadic_arg;
+    boost::optional<ArbitraryArgument> right_arbitrary_arg;
+    boost::optional<KeywordArgument> right_keyword_arg;
     std::vector<PTR<Expression> > expressions;
     std::string format() const;
   };

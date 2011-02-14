@@ -54,6 +54,7 @@
 <argument> ::= <variable>
             |  <variable> : <fullvalue>
             |  \*\(<variable>\)
+            |  \*\*\(<variable>\)
 
 <list-expansion> ::= \*\(<explist>\)
 
