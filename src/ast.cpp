@@ -1,23 +1,5 @@
 #include "ast.h"
 
-cirth::ast::List::List(const std::vector<PTR<Expression> >& values_) {
-  values.reserve(values_.size());
-  for(unsigned int i = 0; i < values_.size(); ++i) {
-    if(values_[i].get()) values.push_back(values_[i]);
-  }
-}
-
-std::string cirth::ast::List::format() const {
-  std::ostringstream os;
-  os << "List(";
-  for(unsigned int i = 0; i < values.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << values[i]->format();
-  }
-  os << ")";
-  return os.str();
-}
-
 std::string cirth::ast::Application::format() const {
   std::ostringstream os;
   os << "Application(";
@@ -35,20 +17,9 @@ std::string cirth::ast::Assignment::format() const {
   return os.str();
 }
 
-std::string cirth::ast::ListExpansion::format() const {
+std::string cirth::ast::Term::format() const {
   std::ostringstream os;
-  os << "ListExpansion(";
-  for(unsigned int i = 0; i < expressions.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << expressions[i]->format();
-  }
-  os << ")";
-  return os.str();
-}
-
-std::string cirth::ast::FullValue::format() const {
-  std::ostringstream os;
-  os << "FullValue(Headers(";
+  os << "Term(Headers(";
   for(unsigned int i = 0; i < headers.size(); ++i) {
     if(i > 0) os << ", ";
     os << headers[i]->format();
@@ -104,22 +75,23 @@ std::string cirth::ast::Float::format() const {
   return os.str();
 }
 
-std::string cirth::ast::MapDefinition::format() const {
+std::string cirth::ast::DictDefinition::format() const {
   std::ostringstream os;
-  os << "MapDefinition(" << key->format() << ", " << value->format() << ")";
+  os << "DictDefinition(" << key->format() << ", " << value->format() << ")";
   return os.str();
 }
 
-cirth::ast::Map::Map(const std::vector<MapDefinition>& values_) {
+cirth::ast::Dictionary::Dictionary(const std::vector<DictDefinition>& values_) {
   values.reserve(values_.size());
   for(unsigned int i = 0; i < values_.size(); ++i) {
-    if(values_[i].key.get()) values.push_back(values_[i]);
+    if(values_[i].key.get() && values_[i].value.get())
+      values.push_back(values_[i]);
   }
 }
 
-std::string cirth::ast::Map::format() const {
+std::string cirth::ast::Dictionary::format() const {
   std::ostringstream os;
-  os << "Map(";
+  os << "Dictionary(";
   for(unsigned int i = 0; i < values.size(); ++i) {
     if(i > 0) os << ", ";
     os << values[i].format();
@@ -128,118 +100,142 @@ std::string cirth::ast::Map::format() const {
   return os.str();
 }
 
-std::string cirth::ast::RequiredArgument::format() const {
+std::string cirth::ast::Array::format() const {
   std::ostringstream os;
-  os << "RequiredArgument(" << name.format() << ")";
-  return os.str();
-}
-  
-std::string cirth::ast::OptionalArgument::format() const {
-  std::ostringstream os;
-  os << "OptionalArgument(" << name.format() << ", " << value->format() << ")";
-  return os.str();
-}
-  
-std::string cirth::ast::ArbitraryArgument::format() const {
-  std::ostringstream os;
-  os << "ArbitraryArgument(" << name.format() << ")";
-  return os.str();
-}
-  
-std::string cirth::ast::KeywordArgument::format() const {
-  std::ostringstream os;
-  os << "KeywordArgument(" << name.format() << ")";
-  return os.str();
-}
-  
-cirth::ast::Function::Function(const boost::optional<ArgList>& args_,
-    const std::vector<PTR<Expression> >& expressions_)
-  : expressions(expressions_)
-{
-  if(!args_) return;
-
-  if(!!args_->left_args) {
-    const std::vector<PTR<Argument> > &left_args_ = args_->left_args.get();
-    left_required_args.reserve(left_args_.size());
-    left_optional_args.reserve(left_args_.size());
-    for(unsigned int i = 0; i < left_args_.size(); ++i) {
-      if(!left_args_[i].get()) continue;
-      if(dynamic_cast<ArbitraryArgument*>(left_args_[i].get())) {
-        if(!!left_arbitrary_arg)
-          throw expectation_failure(
-              "only one left arbitrary argument expected");
-        left_arbitrary_arg = *((ArbitraryArgument*)left_args_[i].get());
-      } else if(dynamic_cast<KeywordArgument*>(left_args_[i].get())) {
-        if(!!left_keyword_arg)
-          throw expectation_failure("only one left keyword argument expected");
-        left_keyword_arg = *((KeywordArgument*)left_args_[i].get());
-      } else if(dynamic_cast<OptionalArgument*>(left_args_[i].get())) {
-        left_optional_args.push_back(*((OptionalArgument*)left_args_[i].get()));
-      } else if(dynamic_cast<RequiredArgument*>(left_args_[i].get())) {
-        left_required_args.push_back(*((RequiredArgument*)left_args_[i].get()));
-      } else {
-        throw expectation_failure("unknown argument type");
-      }
-    }
+  os << "Array(";
+  for(unsigned int i = 0; i < values.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << values[i]->format();
   }
+  os << ")";
+  return os.str();
+}
 
-  const std::vector<PTR<Argument> > &right_args_ = args_->right_args;
-  right_required_args.reserve(right_args_.size());
-  right_optional_args.reserve(right_args_.size());
-  for(unsigned int i = 0; i < right_args_.size(); ++i) {
-    if(!right_args_[i].get()) continue;
-    if(dynamic_cast<RequiredArgument*>(right_args_[i].get())) {
-      right_required_args.push_back(*((RequiredArgument*)right_args_[i].get()));
-    } else if(dynamic_cast<OptionalArgument*>(right_args_[i].get())) {
-      right_optional_args.push_back(*((OptionalArgument*)right_args_[i].get()));
-    } else if(dynamic_cast<ArbitraryArgument*>(right_args_[i].get())) {
-      if(!!right_arbitrary_arg)
-        throw expectation_failure("only one right arbitrary argument expected");
-      right_arbitrary_arg = *((ArbitraryArgument*)right_args_[i].get());
-    } else if(dynamic_cast<KeywordArgument*>(right_args_[i].get())) {
-      if(!!right_keyword_arg)
-        throw expectation_failure("only one right keyword argument expected");
-      right_keyword_arg = *((KeywordArgument*)right_args_[i].get());
+std::string cirth::ast::RequiredInArgument::format() const {
+  std::ostringstream os;
+  os << "RequiredInArgument(" << name.format() << ")";
+  return os.str();
+}
+  
+std::string cirth::ast::OptionalInArgument::format() const {
+  std::ostringstream os;
+  os << "OptionalInArgument(" << name.format() << ", " << value->format()
+     << ")";
+  return os.str();
+}
+  
+std::string cirth::ast::ArbitraryInArgument::format() const {
+  std::ostringstream os;
+  os << "ArbitraryInArgument(" << name.format() << ")";
+  return os.str();
+}
+  
+std::string cirth::ast::KeywordInArgument::format() const {
+  std::ostringstream os;
+  os << "KeywordInArgument(" << name.format() << ")";
+  return os.str();
+}
+  
+std::string cirth::ast::RequiredOutArgument::format() const {
+  std::ostringstream os;
+  os << "RequiredOutArgument(" << application->format() << ")";
+  return os.str();
+}
+  
+std::string cirth::ast::OptionalOutArgument::format() const {
+  std::ostringstream os;
+  os << "OptionalOutArgument(" << name.format() << ", " << application->format()
+     << ")";
+  return os.str();
+}
+  
+std::string cirth::ast::ArbitraryOutArgument::format() const {
+  std::ostringstream os;
+  os << "ArbitraryOutArgument(";
+  for(unsigned int i = 0; i < array.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << array[i]->format();
+  }
+  os << ")";
+  return os.str();
+}
+  
+std::string cirth::ast::KeywordOutArgument::format() const {
+  std::ostringstream os;
+  os << "KeywordOutArgument(";
+  for(unsigned int i = 0; i < object.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << object[i]->format();
+  }
+  os << ")";
+  return os.str();
+}
+
+static void loadHalfArgs(
+    const std::vector<PTR<cirth::ast::InArgument> >& in_args,
+    cirth::ast::HalfArgs& arg_store) {
+  using namespace cirth::ast;
+  arg_store.required_args.reserve(in_args.size());
+  arg_store.optional_args.reserve(in_args.size());
+  for(unsigned int i = 0; i < in_args.size(); ++i) {
+    if(!in_args[i].get()) continue;
+    if(dynamic_cast<ArbitraryInArgument*>(in_args[i].get())) {
+      if(!!arg_store.arbitrary_arg)
+        throw expectation_failure(
+            "only one arbitrary argument expected");
+      arg_store.arbitrary_arg = *((ArbitraryInArgument*)in_args[i].get());
+    } else if(dynamic_cast<KeywordInArgument*>(in_args[i].get())) {
+      if(!!arg_store.keyword_arg)
+        throw expectation_failure("only one keyword argument expected");
+      arg_store.keyword_arg = *((KeywordInArgument*)in_args[i].get());
+    } else if(dynamic_cast<OptionalInArgument*>(in_args[i].get())) {
+      arg_store.optional_args.push_back(
+          *((OptionalInArgument*)in_args[i].get()));
+    } else if(dynamic_cast<RequiredInArgument*>(in_args[i].get())) {
+      arg_store.required_args.push_back(
+          *((RequiredInArgument*)in_args[i].get()));
     } else {
       throw expectation_failure("unknown argument type");
     }
   }
 }
+  
+cirth::ast::Function::Function(const boost::optional<InArgList>& args_,
+    const std::vector<PTR<Expression> >& expressions_)
+  : expressions(expressions_)
+{
+  if(!args_) return;
+
+  if(!!args_->left_args)
+    loadHalfArgs(args_->left_args.get(), left);
+
+  loadHalfArgs(args_->right_args, right);
+}
+
+std::string cirth::ast::HalfArgs::format() const {
+  std::ostringstream os;
+  os << "Required(";
+  for(unsigned int i = 0; i < required_args.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << required_args[i].format();
+  }
+  os << "), Optional(";
+  for(unsigned int i = 0; i < optional_args.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << optional_args[i].format();
+  }
+  os << ")";
+  if(!!arbitrary_arg)
+    os << ", Arbitrary(" << arbitrary_arg->name.format() << ")";
+  if(!!keyword_arg)
+    os << ", Keyword(" << arbitrary_arg->name.format() << ")";
+  return os.str();
+}
 
 std::string cirth::ast::Function::format() const {
   std::ostringstream os;
-  os << "Function(";
-  os << "Left(Required(";
-  for(unsigned int i = 0; i < left_required_args.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << left_required_args[i].format();
-  }
-  os << "), Optional(";
-  for(unsigned int i = 0; i < left_optional_args.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << left_optional_args[i].format();
-  }
-  os << ")";
-  if(!!left_arbitrary_arg)
-    os << ", Arbitrary(" << left_arbitrary_arg->name.format() << ")";
-  if(!!left_keyword_arg)
-    os << ", Keyword(" << left_arbitrary_arg->name.format() << ")";
-  os << "), Right(Required(";
-  for(unsigned int i = 0; i < right_required_args.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << right_required_args[i].format();
-  }
-  os << "), Optional(";
-  for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << right_optional_args[i].format();
-  }
-  os << ")";
-  if(!!right_arbitrary_arg)
-    os << ", Arbitrary(" << right_arbitrary_arg->name.format() << ")";
-  if(!!right_keyword_arg)
-    os << ", Keyword(" << right_keyword_arg->name.format() << ")";
-  os << "), Expressions(";
+  os << "Function(Left(" << left.format() << "), Right(" << right.format()
+     << "), Expressions(";
   for(unsigned int i = 0; i < expressions.size(); ++i) {
     if(i > 0) os << ", ";
     os << expressions[i]->format();
@@ -268,46 +264,38 @@ std::string cirth::ast::Index::format() const {
 }
 
 cirth::ast::ClosedCall::ClosedCall(
-    const std::vector<PTR<Expression> >& arguments_) {
-  arguments.reserve(arguments_.size());
-  for(unsigned int i = 0; i < arguments_.size(); ++i) {
-    if(arguments_[i].get()) arguments.push_back(arguments_[i]);
+    const boost::optional<std::vector<PTR<OutArgument> > >& left_args_,
+    const std::vector<PTR<OutArgument> >& right_args_) {
+  if(!!left_args_) {
+    left_args.reserve(left_args_.get().size());
+    for(unsigned int i = 0; i < left_args_.get().size(); ++i) {
+      if(left_args_.get()[i].get()) left_args.push_back(left_args_.get()[i]);
+    }
+  }
+  right_args.reserve(right_args_.size());
+  for(unsigned int i = 0; i < right_args_.size(); ++i) {
+    if(right_args_[i].get()) right_args.push_back(right_args_[i]);
   }
 }
 
 std::string cirth::ast::ClosedCall::format() const {
   std::ostringstream os;
-  os << "ClosedCall(";
-  for(unsigned int i = 0; i < arguments.size(); ++i) {
+  os << "ClosedCall(Left(";
+  for(unsigned int i = 0; i < left_args.size(); ++i) {
     if(i > 0) os << ", ";
-    os << arguments[i]->format();
+    os << left_args[i]->format();
   }
-  os << ")";
-  return os.str();
-}
-
-std::string cirth::ast::SingleAssignee::format() const {
-  std::ostringstream os;
-  os << "SingleAssignee(" << fullvalue->format() << ")";
-  return os.str();
-}
-
-cirth::ast::AssigneeList::AssigneeList(
-    const std::vector<PTR<Assignee> >& assignees_) {
-  assignees.reserve(assignees_.size());
-  for(unsigned int i = 0; i < assignees_.size(); ++i) {
-    if(assignees_[i].get()) assignees.push_back(assignees_[i]);
-  }
-}
-
-std::string cirth::ast::AssigneeList::format() const {
-  std::ostringstream os;
-  os << "AssigneeList(";
-  for(unsigned int i = 0; i < assignees.size(); ++i) {
+  os << "), Right(";
+  for(unsigned int i = 0; i < right_args.size(); ++i) {
     if(i > 0) os << ", ";
-    os << assignees[i]->format();
+    os << right_args[i]->format();
   }
-  os << ")";
+  os << "))";
   return os.str();
 }
 
+std::string cirth::ast::Assignee::format() const {
+  std::ostringstream os;
+  os << "Assignee(" << term->format() << ")";
+  return os.str();
+}

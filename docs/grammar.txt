@@ -10,7 +10,7 @@
 
 <term> ::= <header>*<value><trailer>*
 
-<value> ::= \(<explist>)
+<value> ::= \(<explist>\)
          |  <function>
          |  <variable>
          |  <integer>
@@ -45,8 +45,8 @@
             |  <term>.<variable>
             |  <term>\[<explist>\]
 
-<function> ::= {<program>}
-            |  {|<arglist>| <program>}
+<function> ::= {<explist>}
+            |  {|<arglist>| <explist>}
 
 <arglist> ::= [<in-arguments>;] [<in-arguments>]
 
