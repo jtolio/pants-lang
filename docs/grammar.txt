@@ -1,23 +1,14 @@
-
-#expected, integer, string, float, variable
-
 <program> ::= [<explist>]
 
 <explist> ::= <exp> [; [<explist>]]
 
-<exp> ::= <assignment>
-       |  <list>
+<exp> ::= <application>
        |  <mutation>
        |  <definition>
         
-<list> ::= <application>, [<list>]
-
 <application> ::= <term>+
 
-<term> ::= <fullvalue>
-        |  <list-expansion>
-
-<fullvalue> ::= <header>*<value><trailer>*
+<term> ::= <header>*<value><trailer>*
 
 <value> ::= \(<explist>)
          |  <function>
@@ -25,43 +16,49 @@
          |  <integer>
          |  <string>
          |  <float>
-         |  <map>
+         |  <dictionary>
+         |  <array>
 
 <header> ::= <left-indicator>     # open call
 
 <trailer> ::= <right-indicator>   # open call
            |  .<variable>         # lookup
            |  \[<explist>\]       # index
-           |  \((<application> ,)* [<application>]\) # closed call
+           |  \([<out-arguments>;] [<out-arguments>]\) # closed call
 
 <left-indicator> ::= @
 
 <right-indicator> ::= ' | ?
 
+<out-arguments> ::= (<out-argument>,)* <out-argument>
+
+<out-argument> ::= <application>
+                |  <variable> : <application>
+                |  \*\(<explist>\)
+                |  \*\*\(<explist>\)
+
 <mutation> ::= <assignee> := <exp>
 
 <definition> ::= <assignee> = <exp>
 
-<assignee> ::= <variable> [, [<assignee>]]
-            |  <fullvalue>.<variable> [, [<assignee>]]
-            |  <fullvalue>\[<explist>\] [, [<assignee>]]
+<assignee> ::= <variable>
+            |  <term>.<variable>
+            |  <term>\[<explist>\]
 
 <function> ::= {<program>}
             |  {|<arglist>| <program>}
 
-<arglist> ::= [(<argument>, )* <argument>;] (<argument>, )* <argument>
+<arglist> ::= [<in-arguments>;] [<in-arguments>]
 
-<argument> ::= <variable>
-            |  <variable> : <fullvalue>
-            |  \*\(<variable>\)
-            |  \*\*\(<variable>\)
+<in-arguments> ::= (<in-argument>,)* <in-argument>
 
-<list-expansion> ::= \*\(<explist>\)
+<in-argument> ::= <variable>
+               |  <variable> : <application>
+               |  \*\(<variable>\)
+               |  \*\*\(<variable>\)
 
-<map> ::= \[[<map-definition>]\]
+<dictionary> ::= { (<dict-definition>,)* [<dict-definition>] }
 
-<map-definition> ::= <application>: <application> [, [<map-definition>]]
+<dict-definition> ::= <application>: <application>
 
-  `-=[]\;',./~!@#$%^&*()_+{}|:"<>?
-
-# variables are alphanumeric and can contain any characters but ,.{}()[]#;'"\:?
+<array> ::= \[(<application>,)* [<application]\]
