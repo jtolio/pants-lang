@@ -1,8 +1,7 @@
 parser
- * figure out kwargs
- * list-expansion assignee
- * sub-list assignee
- * c-style named args, list-expansion
+ * fix parser and tests to match ast and grammar
+ * make semicolons optional (newlines work too)
+ * function calls should allow passing things into the function's scope
  * strings
  * comments
  * more unit tests
