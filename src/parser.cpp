@@ -18,18 +18,11 @@ namespace parser {
     qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
         explist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> expression;
-    qi::rule<Iterator, PTR<Expression>(), ascii::space_type> list;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> mutation;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> definition;
-    qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
-        appcommalist;
-    qi::rule<Iterator, std::vector<PTR<Expression> >(), ascii::space_type>
-        closedcallarglist;
     qi::rule<Iterator, PTR<Expression>(), ascii::space_type> application;
     qi::rule<Iterator, std::vector<PTR<Term> >(), ascii::space_type> termlist;
     qi::rule<Iterator, PTR<Term>(), ascii::space_type> term;
-    qi::rule<Iterator, PTR<Term>(), ascii::space_type> listexpansion;
-    qi::rule<Iterator, PTR<Term>()> fullvalue;
     qi::rule<Iterator, PTR<ValueModifier>()> header;
     qi::rule<Iterator, PTR<ValueModifier>()> trailer;
     qi::rule<Iterator, PTR<ValueModifier>()> rightopencall;
@@ -45,25 +38,22 @@ namespace parser {
     qi::rule<Iterator, PTR<Value>()> bytestring;
     qi::rule<Iterator, PTR<Value>()> charstring;
     qi::rule<Iterator, PTR<Value>()> floating;
-    qi::rule<Iterator, PTR<Value>()> map;
-    qi::rule<Iterator, std::vector<MapDefinition>(), ascii::space_type>
-        mapdefinitionlist;
-    qi::rule<Iterator, MapDefinition(), ascii::space_type> mapdefinition;
+    qi::rule<Iterator, PTR<Value>()> dictionary;
+    qi::rule<Iterator, PTR<Value>()> array;
+    qi::rule<Iterator, std::vector<DictDefinition>(), ascii::space_type>
+        dictdefinitionlist;
+    qi::rule<Iterator, DictDefinition(), ascii::space_type> dictdefinition;
     qi::rule<Iterator, std::string()> identifier;
     qi::rule<Iterator, std::string()> charstringvalue;
     qi::rule<Iterator, std::string()> bytestringvalue;
-    qi::rule<Iterator, ArgList(), ascii::space_type> arglist;
-    qi::rule<Iterator, std::vector<PTR<Argument> >(), ascii::space_type> argvec;
-    qi::rule<Iterator, PTR<Argument>(), ascii::space_type> argument;
-    qi::rule<Iterator, PTR<Argument>(), ascii::space_type> required_argument;
-    qi::rule<Iterator, PTR<Argument>(), ascii::space_type> optional_argument;
-    qi::rule<Iterator, PTR<Argument>(), ascii::space_type> arbitrary_argument;
-    qi::rule<Iterator, PTR<Argument>(), ascii::space_type> keyword_argument;
+    qi::rule<Iterator, InArgList(), ascii::space_type> inarglist;
+    qi::rule<Iterator, std::vector<PTR<InArgument> >(), ascii::space_type> inargvec;
+    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type> in_argument;
+    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type> required_in_argument;
+    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type> optional_in_argument;
+    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type> arbitrary_in_argument;
+    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type> keyword_in_argument;
     qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> assignee;
-    qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> assignee_list;
-    qi::rule<Iterator, std::vector<PTR<Assignee> >(), ascii::space_type>
-        assignee_vect;
-    qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> single_assignee;
     
     grammar() : grammar::base_type(program) {
   
@@ -73,33 +63,19 @@ namespace parser {
       explist = expression % ';' >> -qi::lit(';');
       explist.name("expression list");
       
-      appcommalist = +(application >> ',') >> -application;
-      appcommalist.name("list");
-      list = appcommalist[
-          qi::_val = phx::construct<PTR<Expression> >(phx::new_<List>(qi::_1))];
-      list.name("list");
-      
       termlist = +term;
       termlist.name("application");
       application = termlist[qi::_val = phx::construct<PTR<Expression> >(
           phx::new_<Application>(qi::_1))];
       application.name("application");
       
-      expression = definition | mutation | list | application;
+      expression = definition | mutation | application;
       expression.name("expression");
        
-      term = listexpansion | fullvalue;
-      term.name("term");
-      
-      listexpansion = (qi::lit("*(") >> explist >> ")")[
-          qi::_val = phx::construct<PTR<Term> >(
-          phx::new_<ListExpansion>(qi::_1))];
-      listexpansion.name("list expansion");
-      
-      fullvalue = (*header >> value >> *trailer)[
+      term = (*header >> value >> *trailer)[
           qi::_val = phx::construct<PTR<Term> >(phx::new_<FullValue>(qi::_1,
           qi::_2, qi::_3))];
-      fullvalue.name("value with trailer");
+      term.name("term");
       
       trailer = rightopencall | index | field | closedcall;
       trailer.name("value trailer");
@@ -138,7 +114,8 @@ namespace parser {
             | integer
             | charstring
             | floating
-            | map;
+            | dictionary
+            | array;
       value.name("value");
       
       subexpression = (qi::lit("(") >> qi::skip(ascii::space)[explist >> ")"])[
@@ -179,56 +156,56 @@ namespace parser {
           phx::new_<ByteString>(qi::_1))];
       bytestring.name("byte string");
       
-      map = (qi::lit("[") >> qi::skip(ascii::space)[mapdefinitionlist >>
+      dictionary = (qi::lit("[") >> qi::skip(ascii::space)[dictdefinitionlist >>
           qi::lit("]")])[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<Map>(qi::_1))]; 
-      map.name("map");
+      dictionary.name("dictionary");
       
-      mapdefinitionlist = *(mapdefinition >> qi::lit(',')) >> -mapdefinition;
-      mapdefinitionlist.name("map definition list");
+      dictdefinitionlist = *(dictdefinition >> qi::lit(',')) >> -dictdefinition;
+      dictdefinitionlist.name("dictionary definition list");
       
-      mapdefinition = (application >> ':' >> application)[phx::bind(
-          &MapDefinition::key, qi::_val) = qi::_1, phx::bind(
-          &MapDefinition::value, qi::_val) = qi::_2];
-      mapdefinition.name("map definition");
+      dictdefinition = (application >> ':' >> application)[phx::bind(
+          &DictDefinition::key, qi::_val) = qi::_1, phx::bind(
+          &DictDefinition::value, qi::_val) = qi::_2];
+      dictdefinition.name("dictionary definition");
       
       function = (qi::lit("{") >> qi::skip(ascii::space)[-arglist] >>
-          qi::skip(ascii::space)[program >> "}"])[qi::_val =
+          qi::skip(ascii::space)[explist >> "}"])[qi::_val =
           phx::construct<PTR<Value> >(phx::new_<Function>(qi::_1, qi::_2))];
       function.name("function");
-      arglist = (qi::lit("|") >> -(argvec >> ";") >> argvec >> "|")[
-          phx::bind(&ArgList::left_args, qi::_val) = qi::_1,
-          phx::bind(&ArgList::right_args, qi::_val) = qi::_2];
-      arglist.name("argument list");
+      inarglist = (qi::lit("|") >> -(inargvec >> ";") >> inargvec >> "|")[
+          phx::bind(&InArgList::left_args, qi::_val) = qi::_1,
+          phx::bind(&InArgList::right_args, qi::_val) = qi::_2];
+      inarglist.name("in argument list");
       
-      argvec = *(argument >> ",") >> -argument;
-      argvec.name("argument list");
+      inargvec = *(in_argument >> ",") >> -in_argument;
+      inargvec.name("in argument list");
 
-      argument = keyword_argument
-               | arbitrary_argument
-               | optional_argument
-               | required_argument;
-      argument.name("argument");
+      in_argument = keyword_in_argument
+               | arbitrary_in_argument
+               | optional_in_argument
+               | required_in_argument;
+      in_argument.name("in argument");
       
-      required_argument = variable[
-          qi::_val = phx::construct<PTR<Argument> >(phx::new_<RequiredArgument>(
+      required_in_argument = variable[
+          qi::_val = phx::construct<PTR<InArgument> >(phx::new_<RequiredInArgument>(
           qi::_1))];
-      required_argument.name("required argument");
+      required_in_argument.name("required in argument");
       
-      optional_argument = (variable >> ":" >> fullvalue)[
-          qi::_val = phx::construct<PTR<Argument> >(phx::new_<OptionalArgument>(
+      optional_in_argument = (variable >> ":" >> term)[
+          qi::_val = phx::construct<PTR<InArgument> >(phx::new_<OptionalInArgument>(
           qi::_1, qi::_2))];
-      optional_argument.name("optional argument");
+      optional_in_argument.name("optional in argument");
       
-      arbitrary_argument = (qi::lit("*(") >> variable >> ")")[
-          qi::_val = phx::construct<PTR<Argument> >(
-          phx::new_<ArbitraryArgument>(qi::_1))];
-      arbitrary_argument.name("arbitrary argument");
+      arbitrary_in_argument = (qi::lit("*(") >> variable >> ")")[
+          qi::_val = phx::construct<PTR<InArgument> >(
+          phx::new_<ArbitraryInArgument>(qi::_1))];
+      arbitrary_in_argument.name("arbitrary in argument");
       
-      keyword_argument = (qi::lit("**(") >> variable >> ")")[
-          qi::_val = phx::construct<PTR<Argument> >(phx::new_<KeywordArgument>(
+      keyword_in_argument = (qi::lit("**(") >> variable >> ")")[
+          qi::_val = phx::construct<PTR<InArgument> >(phx::new_<KeywordInArgument>(
           qi::_1))];
-      keyword_argument.name("keyword argument");
+      keyword_in_argument.name("keyword in argument");
       
       mutation = (assignee >> ":=" >> expression)[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Mutation>(
@@ -240,18 +217,9 @@ namespace parser {
           qi::_1, qi::_2))];
       definition.name("definition");
       
-      assignee = assignee_list | single_assignee;
+      assignee = term[qi::_val = phx::construct<PTR<Assignee> >(
+          phx::new_<Assignee>(qi::_1))];
       assignee.name("assignee");
-      
-      assignee_vect = +(single_assignee >> ',') >> -single_assignee;
-      assignee_vect.name("assignee list");
-      assignee_list = assignee_vect[qi::_val = phx::construct<PTR<Assignee> >(
-          phx::new_<AssigneeList>(qi::_1))];
-      assignee_list.name("assignee list");
-      
-      single_assignee = fullvalue[qi::_val = phx::construct<PTR<Assignee> >(
-          phx::new_<SingleAssignee>(qi::_1))];
-      single_assignee.name("single assignee");
 
       qi::on_error<qi::fail>(explist,
         std::cout << phx::val("Error! Expecting ") << qi::_4

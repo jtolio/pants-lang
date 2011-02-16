@@ -265,7 +265,8 @@ std::string cirth::ast::Index::format() const {
 
 cirth::ast::ClosedCall::ClosedCall(
     const boost::optional<std::vector<PTR<OutArgument> > >& left_args_,
-    const std::vector<PTR<OutArgument> >& right_args_) {
+    const std::vector<PTR<OutArgument> >& right_args_,
+    const boost::optional<std::vector<PTR<OutArgument> > >& scoped_args_) {
   if(!!left_args_) {
     left_args.reserve(left_args_.get().size());
     for(unsigned int i = 0; i < left_args_.get().size(); ++i) {
@@ -275,6 +276,13 @@ cirth::ast::ClosedCall::ClosedCall(
   right_args.reserve(right_args_.size());
   for(unsigned int i = 0; i < right_args_.size(); ++i) {
     if(right_args_[i].get()) right_args.push_back(right_args_[i]);
+  }
+  if(!!scoped_args_) {
+    scoped_args.reserve(scoped_args_.get().size());
+    for(unsigned int i = 0; i < scoped_args_.get().size(); ++i) {
+      if(scoped_args_.get()[i].get())
+        scoped_args.push_back(scoped_args_.get()[i]);
+    }
   }
 }
 

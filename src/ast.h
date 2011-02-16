@@ -222,9 +222,11 @@ namespace ast {
   struct ClosedCall : public ValueModifier {
     ClosedCall(
         const boost::optional<std::vector<PTR<OutArgument> > >& left_args_,
-        const std::vector<PTR<OutArgument> >& right_args_);
+        const std::vector<PTR<OutArgument> >& right_args_,
+        const boost::optional<std::vector<PTR<OutArgument> > >& scoped_args_);
     std::vector<PTR<OutArgument> > left_args;
     std::vector<PTR<OutArgument> > right_args;
+    std::vector<PTR<OutArgument> > scoped_args;
     std::string format() const;
   };
 
