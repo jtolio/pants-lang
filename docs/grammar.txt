@@ -24,7 +24,7 @@
 <trailer> ::= <right-indicator>   # open call
            |  .<variable>         # lookup
            |  \[<explist>\]       # index
-           |  \([<out-arguments>;] [<out-arguments>]\) # closed call
+           |  \([<out-arguments>;] [<out-arguments>] [\|<out-arguments>]\) # closed call
 
 <left-indicator> ::= @
 
@@ -46,7 +46,7 @@
             |  <term>\[<explist>\]
 
 <function> ::= {<explist>}
-            |  {|<arglist>| <explist>}
+            |  {\|<arglist>\| <explist>}
 
 <arglist> ::= [<in-arguments>;] [<in-arguments>]
 

@@ -47,12 +47,28 @@ namespace parser {
     qi::rule<Iterator, std::string()> charstringvalue;
     qi::rule<Iterator, std::string()> bytestringvalue;
     qi::rule<Iterator, InArgList(), ascii::space_type> inarglist;
-    qi::rule<Iterator, std::vector<PTR<InArgument> >(), ascii::space_type> inargvec;
+    qi::rule<Iterator, std::vector<PTR<InArgument> >(), ascii::space_type>
+        inargvec;
     qi::rule<Iterator, PTR<InArgument>(), ascii::space_type> in_argument;
-    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type> required_in_argument;
-    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type> optional_in_argument;
-    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type> arbitrary_in_argument;
-    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type> keyword_in_argument;
+    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type>
+        required_in_argument;
+    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type>
+        optional_in_argument;
+    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type>
+        arbitrary_in_argument;
+    qi::rule<Iterator, PTR<InArgument>(), ascii::space_type>
+        keyword_in_argument;
+    qi::rule<Iterator, std::vector<PTR<OutArgument> >(), ascii::space_type>
+        out_arguments;
+    qi::rule<Iterator, PTR<OutArgument>(), ascii::space_type> out_argument;
+    qi::rule<Iterator, PTR<OutArgument>(), ascii::space_type>
+        required_out_argument;
+    qi::rule<Iterator, PTR<OutArgument>(), ascii::space_type>
+        optional_out_argument;
+    qi::rule<Iterator, PTR<OutArgument>(), ascii::space_type>
+        arbitrary_out_argument;
+    qi::rule<Iterator, PTR<OutArgument>(), ascii::space_type>
+        keyword_out_argument;
     qi::rule<Iterator, PTR<Assignee>(), ascii::space_type> assignee;
     
     grammar() : grammar::base_type(program) {
@@ -73,7 +89,7 @@ namespace parser {
       expression.name("expression");
        
       term = (*header >> value >> *trailer)[
-          qi::_val = phx::construct<PTR<Term> >(phx::new_<FullValue>(qi::_1,
+          qi::_val = phx::construct<PTR<Term> >(phx::new_<Term>(qi::_1,
           qi::_2, qi::_3))];
       term.name("term");
       
@@ -90,11 +106,40 @@ namespace parser {
           phx::new_<OpenCall>())];
       rightopencall.name("open call trailer");
       
-      closedcallarglist = *(application >> qi::lit(',')) >> -application;
-      closedcallarglist.name("closed call argument list");
+      required_out_argument = application[
+          qi::_val = phx::construct<PTR<OutArgument> >(
+          phx::new_<RequiredOutArgument>(qi::_1))];
+      required_out_argument.name("required out argument");
+      
+      optional_out_argument = (variable >> ":" >> application)[
+          qi::_val = phx::construct<PTR<OutArgument> >(
+          phx::new_<OptionalOutArgument>(qi::_1, qi::_2))];
+      optional_out_argument.name("optional out argument");
+      
+      arbitrary_out_argument = (qi::lit("*(") >> explist >> ")")[
+          qi::_val = phx::construct<PTR<OutArgument> >(
+          phx::new_<ArbitraryOutArgument>(qi::_1))];
+      arbitrary_out_argument.name("arbitrary out argument");
+      
+      keyword_out_argument = (qi::lit("**(") >> explist >> ")")[
+          qi::_val = phx::construct<PTR<OutArgument> >(
+          phx::new_<KeywordOutArgument>(qi::_1))];
+      keyword_out_argument.name("keyword out argument");
+      
+      out_argument = keyword_out_argument
+                   | arbitrary_out_argument
+                   | optional_out_argument
+                   | required_out_argument;
+      out_argument.name("out argument");
+      
+      out_arguments = *(out_argument >> qi::lit(',')) >> -out_argument;
+      out_arguments.name("out argument list");
+      
       closedcall = (qi::lit("(") >> qi::skip(ascii::space)[
-          closedcallarglist >> qi::lit(")")])[qi::_val =
-          phx::construct<PTR<ValueModifier> >(phx::new_<ClosedCall>(qi::_1))];
+          -(out_arguments >> ';') >> out_arguments >>
+          -(qi::lit('|') >> out_arguments) >> ")"])[qi::_val =
+          phx::construct<PTR<ValueModifier> >(phx::new_<ClosedCall>(qi::_1,
+          qi::_2, qi::_3))];
       closedcall.name("closed call trailer");
       
       index = (qi::lit("[") >> qi::skip(ascii::space)[explist >> qi::lit("]")])[
@@ -158,7 +203,7 @@ namespace parser {
       
       dictionary = (qi::lit("[") >> qi::skip(ascii::space)[dictdefinitionlist >>
           qi::lit("]")])[qi::_val = phx::construct<PTR<Value> >(
-          phx::new_<Map>(qi::_1))]; 
+          phx::new_<Dictionary>(qi::_1))]; 
       dictionary.name("dictionary");
       
       dictdefinitionlist = *(dictdefinition >> qi::lit(',')) >> -dictdefinition;
@@ -169,7 +214,7 @@ namespace parser {
           &DictDefinition::value, qi::_val) = qi::_2];
       dictdefinition.name("dictionary definition");
       
-      function = (qi::lit("{") >> qi::skip(ascii::space)[-arglist] >>
+      function = (qi::lit("{") >> qi::skip(ascii::space)[-inarglist] >>
           qi::skip(ascii::space)[explist >> "}"])[qi::_val =
           phx::construct<PTR<Value> >(phx::new_<Function>(qi::_1, qi::_2))];
       function.name("function");
@@ -188,13 +233,13 @@ namespace parser {
       in_argument.name("in argument");
       
       required_in_argument = variable[
-          qi::_val = phx::construct<PTR<InArgument> >(phx::new_<RequiredInArgument>(
-          qi::_1))];
+          qi::_val = phx::construct<PTR<InArgument> >(
+          phx::new_<RequiredInArgument>(qi::_1))];
       required_in_argument.name("required in argument");
       
       optional_in_argument = (variable >> ":" >> term)[
-          qi::_val = phx::construct<PTR<InArgument> >(phx::new_<OptionalInArgument>(
-          qi::_1, qi::_2))];
+          qi::_val = phx::construct<PTR<InArgument> >(
+          phx::new_<OptionalInArgument>(qi::_1, qi::_2))];
       optional_in_argument.name("optional in argument");
       
       arbitrary_in_argument = (qi::lit("*(") >> variable >> ")")[
@@ -203,8 +248,8 @@ namespace parser {
       arbitrary_in_argument.name("arbitrary in argument");
       
       keyword_in_argument = (qi::lit("**(") >> variable >> ")")[
-          qi::_val = phx::construct<PTR<InArgument> >(phx::new_<KeywordInArgument>(
-          qi::_1))];
+          qi::_val = phx::construct<PTR<InArgument> >(
+          phx::new_<KeywordInArgument>(qi::_1))];
       keyword_in_argument.name("keyword in argument");
       
       mutation = (assignee >> ":=" >> expression)[

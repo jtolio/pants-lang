@@ -13,11 +13,11 @@ void cirth::wrap::wrap(std::vector<PTR<Expression> >& ast) {
 static void bindTopLevelNames(std::vector<PTR<Expression> >& ast) {
   #define BIND_NAME(name) { \
     std::vector<PTR<Term> > terms; \
-    terms.push_back(PTR<Term>(new FullValue(std::vector<PTR<ValueModifier> >(),\
+    terms.push_back(PTR<Term>(new Term(std::vector<PTR<ValueModifier> >(),\
         PTR<Value>(new Variable(name, false)), \
         std::vector<PTR<ValueModifier> >()))); \
     ast.insert(ast.begin(), PTR<Expression>(new Definition(PTR<Assignee>( \
-        new SingleAssignee(PTR<Term>(new FullValue( \
+        new Assignee(PTR<Term>(new Term( \
         std::vector<PTR<ValueModifier> >(), PTR<Value>(new Variable( \
         name, true)), std::vector<PTR<ValueModifier> >())))), PTR<Expression>(\
         new Application(terms))))); \
