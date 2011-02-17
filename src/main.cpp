@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     os << str;
   }
   str = os.str();
-  
+
   std::vector<PTR<ast::Expression> > p;
   bool r = parser::parse(str, p);
   if(r) {

@@ -8,7 +8,7 @@ namespace cirth {
 namespace wrap {
 
   void wrap(std::vector<PTR<cirth::ast::Expression> >& ast);
-  
+
 }}
 
 #endif

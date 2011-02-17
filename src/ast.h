@@ -14,15 +14,15 @@ namespace ast {
   };
 
   struct Expression {
-    virtual ~Expression() {} 
+    virtual ~Expression() {}
     virtual std::string format() const = 0;
     protected: Expression() {} };
-  
+
   struct Value {
     virtual ~Value() {}
     virtual std::string format() const = 0;
     protected: Value() {} };
-  
+
   struct ValueModifier {
     virtual ~ValueModifier() {}
     virtual std::string format() const = 0;
@@ -37,7 +37,7 @@ namespace ast {
     virtual ~OutArgument() {}
     virtual std::string format() const = 0;
     protected: OutArgument() {} };
-    
+
   struct Term {
     Term(const std::vector<PTR<ValueModifier> >& headers_,
         PTR<Value> value_, const std::vector<PTR<ValueModifier> >& trailers_)
@@ -59,7 +59,7 @@ namespace ast {
     PTR<Term> term;
     std::string format() const;
   };
-    
+
   struct Assignment : public Expression {
     Assignment(PTR<Assignee> assignee_, PTR<Expression> exp_)
       : assignee(assignee_), exp(exp_) {}
@@ -68,12 +68,12 @@ namespace ast {
     virtual std::string name() const = 0;
     std::string format() const;
   };
-  
+
   struct Mutation : public Assignment {
     Mutation(PTR<Assignee> a, PTR<Expression> e) : Assignment(a, e) {}
     std::string name() const { return "Mutation"; }
   };
-  
+
   struct Definition : public Assignment {
     Definition(PTR<Assignee> a, PTR<Expression> e) : Assignment(a, e) {}
     std::string name() const { return "Definition"; }
@@ -87,7 +87,7 @@ namespace ast {
     std::string name;
     bool user_provided;
     std::string format() const;
-  };  
+  };
 
   struct SubExpression : public Value {
     SubExpression(const std::vector<PTR<Expression> >& expressions_)
@@ -131,52 +131,52 @@ namespace ast {
     std::vector<DictDefinition> values;
     std::string format() const;
   };
-  
+
   struct Array : public Value {
-    Array(const std::vector<PTR<Expression> >& values_) : values(values_) {}
+    Array(const std::vector<PTR<Expression> >& values_);
     std::vector<PTR<Expression> > values;
     std::string format() const;
   };
-  
+
   struct RequiredInArgument : public InArgument {
     RequiredInArgument(const Variable& name_) : name(name_) {}
     Variable name;
     std::string format() const;
   };
-  
+
   struct OptionalInArgument : public InArgument {
-    OptionalInArgument(const Variable& name_, PTR<Term> value_)
-      : name(name_), value(value_) {}
+    OptionalInArgument(const Variable& name_, PTR<Expression> application_)
+      : name(name_), application(application_) {}
     Variable name;
-    PTR<Term> value;
+    PTR<Expression> application;
     std::string format() const;
   };
-  
+
   struct ArbitraryInArgument : public InArgument {
     ArbitraryInArgument(const Variable& name_) : name(name_) {}
     Variable name;
     std::string format() const;
   };
-  
+
   struct KeywordInArgument : public InArgument {
     KeywordInArgument(const Variable& name_) : name(name_) {}
     Variable name;
     std::string format() const;
   };
-  
+
   struct InArgList {
     boost::optional<std::vector<PTR<InArgument> > > left_args;
     std::vector<PTR<InArgument> > right_args;
   };
-  
+
   struct HalfArgs {
     std::vector<RequiredInArgument> required_args;
     std::vector<OptionalInArgument> optional_args;
     boost::optional<ArbitraryInArgument> arbitrary_arg;
-    boost::optional<KeywordInArgument> keyword_arg;  
+    boost::optional<KeywordInArgument> keyword_arg;
     std::string format() const;
   };
-  
+
   struct Function : public Value {
     Function(const boost::optional<InArgList>& args_,
         const std::vector<PTR<Expression> >& expressions_);
@@ -196,7 +196,7 @@ namespace ast {
     PTR<Expression> application;
     std::string format() const;
   };
-  
+
   struct OptionalOutArgument : public OutArgument {
     OptionalOutArgument(const Variable& name_, PTR<Expression> application_)
       : name(name_), application(application_) {}
@@ -204,21 +204,21 @@ namespace ast {
     PTR<Expression> application;
     std::string format() const;
   };
-  
+
   struct ArbitraryOutArgument : public OutArgument {
     ArbitraryOutArgument(const std::vector<PTR<Expression> >& array_)
       : array(array_) {}
     std::vector<PTR<Expression> > array;
     std::string format() const;
   };
-  
+
   struct KeywordOutArgument : public OutArgument {
     KeywordOutArgument(const std::vector<PTR<Expression> >& object_)
       : object(object_) {}
     std::vector<PTR<Expression> > object;
     std::string format() const;
   };
-  
+
   struct ClosedCall : public ValueModifier {
     ClosedCall(
         const boost::optional<std::vector<PTR<OutArgument> > >& left_args_,
@@ -235,14 +235,14 @@ namespace ast {
     Variable variable;
     std::string format() const;
   };
-  
+
   struct Index : public ValueModifier {
     Index(const std::vector<PTR<Expression> >& expressions_)
       : expressions(expressions_) {}
     std::vector<PTR<Expression> > expressions;
     std::string format() const;
   };
-  
+
 }}
 
 #endif

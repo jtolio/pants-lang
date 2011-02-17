@@ -5,7 +5,7 @@
 <exp> ::= <application>
        |  <mutation>
        |  <definition>
-        
+
 <application> ::= <term>+
 
 <term> ::= <header>*<value><trailer>*

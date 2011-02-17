@@ -9,7 +9,7 @@ namespace parser {
 
   bool parse(const std::string& src,
       std::vector<PTR<cirth::ast::Expression> >& ast);
-  
+
 }}
 
 #endif

@@ -100,6 +100,13 @@ std::string cirth::ast::Dictionary::format() const {
   return os.str();
 }
 
+cirth::ast::Array::Array(const std::vector<PTR<Expression> >& values_) {
+  values.reserve(values_.size());
+  for(unsigned int i = 0; i < values_.size(); ++i) {
+    if(values_[i].get()) values.push_back(values_[i]);
+  }
+}
+
 std::string cirth::ast::Array::format() const {
   std::ostringstream os;
   os << "Array(";
@@ -116,39 +123,39 @@ std::string cirth::ast::RequiredInArgument::format() const {
   os << "RequiredInArgument(" << name.format() << ")";
   return os.str();
 }
-  
+
 std::string cirth::ast::OptionalInArgument::format() const {
   std::ostringstream os;
-  os << "OptionalInArgument(" << name.format() << ", " << value->format()
+  os << "OptionalInArgument(" << name.format() << ", " << application->format()
      << ")";
   return os.str();
 }
-  
+
 std::string cirth::ast::ArbitraryInArgument::format() const {
   std::ostringstream os;
   os << "ArbitraryInArgument(" << name.format() << ")";
   return os.str();
 }
-  
+
 std::string cirth::ast::KeywordInArgument::format() const {
   std::ostringstream os;
   os << "KeywordInArgument(" << name.format() << ")";
   return os.str();
 }
-  
+
 std::string cirth::ast::RequiredOutArgument::format() const {
   std::ostringstream os;
   os << "RequiredOutArgument(" << application->format() << ")";
   return os.str();
 }
-  
+
 std::string cirth::ast::OptionalOutArgument::format() const {
   std::ostringstream os;
   os << "OptionalOutArgument(" << name.format() << ", " << application->format()
      << ")";
   return os.str();
 }
-  
+
 std::string cirth::ast::ArbitraryOutArgument::format() const {
   std::ostringstream os;
   os << "ArbitraryOutArgument(";
@@ -159,7 +166,7 @@ std::string cirth::ast::ArbitraryOutArgument::format() const {
   os << ")";
   return os.str();
 }
-  
+
 std::string cirth::ast::KeywordOutArgument::format() const {
   std::ostringstream os;
   os << "KeywordOutArgument(";
@@ -199,7 +206,7 @@ static void loadHalfArgs(
     }
   }
 }
-  
+
 cirth::ast::Function::Function(const boost::optional<InArgList>& args_,
     const std::vector<PTR<Expression> >& expressions_)
   : expressions(expressions_)
@@ -228,7 +235,7 @@ std::string cirth::ast::HalfArgs::format() const {
   if(!!arbitrary_arg)
     os << ", Arbitrary(" << arbitrary_arg->name.format() << ")";
   if(!!keyword_arg)
-    os << ", Keyword(" << arbitrary_arg->name.format() << ")";
+    os << ", Keyword(" << keyword_arg->name.format() << ")";
   return os.str();
 }
 
@@ -297,6 +304,11 @@ std::string cirth::ast::ClosedCall::format() const {
   for(unsigned int i = 0; i < right_args.size(); ++i) {
     if(i > 0) os << ", ";
     os << right_args[i]->format();
+  }
+  os << "), Scoped(";
+  for(unsigned int i = 0; i < scoped_args.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << scoped_args[i]->format();
   }
   os << "))";
   return os.str();

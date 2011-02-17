@@ -12,7 +12,7 @@ parser.o: parser.cpp parser.h common.h ast.h
 wrap.o: wrap.cpp wrap.h common.h ast.h
 	$(CPP) $(CFLAGS) -c wrap.cpp
 
-main.o: main.cpp common.h parser.h ast.h 
+main.o: main.cpp common.h parser.h ast.h
 	$(CPP) $(CFLAGS) -c main.cpp
 
 run_tests.o: run_tests.cpp common.h parser.h ast.h
