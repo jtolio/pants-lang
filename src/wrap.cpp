@@ -42,7 +42,6 @@ static void bindTopLevelNames(std::vector<PTR<Expression> >& ast) {
   BIND_NAME("==");
   BIND_NAME("!=");
   BIND_NAME("null");
-  BIND_NAME("inf");
   #undef BIND_NAME
 }
 

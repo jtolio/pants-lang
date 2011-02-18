@@ -1,0 +1,27 @@
+Expression
+ - Term
+ - Assignment(Assignee, Term)
+
+Assignee
+ - Variable
+ - Index(Variable, Variable)
+ - Field(Variable, Variable)
+
+Term
+ - Index(Variable, Variable)
+ - Field(Variable, Variable)
+ - Call(Variable, Left(Arg*), Right(Arg*), Scoped(Arg*))
+ - Variable
+ - Integer(number)
+ - CharString(data)
+ - ByteString(data)
+ - Float(number)
+ - Dictionary(DictDefinition(Variable, Variable)*)
+ - Array(Variable*)
+ - Function(Left(Arg*), Right(Arg*), Expression*)
+
+Arg
+ - Variable
+ - OptionalVariable(Variable, Variable)
+ - ArbitraryVariable(Variable)
+ - KeywordVariable(Variable)

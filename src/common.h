@@ -11,4 +11,14 @@
 
 #define PTR boost::shared_ptr
 
+namespace cirth {
+
+  struct expectation_failure : std::runtime_error {
+    expectation_failure(const std::string& msg_) throw ()
+      : std::runtime_error(msg_) {}
+    ~expectation_failure() throw() {}
+  };
+
+}
+
 #endif

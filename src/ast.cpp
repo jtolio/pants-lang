@@ -188,12 +188,12 @@ static void loadHalfArgs(
     if(!in_args[i].get()) continue;
     if(dynamic_cast<ArbitraryInArgument*>(in_args[i].get())) {
       if(!!arg_store.arbitrary_arg)
-        throw expectation_failure(
+        throw cirth::expectation_failure(
             "only one arbitrary argument expected");
       arg_store.arbitrary_arg = *((ArbitraryInArgument*)in_args[i].get());
     } else if(dynamic_cast<KeywordInArgument*>(in_args[i].get())) {
       if(!!arg_store.keyword_arg)
-        throw expectation_failure("only one keyword argument expected");
+        throw cirth::expectation_failure("only one keyword argument expected");
       arg_store.keyword_arg = *((KeywordInArgument*)in_args[i].get());
     } else if(dynamic_cast<OptionalInArgument*>(in_args[i].get())) {
       arg_store.optional_args.push_back(
@@ -202,7 +202,7 @@ static void loadHalfArgs(
       arg_store.required_args.push_back(
           *((RequiredInArgument*)in_args[i].get()));
     } else {
-      throw expectation_failure("unknown argument type");
+      throw cirth::expectation_failure("unknown argument type");
     }
   }
 }

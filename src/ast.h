@@ -7,12 +7,6 @@
 namespace cirth {
 namespace ast {
 
-  struct expectation_failure : std::runtime_error {
-    expectation_failure(const std::string& msg_) throw ()
-      : std::runtime_error(msg_) {}
-    ~expectation_failure() throw() {}
-  };
-
   struct Expression {
     virtual ~Expression() {}
     virtual std::string format() const = 0;
