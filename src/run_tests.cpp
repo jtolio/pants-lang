@@ -17,6 +17,7 @@ class ParserTest : public CPPUNIT_NS::TestFixture {
   CPPUNIT_TEST(testByteString);
   CPPUNIT_TEST(testClosedCall);
   CPPUNIT_TEST(testFunctions);
+  CPPUNIT_TEST(testNewlines);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -290,6 +291,23 @@ public:
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("z.thing = 3; x[4] = 5", exps));
     exps.clear();
+  }
+
+  void testNewlines() {
+    std::vector<PTR<cirth::ast::Expression> > exps;
+    CPPUNIT_ASSERT(cirth::parser::parse("f; f", exps));
+    CPPUNIT_ASSERT(exps.size() == 2);
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("f\nf", exps));
+    CPPUNIT_ASSERT(exps.size() == 2);
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("(f\nf)", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Headers(), Value(SubExpression(Application(Term(Headers(), Value(Variable(f, user_provided)), Trailers()), Term(Headers(), Value(Variable(f, user_provided)), Trailers())))), Trailers()))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("(f;f)", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Headers(), Value(SubExpression(Application(Term(Headers(), Value(Variable(f, user_provided)), Trailers())), Application(Term(Headers(), Value(Variable(f, user_provided)), Trailers())))), Trailers()))");
   }
 
 };
