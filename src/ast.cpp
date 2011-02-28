@@ -17,14 +17,22 @@ std::string cirth::ast::Assignment::format() const {
   return os.str();
 }
 
+cirth::ast::Term::Term(const std::vector<PTR<ValueModifier> >& headers_,
+    PTR<Value> value_, const std::vector<PTR<ValueModifier> >& trailers_)
+  : value(value_)
+{
+  trailers.reserve(trailers_.size() + headers_.size());
+  for(unsigned int i = 0; i < trailers_.size(); ++i) {
+    if(trailers_[i]) trailers.push_back(trailers_[i]);
+  }
+  for(unsigned int i = headers_.size(); i > 0; --i) {
+    if(headers_[i-1]) trailers.push_back(headers_[i-1]);
+  }
+}
+
 std::string cirth::ast::Term::format() const {
   std::ostringstream os;
-  os << "Term(Headers(";
-  for(unsigned int i = 0; i < headers.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << headers[i]->format();
-  }
-  os << "), Value(" << value->format() << "), Trailers(";
+  os << "Term(Value(" << value->format() << "), Trailers(";
   for(unsigned int i = 0; i < trailers.size(); ++i) {
     if(i > 0) os << ", ";
     os << trailers[i]->format();
@@ -38,6 +46,14 @@ std::string cirth::ast::Variable::format() const {
   os << "Variable(" << name << (user_provided ? ", user_provided)" :
       ", compiler_provided)");
   return os.str();
+}
+
+cirth::ast::SubExpression::SubExpression(const std::vector<PTR<Expression> >&
+    expressions_) {
+  expressions.reserve(expressions_.size());
+  for(unsigned int i = 0; i < expressions_.size(); ++i) {
+    if(expressions_[i]) expressions.push_back(expressions_[i]);
+  }
 }
 
 std::string cirth::ast::SubExpression::format() const {
@@ -156,6 +172,14 @@ std::string cirth::ast::OptionalOutArgument::format() const {
   return os.str();
 }
 
+cirth::ast::ArbitraryOutArgument::ArbitraryOutArgument(
+    const std::vector<PTR<Expression> >& array_) {
+  array.reserve(array_.size());
+  for(unsigned int i = 0; i < array_.size(); ++i) {
+    if(array_[i]) array.push_back(array_[i]);
+  }
+}
+
 std::string cirth::ast::ArbitraryOutArgument::format() const {
   std::ostringstream os;
   os << "ArbitraryOutArgument(";
@@ -165,6 +189,14 @@ std::string cirth::ast::ArbitraryOutArgument::format() const {
   }
   os << ")";
   return os.str();
+}
+
+cirth::ast::KeywordOutArgument::KeywordOutArgument(
+    const std::vector<PTR<Expression> >& object_) {
+  object.reserve(object_.size());
+  for(unsigned int i = 0; i < object_.size(); ++i) {
+    if(object_[i]) object.push_back(object_[i]);
+  }
 }
 
 std::string cirth::ast::KeywordOutArgument::format() const {
@@ -209,8 +241,12 @@ static void loadHalfArgs(
 
 cirth::ast::Function::Function(const boost::optional<InArgList>& args_,
     const std::vector<PTR<Expression> >& expressions_)
-  : expressions(expressions_)
 {
+  expressions.reserve(expressions_.size());
+  for(unsigned int i = 0; i < expressions_.size(); ++i) {
+    if(expressions_[i]) expressions.push_back(expressions_[i]);
+  }
+  
   if(!args_) return;
 
   if(!!args_->left_args)
@@ -257,6 +293,14 @@ std::string cirth::ast::Field::format() const {
   std::ostringstream os;
   os << "Field(" << variable.format() << ")";
   return os.str();
+}
+
+cirth::ast::Index::Index(
+    const std::vector<PTR<Expression> >& expressions_) {
+  expressions.reserve(expressions_.size());
+  for(unsigned int i = 0; i < expressions_.size(); ++i) {
+    if(expressions_[i]) expressions.push_back(expressions_[i]);
+  }
 }
 
 std::string cirth::ast::Index::format() const {

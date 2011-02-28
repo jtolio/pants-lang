@@ -2,12 +2,12 @@
 #define __WRAP_H__
 
 #include "common.h"
-#include "ast.h"
+#include "pre_cps_ir.h"
 
 namespace cirth {
 namespace wrap {
 
-  void wrap(std::vector<PTR<cirth::ast::Expression> >& ast);
+  void wrap(std::vector<PTR<cirth::pre_cps_ir::Expression> >& ir);
 
 }}
 

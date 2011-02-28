@@ -74,18 +74,18 @@ namespace parser {
       nl_skipper = qi::char_(" \t\r");
       skipper = nl_skipper | '\n';
 
-      program = -nl_explist;
+      program = -nl_explist >> *skipper;
       program.name("program");
 
-      explist = S(*(expression >> +qi::lit(";")) >> expression >>
-          *qi::lit(";"));
+      explist = S(*qi::lit(";") >> expression >> *(+qi::lit(";") >> expression)
+          >> *qi::lit(";"));
       explist.name("newline-indifferent expression list");
 
-      nl_explistsep = qi::char_(";\n");
+      nl_explistsep = NLS(qi::char_(";\n"));
       nl_explistsep.name("newline-significant expression list separator");
 
-      nl_explist = NLS(*(nl_expression >> +nl_explistsep) >> nl_expression >>
-          *nl_explistsep);
+      nl_explist = NLS(*nl_explistsep >> nl_expression >> *(+nl_explistsep >>
+          nl_expression) >> *nl_explistsep);
       nl_explist.name("newline-significant expression list");
 
       expression = definition | mutation | application;
@@ -307,6 +307,7 @@ namespace parser {
       keyword_in_argument.name("keyword in argument");
 
 #undef S
+#undef NLS
 
       qi::on_error<qi::fail>(program,
         std::cout << phx::val("Error! Expecting ") << qi::_4
@@ -323,7 +324,13 @@ bool cirth::parser::parse(const std::string& src,
     std::vector<PTR<cirth::ast::Expression> >& ast) {
   grammar g;
   std::string::const_iterator iter = src.begin();
+  std::vector<PTR<cirth::ast::Expression> > out;
   bool r = boost::spirit::qi::phrase_parse(iter, src.end(), g, ascii::space,
-      ast);
+      out);
+  ast.clear();
+  ast.reserve(out.size());
+  for(unsigned int i = 0; i < out.size(); ++i) {
+    if(out[i]) ast.push_back(out[i]);
+  }
   return r && iter == src.end();
 }

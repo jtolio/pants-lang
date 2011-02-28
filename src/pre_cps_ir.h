@@ -160,7 +160,7 @@ namespace pre_cps_ir {
     Variable variable;
   };
 
-  bool convert(const std::vector<PTR<cirth::ast::Expression> >& exps,
+  void convert(const std::vector<PTR<cirth::ast::Expression> >& exps,
       std::vector<PTR<cirth::pre_cps_ir::Expression> >& out);
 
 }}

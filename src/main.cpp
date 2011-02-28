@@ -16,20 +16,17 @@ int main(int argc, char** argv) {
   }
   str = os.str();
 
-  std::vector<PTR<ast::Expression> > p;
-  bool r = parser::parse(str, p);
+  std::vector<PTR<ast::Expression> > ast;
+  bool r = parser::parse(str, ast);
   if(!r) {
     std::cerr << "failed parsing!" << std::endl;
     return -1;
   }
 
-  wrap::wrap(p);
   std::vector<PTR<pre_cps_ir::Expression> > ir;
-  r = pre_cps_ir::convert(p, ir);
-  if(!r) {
-    std::cerr << "failed converting to IR" << std::endl;
-    return -1;
-  }
+  pre_cps_ir::convert(ast, ir);
+  ast.clear();
+  wrap::wrap(ir);
 
   return 0;
 }
