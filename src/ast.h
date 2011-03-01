@@ -281,6 +281,7 @@ namespace ast {
   };
 
   struct ClosedCall : public ValueModifier {
+    ClosedCall() {}
     ClosedCall(
         const boost::optional<std::vector<PTR<OutArgument> > >& left_args_,
         const std::vector<PTR<OutArgument> >& right_args_,
