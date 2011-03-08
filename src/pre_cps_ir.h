@@ -14,6 +14,10 @@ namespace pre_cps_ir {
   struct Term : public Expression {
     virtual ~Term() {}
     protected: Term() {} };
+    
+  struct Value : public Term {
+    virtual ~Value() {}
+    protected: Value() {} };
 
   struct Assignee {
     virtual ~Assignee() {}
@@ -23,9 +27,11 @@ namespace pre_cps_ir {
     virtual ~Argument() {}
     protected: Argument() {} };
 
-  struct Variable {
-    Variable(const std::string& name_, bool user_provided_)
+  struct Name {
+    Name(const std::string& name_, bool user_provided_)
       : name(name_), user_provided(user_provided_) {}
+    Name(const cirth::ast::Variable& var)
+      : name(var.name), user_provided(var.user_provided) {}
     std::string name;
     bool user_provided;
   };
@@ -39,125 +45,115 @@ namespace pre_cps_ir {
   };
 
   struct SingleAssignee : public Assignee {
-    SingleAssignee(const Variable& variable_) : variable(variable_) {}
-    Variable variable;
+    SingleAssignee(const Name& variable_) : variable(variable_) {}
+    Name variable;
   };
 
   struct IndexAssignee : public Assignee {
-    IndexAssignee(const Variable& array_, const Variable& index_)
+    IndexAssignee(const PTR<Value>& array_, const PTR<Value>& index_)
       : array(array_), index(index_) {}
-    Variable array;
-    Variable index;
+    PTR<Value> array;
+    PTR<Value> index;
   };
 
   struct FieldAssignee : public Assignee {
-    FieldAssignee(const Variable& object_, const Variable& field_)
+    FieldAssignee(const PTR<Value>& object_, const Name& field_)
       : object(object_), field(field_) {}
-    Variable object;
-    Variable field;
+    PTR<Value> object;
+    Name field;
   };
-
+  
   struct Index : public Term {
-    Index(const Variable& array_, const Variable& index_)
+    Index(const PTR<Value>& array_, const PTR<Value>& index_)
       : array(array_), index(index_) {}
-    Variable array;
-    Variable index;
+    PTR<Value> array;
+    PTR<Value> index;
   };
 
   struct Field : public Term {
-    Field(const Variable& object_, const Variable& field_)
+    Field(const PTR<Value>& object_, const Name& field_)
       : object(object_), field(field_) {}
-    Variable object;
-    Variable field;
+    PTR<Value> object;
+    Name field;
   };
 
-  struct VariableTerm : public Term {
-    VariableTerm(const Variable& variable_) : variable(variable_) {}
-    Variable variable;
+  struct Variable : public Value {
+    Variable(const Name& variable_) : variable(variable_) {}
+    Name variable;
   };
 
-  struct Integer : public Term {
+  struct Integer : public Value {
     Integer(const long long& value_) : value(value_) {}
     long long value;
   };
 
-  struct CharString : public Term {
+  struct CharString : public Value {
     CharString(const std::string& value_) : value(value_) {}
     std::string value;
   };
 
-  struct ByteString : public Term {
+  struct ByteString : public Value {
     ByteString(const std::string& value_) : value(value_) {}
     std::string value;
   };
 
-  struct Float : public Term {
+  struct Float : public Value {
     Float(const double& value_) : value(value_) {}
     double value;
   };
 
   struct Call : public Term {
-    Call(const Variable& function_,
-        const std::vector<PTR<Argument> >& left_args_,
-        const std::vector<PTR<Argument> >& right_args_,
-        const std::vector<PTR<Argument> >& scoped_args_)
-      : function(function_), left_args(left_args_), right_args(right_args_),
-        scoped_args(scoped_args_) {}
-    Variable function;
+    Call(const PTR<Value>& function_)
+      : function(function_) {}
+    PTR<Value> function;
     std::vector<PTR<Argument> > left_args;
     std::vector<PTR<Argument> > right_args;
     std::vector<PTR<Argument> > scoped_args;
   };
-
+  
   struct DictDefinition {
-    DictDefinition(const Variable& key_, const Variable& value_)
+    DictDefinition(const PTR<Value>& key_, const PTR<Value>& value_)
       : key(key_), value(value_) {}
-    Variable key;
-    Variable value;
+    PTR<Value> key;
+    PTR<Value> value;
   };
 
-  struct Dictionary : public Term {
-    Dictionary(const std::vector<DictDefinition>& definitions_)
-      : definitions(definitions_) {}
+  struct Dictionary : public Value {
     std::vector<DictDefinition> definitions;
   };
 
-  struct Array : public Term {
-    Array(const std::vector<Variable>& values_) : values(values_) {}
-    std::vector<Variable> values;
+  struct Array : public Value {
+    std::vector<PTR<Value> > values;
   };
 
-  struct Function : public Term {
-    Function(const std::vector<PTR<Argument> >& left_args_,
-             const std::vector<PTR<Argument> >& right_args_,
-             const std::vector<PTR<Expression> >& expressions_)
-      : left_args(left_args_), right_args(right_args_),
-        expressions(expressions_) {}
+  struct Function : public Value {
+    Function(bool full_function_) : full_function(full_function_) {}
     std::vector<PTR<Argument> > left_args;
     std::vector<PTR<Argument> > right_args;
     std::vector<PTR<Expression> > expressions;
+    bool full_function;
   };
 
   struct PositionalArgument : public Argument {
-    PositionalArgument(const Variable& variable_) : variable(variable_) {}
-    Variable variable;
+    PositionalArgument(const PTR<Value>& variable_) : variable(variable_) {}
+    PTR<Value> variable;
   };
 
   struct OptionalArgument : public Argument {
-    OptionalArgument(const Variable& key_, const Variable& variable_)
+    OptionalArgument(const Name& key_, const PTR<Value>& variable_)
       : key(key_), variable(variable_) {}
-    Variable key;
-    Variable variable;
+    Name key;
+    PTR<Value> variable;
   };
 
   struct ArbitraryArgument : public Argument {
-    ArbitraryArgument(const Variable& variable_) : variable(variable_) {}
-    Variable variable;
+    ArbitraryArgument(const PTR<Value>& variable_) : variable(variable_) {}
+    PTR<Value> variable;
   };
 
   struct KeywordArgument : public Argument {
-    KeywordArgument(const Variable& variable_) : variable(variable_) {}
-    Variable variable;
+    KeywordArgument(const PTR<Value>& variable_) : variable(variable_) {}
+    PTR<Value> variable;
   };
 
   void convert(const std::vector<PTR<cirth::ast::Expression> >& exps,

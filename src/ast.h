@@ -18,34 +18,23 @@ namespace ast {
   struct HalfArgs; struct OpenCall; struct ClosedCall; struct Field;
 
   struct AstVisitor {
-    virtual void visit(Term*) {};
-    virtual void visit(Application*) {};
-    virtual void visit(Assignee*) {};
-    virtual void visit(Mutation*) {};
-    virtual void visit(Definition*) {};
-    virtual void visit(Variable*) {};
-    virtual void visit(SubExpression*) {};
-    virtual void visit(Integer*) {};
-    virtual void visit(CharString*) {};
-    virtual void visit(ByteString*) {};
-    virtual void visit(Float*) {};
-    virtual void visit(Dictionary*) {};
-    virtual void visit(DictDefinition*) {};
-    virtual void visit(Array*) {};
-    virtual void visit(Function*) {};
-    virtual void visit(RequiredInArgument*) {};
-    virtual void visit(OptionalInArgument*) {};
-    virtual void visit(ArbitraryInArgument*) {};
-    virtual void visit(KeywordInArgument*) {};
-    virtual void visit(RequiredOutArgument*) {};
-    virtual void visit(OptionalOutArgument*) {};
-    virtual void visit(ArbitraryOutArgument*) {};
-    virtual void visit(KeywordOutArgument*) {};
-    virtual void visit(HalfArgs*) {};
-    virtual void visit(OpenCall*) {};
-    virtual void visit(ClosedCall*) {};
-    virtual void visit(Field*) {};
-    virtual void visit(Index*) {};
+    virtual void visit(Term*) = 0;
+    virtual void visit(Application*) = 0;
+    virtual void visit(Mutation*) = 0;
+    virtual void visit(Definition*) = 0;
+    virtual void visit(Variable*) = 0;
+    virtual void visit(SubExpression*) = 0;
+    virtual void visit(Integer*) = 0;
+    virtual void visit(CharString*) = 0;
+    virtual void visit(ByteString*) = 0;
+    virtual void visit(Float*) = 0;
+    virtual void visit(Dictionary*) = 0;
+    virtual void visit(Array*) = 0;
+    virtual void visit(Function*) = 0;
+    virtual void visit(OpenCall*) = 0;
+    virtual void visit(ClosedCall*) = 0;
+    virtual void visit(Field*) = 0;
+    virtual void visit(Index*) = 0;
   };
 
   struct Expression {
@@ -69,13 +58,11 @@ namespace ast {
   struct InArgument {
     virtual ~InArgument() {}
     virtual std::string format() const = 0;
-    virtual void accept(AstVisitor* visitor) = 0;
     protected: InArgument() {} };
 
   struct OutArgument {
     virtual ~OutArgument() {}
     virtual std::string format() const = 0;
-    virtual void accept(AstVisitor* visitor) = 0;
     protected: OutArgument() {} };
 
   struct Term {
@@ -97,7 +84,6 @@ namespace ast {
   struct Assignee {
     Assignee(PTR<Term> term_) : term(term_) {}
     PTR<Term> term;
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
     std::string format() const;
   };
 
@@ -173,7 +159,6 @@ namespace ast {
     PTR<Expression> key;
     PTR<Expression> value;
     std::string format() const;
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Dictionary : public Value {
@@ -194,7 +179,6 @@ namespace ast {
     RequiredInArgument(const Variable& name_) : name(name_) {}
     Variable name;
     std::string format() const;
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 
   struct OptionalInArgument : public InArgument {
@@ -203,21 +187,18 @@ namespace ast {
     Variable name;
     PTR<Expression> application;
     std::string format() const;
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 
   struct ArbitraryInArgument : public InArgument {
     ArbitraryInArgument(const Variable& name_) : name(name_) {}
     Variable name;
     std::string format() const;
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 
   struct KeywordInArgument : public InArgument {
     KeywordInArgument(const Variable& name_) : name(name_) {}
     Variable name;
     std::string format() const;
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 
   struct InArgList {
@@ -231,7 +212,6 @@ namespace ast {
     boost::optional<ArbitraryInArgument> arbitrary_arg;
     boost::optional<KeywordInArgument> keyword_arg;
     std::string format() const;
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Function : public Value {
@@ -254,7 +234,6 @@ namespace ast {
       : application(application_) {}
     PTR<Expression> application;
     std::string format() const;
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 
   struct OptionalOutArgument : public OutArgument {
@@ -263,21 +242,18 @@ namespace ast {
     Variable name;
     PTR<Expression> application;
     std::string format() const;
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 
   struct ArbitraryOutArgument : public OutArgument {
     ArbitraryOutArgument(const std::vector<PTR<Expression> >& array_);
     std::vector<PTR<Expression> > array;
     std::string format() const;
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 
   struct KeywordOutArgument : public OutArgument {
     KeywordOutArgument(const std::vector<PTR<Expression> >& object_);
     std::vector<PTR<Expression> > object;
     std::string format() const;
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 
   struct ClosedCall : public ValueModifier {

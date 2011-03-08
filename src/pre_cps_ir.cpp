@@ -5,7 +5,15 @@ using namespace cirth;
 
 class ConversionVisitor : public ast::AstVisitor {
 public:
-  ConversionVisitor(std::vector<PTR<pre_cps_ir::Expression> >* ir) : m_ir(ir) {}
+  ConversionVisitor(std::vector<PTR<pre_cps_ir::Expression> >* ir,
+      unsigned long long* varcount)
+    : m_ir(ir), m_varcount(varcount) {}
+    
+  void visit(const std::vector<PTR<ast::Expression> >& exps) {
+    for(unsigned int i = 0; i < exps.size(); ++i)
+      exps[i]->accept(this);
+    m_ir->push_back(m_lastval);
+  }
 
   void visit(ast::Application* app) {
     if(app->terms.size() <= 0)
@@ -60,16 +68,11 @@ public:
   
   void visit(ast::Term* term) {
     // if we got here, this is the term from a single-term application
-    if(term->trailers.size() > 0) {
-      // process the term from the inside out, value first, trailers next.
-      ast::Term new_term(*term);
-      new_term.trailers.pop_back();
-      visit(&new_term);
-      term->trailers.back()->accept(this);
-      return;
-    }
-    // this term has no trailers, so it's just a value
+    // process the term from the inside out, value first, trailers next.
     term->value->accept(this);
+    for(unsigned int i = 0; i < term->trailers.size(); ++i) {
+      term->trailers[i]->accept(this);
+    }
   }
   
   void visit(ast::OpenCall*) {
@@ -79,62 +82,129 @@ public:
     visit(&call);
   }
   
-  void visit(ast::ClosedCall* call) {
-    std::cout << call->format() << std::endl;
-  }
-  
   void visit(ast::Field* field) {
-    std::cout << field->format() << std::endl;
+    pre_cps_ir::Name name(gensym());
+    PTR<pre_cps_ir::Assignee> assignee(new pre_cps_ir::SingleAssignee(name));
+    PTR<pre_cps_ir::Term> term(new pre_cps_ir::Field(m_lastval,
+        pre_cps_ir::Name(field->variable.name, field->variable.user_provided)));
+    m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
+        assignee, term, false)));
+    m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(name));
   }
   
   void visit(ast::Index* index) {
-    std::cout << index->format() << std::endl;
+    pre_cps_ir::Name name(gensym());
+    PTR<pre_cps_ir::Assignee> assignee(new pre_cps_ir::SingleAssignee(name));
+    PTR<pre_cps_ir::Value> array = m_lastval;
+    visit(index->expressions);
+    PTR<pre_cps_ir::Term> term(new pre_cps_ir::Index(array, m_lastval));
+    m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
+        assignee, term, false)));
+    m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(name));
   }
   
   void visit(ast::Variable* var) {
-    std::cout << var->format() << std::endl;
+    m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(
+        pre_cps_ir::Name(var->name, var->user_provided)));
   }
   
   void visit(ast::SubExpression* subexp) {
-    std::cout << subexp->format() << std::endl;
+    PTR<pre_cps_ir::Function> function(new pre_cps_ir::Function(false));
+    ConversionVisitor subvisitor(&function->expressions, m_varcount);
+    subvisitor.visit(subexp->expressions);
+    PTR<pre_cps_ir::Term> call(new pre_cps_ir::Call(function));
+    pre_cps_ir::Name name(gensym());
+    PTR<pre_cps_ir::Assignee> assignee(new pre_cps_ir::SingleAssignee(name));
+    m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
+        assignee, call, false)));
+    m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(name));
   }
   
   void visit(ast::Integer* int_) {
-    std::cout << int_->format() << std::endl;
+    m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Integer(int_->value));
   }
   
   void visit(ast::CharString* char_) {
-    std::cout << char_->format() << std::endl;
+    m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::CharString(char_->value));
   }
   
   void visit(ast::ByteString* byte) {
-    std::cout << byte->format() << std::endl;
+    m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::ByteString(byte->value));
   }
   
   void visit(ast::Float* float_) {
-    std::cout << float_->format() << std::endl;
+    m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Float(float_->value));
   }
   
-  void visit(ast::Dictionary* dict) {
-    std::cout << dict->format() << std::endl;
+  void visit(ast::Dictionary* in_dict) {
+    PTR<pre_cps_ir::Dictionary> out_dict(new pre_cps_ir::Dictionary);
+    out_dict->definitions.reserve(in_dict->values.size());
+    for(unsigned int i = 0; i < in_dict->values.size(); ++i) {
+      in_dict->values[i].key->accept(this);
+      PTR<pre_cps_ir::Value> key = m_lastval;
+      in_dict->values[i].value->accept(this);
+      PTR<pre_cps_ir::Value> value = m_lastval;
+      out_dict->definitions.push_back(pre_cps_ir::DictDefinition(key, value));
+    }
+    m_lastval = out_dict;
   }
   
-  void visit(ast::Array* array) {
-    std::cout << array->format() << std::endl;
+  void visit(ast::Array* in_array) {
+    PTR<pre_cps_ir::Array> out_array(new pre_cps_ir::Array);
+    out_array->values.reserve(in_array->values.size());
+    for(unsigned int i = 0; i < in_array->values.size(); ++i) {
+      in_array->values[i]->accept(this);
+      out_array->values.push_back(m_lastval);
+    }
+    m_lastval = out_array;
   }
   
   void visit(ast::Function* func) {
     std::cout << func->format() << std::endl;
   }
+  
+  void visit(ast::ClosedCall* call) {
+    PTR<pre_cps_ir::Value> function = m_lastval;
+    
+    std::cout << call->format() << std::endl;
+  }
+  
+  void visit(ast::Mutation* mut) { visit(mut, true); }
+  void visit(ast::Definition* def) { visit(def, false); }
+  void visit(ast::Assignment* assignment, bool mutation) {
+    PTR<ast::Term> term(assignment->assignee->term);
+    assignment->exp->accept(this);
+    PTR<pre_cps_ir::Value> rhs = m_lastval;
+    if(term->trailers.size() == 0) {
+      ast::Variable* var = dynamic_cast<ast::Variable*>(term->value.get());
+      if(!var)
+        throw expectation_failure("left-hand side of an assignment must be a "
+            "variable, field, or index");
+      pre_cps_ir::Name name(*var);        
+      PTR<pre_cps_ir::Assignee> assignee(new pre_cps_ir::SingleAssignee(name));
+      m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
+          assignee, rhs, mutation)));
+    } else {
+      throw expectation_failure("TODO: unimplemented");      
+    }
+  }
+  
+private:
+  pre_cps_ir::Name gensym() {
+    std::ostringstream os;
+    os << "precpsir" << ++(*m_varcount);
+    return pre_cps_ir::Name(os.str(), false);
+  }
 
 private:
   std::vector<PTR<pre_cps_ir::Expression> >* m_ir;
+  PTR<pre_cps_ir::Value> m_lastval;
+  unsigned long long* m_varcount;
 };
 
 void pre_cps_ir::convert(const std::vector<PTR<ast::Expression> >& ast,
     std::vector<PTR<pre_cps_ir::Expression> >& ir) {
-  ConversionVisitor visitor(&ir);
-  for(unsigned int i = 0; i < ast.size(); ++i) {
-    ast[i]->accept(&visitor);
-  }
+  unsigned long long varcount = 0;
+  ConversionVisitor visitor(&ir, &varcount);
+  visitor.visit(ast);
 }
