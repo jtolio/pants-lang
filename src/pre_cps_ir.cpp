@@ -70,9 +70,8 @@ public:
     // if we got here, this is the term from a single-term application
     // process the term from the inside out, value first, trailers next.
     term->value->accept(this);
-    for(unsigned int i = 0; i < term->trailers.size(); ++i) {
+    for(unsigned int i = 0; i < term->trailers.size(); ++i)
       term->trailers[i]->accept(this);
-    }
   }
   
   void visit(ast::OpenCall*) {
@@ -159,6 +158,58 @@ public:
     m_lastval = out_array;
   }
   
+  void visit(ast::Mutation* mut) { visit(mut, true); }
+  void visit(ast::Definition* def) { visit(def, false); }
+  void visit(ast::Assignment* assignment, bool mutation) {
+    PTR<ast::Term> term(assignment->assignee->term);
+    PTR<pre_cps_ir::Assignee> assignee;
+    PTR<pre_cps_ir::Value> rhs;
+    
+    if(mutation) {
+      assignment->exp->accept(this);
+      rhs = m_lastval;
+    }
+    
+    if(term->trailers.size() == 0) {
+      ast::Variable* var = dynamic_cast<ast::Variable*>(term->value.get());
+      if(var)
+        assignee.reset(new pre_cps_ir::SingleAssignee(pre_cps_ir::Name(*var)));
+    } else {
+      term->value->accept(this);
+      for(unsigned int i = 0; i < term->trailers.size() - 1; ++i)
+        term->trailers[i]->accept(this);
+      ast::Field* field(dynamic_cast<ast::Field*>(term->trailers.back().get()));
+      if(field) {
+        assignee.reset(new pre_cps_ir::FieldAssignee(m_lastval,
+            pre_cps_ir::Name(field->variable)));
+      } else {
+        ast::Index* index(dynamic_cast<ast::Index*>(
+            term->trailers.back().get()));
+        if(index) {
+          PTR<pre_cps_ir::Value> array = m_lastval;
+          ast::SubExpression subexp(index->expressions);
+          visit(&subexp);
+          assignee.reset(new pre_cps_ir::IndexAssignee(array, m_lastval));
+        }
+      }
+    }
+    
+    if(!assignee)
+      throw expectation_failure("left-hand side of an assignment must be a "
+          "variable, field, or index");
+    
+    if(!mutation) {
+      m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
+          assignee, PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(
+          pre_cps_ir::Name("null", false))), false)));
+      assignment->exp->accept(this);
+      rhs = m_lastval;
+    }
+
+    m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
+        assignee, rhs, true)));
+  }
+  
   void visit(ast::Function* func) {
     std::cout << func->format() << std::endl;
   }
@@ -167,26 +218,6 @@ public:
     PTR<pre_cps_ir::Value> function = m_lastval;
     
     std::cout << call->format() << std::endl;
-  }
-  
-  void visit(ast::Mutation* mut) { visit(mut, true); }
-  void visit(ast::Definition* def) { visit(def, false); }
-  void visit(ast::Assignment* assignment, bool mutation) {
-    PTR<ast::Term> term(assignment->assignee->term);
-    assignment->exp->accept(this);
-    PTR<pre_cps_ir::Value> rhs = m_lastval;
-    if(term->trailers.size() == 0) {
-      ast::Variable* var = dynamic_cast<ast::Variable*>(term->value.get());
-      if(!var)
-        throw expectation_failure("left-hand side of an assignment must be a "
-            "variable, field, or index");
-      pre_cps_ir::Name name(*var);        
-      PTR<pre_cps_ir::Assignee> assignee(new pre_cps_ir::SingleAssignee(name));
-      m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
-          assignee, rhs, mutation)));
-    } else {
-      throw expectation_failure("TODO: unimplemented");      
-    }
   }
   
 private:
