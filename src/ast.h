@@ -15,7 +15,7 @@ namespace ast {
   struct ArbitraryInArgument; struct KeywordInArgument;
   struct RequiredOutArgument; struct OptionalOutArgument;
   struct ArbitraryOutArgument; struct KeywordOutArgument;
-  struct HalfArgs; struct OpenCall; struct ClosedCall; struct Field;
+  struct OpenCall; struct ClosedCall; struct Field;
 
   struct AstVisitor {
     virtual void visit(Term*) = 0;
@@ -206,19 +206,14 @@ namespace ast {
     std::vector<PTR<InArgument> > right_args;
   };
 
-  struct HalfArgs {
-    std::vector<RequiredInArgument> required_args;
-    std::vector<OptionalInArgument> optional_args;
-    boost::optional<ArbitraryInArgument> arbitrary_arg;
-    boost::optional<KeywordInArgument> keyword_arg;
-    std::string format() const;
-  };
-
   struct Function : public Value {
     Function(const boost::optional<InArgList>& args_,
         const std::vector<PTR<Expression> >& expressions_);
-    HalfArgs left;
-    HalfArgs right;
+    std::vector<RequiredInArgument> left_required_args;
+    std::vector<RequiredInArgument> right_required_args;
+    std::vector<OptionalInArgument> right_optional_args;
+    boost::optional<ArbitraryInArgument> right_arbitrary_arg;
+    boost::optional<KeywordInArgument> right_keyword_arg;
     std::vector<PTR<Expression> > expressions;
     std::string format() const;
     void accept(AstVisitor* visitor) { visitor->visit(this); }
@@ -262,9 +257,15 @@ namespace ast {
         const boost::optional<std::vector<PTR<OutArgument> > >& left_args_,
         const std::vector<PTR<OutArgument> >& right_args_,
         const boost::optional<std::vector<PTR<OutArgument> > >& scoped_args_);
-    std::vector<PTR<OutArgument> > left_args;
-    std::vector<PTR<OutArgument> > right_args;
-    std::vector<PTR<OutArgument> > scoped_args;
+
+    std::vector<RequiredOutArgument> left_required_args;
+    std::vector<RequiredOutArgument> right_required_args;
+    std::vector<OptionalOutArgument> right_optional_args;
+    boost::optional<ArbitraryOutArgument> right_arbitrary_arg;
+    boost::optional<KeywordOutArgument> right_keyword_arg;
+    std::vector<OptionalOutArgument> scoped_optional_args;
+    boost::optional<KeywordOutArgument> scoped_keyword_arg;
+
     std::string format() const;
     void accept(AstVisitor* visitor) { visitor->visit(this); }
   };

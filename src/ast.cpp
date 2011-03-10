@@ -210,35 +210,6 @@ std::string cirth::ast::KeywordOutArgument::format() const {
   return os.str();
 }
 
-static void loadHalfArgs(
-    const std::vector<PTR<cirth::ast::InArgument> >& in_args,
-    cirth::ast::HalfArgs& arg_store) {
-  using namespace cirth::ast;
-  arg_store.required_args.reserve(in_args.size());
-  arg_store.optional_args.reserve(in_args.size());
-  for(unsigned int i = 0; i < in_args.size(); ++i) {
-    if(!in_args[i].get()) continue;
-    if(dynamic_cast<ArbitraryInArgument*>(in_args[i].get())) {
-      if(!!arg_store.arbitrary_arg)
-        throw cirth::expectation_failure(
-            "only one arbitrary argument expected");
-      arg_store.arbitrary_arg = *((ArbitraryInArgument*)in_args[i].get());
-    } else if(dynamic_cast<KeywordInArgument*>(in_args[i].get())) {
-      if(!!arg_store.keyword_arg)
-        throw cirth::expectation_failure("only one keyword argument expected");
-      arg_store.keyword_arg = *((KeywordInArgument*)in_args[i].get());
-    } else if(dynamic_cast<OptionalInArgument*>(in_args[i].get())) {
-      arg_store.optional_args.push_back(
-          *((OptionalInArgument*)in_args[i].get()));
-    } else if(dynamic_cast<RequiredInArgument*>(in_args[i].get())) {
-      arg_store.required_args.push_back(
-          *((RequiredInArgument*)in_args[i].get()));
-    } else {
-      throw cirth::expectation_failure("unknown argument type");
-    }
-  }
-}
-
 cirth::ast::Function::Function(const boost::optional<InArgList>& args_,
     const std::vector<PTR<Expression> >& expressions_)
 {
@@ -249,36 +220,80 @@ cirth::ast::Function::Function(const boost::optional<InArgList>& args_,
   
   if(!args_) return;
 
-  if(!!args_->left_args)
-    loadHalfArgs(args_->left_args.get(), left);
-
-  loadHalfArgs(args_->right_args, right);
-}
-
-std::string cirth::ast::HalfArgs::format() const {
-  std::ostringstream os;
-  os << "Required(";
-  for(unsigned int i = 0; i < required_args.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << required_args[i].format();
+  if(!!args_->left_args) {
+    const std::vector<PTR<InArgument> >& left_args(args_->left_args.get());
+    left_required_args.reserve(left_args.size());
+    for(unsigned int i = 0; i < left_args.size(); ++i) {
+      if(!left_args[i].get()) continue;
+      if(dynamic_cast<RequiredInArgument*>(left_args[i].get())) {
+        left_required_args.push_back(
+            *((RequiredInArgument*)left_args[i].get()));
+      } else if(dynamic_cast<ArbitraryInArgument*>(left_args[i].get())) {
+        throw cirth::expectation_failure("left arbitrary argument not "
+            "supported");
+      } else if(dynamic_cast<KeywordInArgument*>(left_args[i].get())) {
+        throw cirth::expectation_failure("left keyword argument not "
+            "supported");
+      } else if(dynamic_cast<OptionalInArgument*>(left_args[i].get())) {
+        throw cirth::expectation_failure("left optional argument not "
+            "supported");
+      } else {
+        throw cirth::expectation_failure("unknown argument type");
+      }
+    }
   }
-  os << "), Optional(";
-  for(unsigned int i = 0; i < optional_args.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << optional_args[i].format();
+
+  const std::vector<PTR<InArgument> >& right_args(args_->right_args);
+  right_required_args.reserve(right_args.size());
+  right_optional_args.reserve(right_args.size());
+  for(unsigned int i = 0; i < right_args.size(); ++i) {
+    if(!right_args[i].get()) continue;
+    if(dynamic_cast<ArbitraryInArgument*>(right_args[i].get())) {
+      if(!!right_arbitrary_arg)
+        throw cirth::expectation_failure(
+            "only one arbitrary argument expected");
+      right_arbitrary_arg = *((ArbitraryInArgument*)right_args[i].get());
+    } else if(dynamic_cast<KeywordInArgument*>(right_args[i].get())) {
+      if(!!right_keyword_arg)
+        throw cirth::expectation_failure("only one keyword argument expected");
+      right_keyword_arg = *((KeywordInArgument*)right_args[i].get());
+    } else if(dynamic_cast<OptionalInArgument*>(right_args[i].get())) {
+      right_optional_args.push_back(
+          *((OptionalInArgument*)right_args[i].get()));
+    } else if(dynamic_cast<RequiredInArgument*>(right_args[i].get())) {
+      right_required_args.push_back(
+          *((RequiredInArgument*)right_args[i].get()));
+    } else {
+      throw cirth::expectation_failure("unknown argument type");
+    }
   }
-  os << ")";
-  if(!!arbitrary_arg)
-    os << ", Arbitrary(" << arbitrary_arg->name.format() << ")";
-  if(!!keyword_arg)
-    os << ", Keyword(" << keyword_arg->name.format() << ")";
-  return os.str();
 }
 
 std::string cirth::ast::Function::format() const {
   std::ostringstream os;
-  os << "Function(Left(" << left.format() << "), Right(" << right.format()
-     << "), Expressions(";
+  os << "Function(Left(";
+  os << "Required(";
+  for(unsigned int i = 0; i < left_required_args.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << left_required_args[i].format();
+  }
+  os << ")), Right(";
+  os << "Required(";
+  for(unsigned int i = 0; i < right_required_args.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << right_required_args[i].format();
+  }
+  os << "), Optional(";
+  for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << right_optional_args[i].format();
+  }
+  os << ")";
+  if(!!right_arbitrary_arg)
+    os << ", Arbitrary(" << right_arbitrary_arg->name.format() << ")";
+  if(!!right_keyword_arg)
+    os << ", Keyword(" << right_keyword_arg->name.format() << ")";
+  os << "), Expressions(";
   for(unsigned int i = 0; i < expressions.size(); ++i) {
     if(i > 0) os << ", ";
     os << expressions[i]->format();
@@ -319,20 +334,74 @@ cirth::ast::ClosedCall::ClosedCall(
     const std::vector<PTR<OutArgument> >& right_args_,
     const boost::optional<std::vector<PTR<OutArgument> > >& scoped_args_) {
   if(!!left_args_) {
-    left_args.reserve(left_args_.get().size());
+    left_required_args.reserve(left_args_.get().size());
     for(unsigned int i = 0; i < left_args_.get().size(); ++i) {
-      if(left_args_.get()[i].get()) left_args.push_back(left_args_.get()[i]);
+      if(!left_args_.get()[i].get()) continue;
+      if(dynamic_cast<RequiredOutArgument*>(left_args_.get()[i].get())) {
+        left_required_args.push_back(
+            *((RequiredOutArgument*)left_args_.get()[i].get()));
+      } else if(dynamic_cast<ArbitraryOutArgument*>(left_args_.get()[i].get())) {
+        throw cirth::expectation_failure("left arbitrary argument not "
+            "supported");
+      } else if(dynamic_cast<KeywordOutArgument*>(left_args_.get()[i].get())) {
+        throw cirth::expectation_failure("left keyword argument not supported");
+      } else if(dynamic_cast<OptionalOutArgument*>(left_args_.get()[i].get())) {
+        throw cirth::expectation_failure("left optional argument not "
+            "supported");
+      } else {
+        throw cirth::expectation_failure("unknown argument type");
+      }
     }
   }
-  right_args.reserve(right_args_.size());
+  
+  right_required_args.reserve(right_args_.size());
+  right_optional_args.reserve(right_args_.size());
   for(unsigned int i = 0; i < right_args_.size(); ++i) {
-    if(right_args_[i].get()) right_args.push_back(right_args_[i]);
+    if(!right_args_[i].get()) continue;
+    if(dynamic_cast<ArbitraryOutArgument*>(right_args_[i].get())) {
+      if(!!right_arbitrary_arg)
+        throw cirth::expectation_failure(
+            "only one arbitrary argument expected");
+      right_arbitrary_arg = *((ArbitraryOutArgument*)right_args_[i].get());
+    } else if(dynamic_cast<KeywordOutArgument*>(right_args_[i].get())) {
+      if(!!right_keyword_arg)
+        throw cirth::expectation_failure("only one keyword argument expected");
+      right_keyword_arg = *((KeywordOutArgument*)right_args_[i].get());
+    } else if(dynamic_cast<OptionalOutArgument*>(right_args_[i].get())) {
+      right_optional_args.push_back(
+          *((OptionalOutArgument*)right_args_[i].get()));
+    } else if(dynamic_cast<RequiredOutArgument*>(right_args_[i].get())) {
+      right_required_args.push_back(
+          *((RequiredOutArgument*)right_args_[i].get()));
+    } else {
+      throw cirth::expectation_failure("unknown argument type");
+    }
   }
+
   if(!!scoped_args_) {
-    scoped_args.reserve(scoped_args_.get().size());
+    scoped_optional_args.reserve(scoped_args_.get().size());
     for(unsigned int i = 0; i < scoped_args_.get().size(); ++i) {
-      if(scoped_args_.get()[i].get())
-        scoped_args.push_back(scoped_args_.get()[i]);
+      if(!scoped_args_.get()[i].get()) continue;
+      if(dynamic_cast<ArbitraryOutArgument*>(scoped_args_.get()[i].get())) {
+        throw cirth::expectation_failure("scoped arbitrary argument not "
+            "supported");
+      } else if(dynamic_cast<KeywordOutArgument*>(scoped_args_.get()[i].get())){
+        if(!!scoped_keyword_arg)
+          throw cirth::expectation_failure("only one keyword argument "
+              "expected");
+        scoped_keyword_arg = *(
+            (KeywordOutArgument*)scoped_args_.get()[i].get());
+      } else if(dynamic_cast<OptionalOutArgument*>(
+          scoped_args_.get()[i].get())) {
+        scoped_optional_args.push_back(
+            *((OptionalOutArgument*)scoped_args_.get()[i].get()));
+      } else if(dynamic_cast<RequiredOutArgument*>(
+          scoped_args_.get()[i].get())) {
+        throw cirth::expectation_failure("scoped positional argument not "
+            "supported");
+      } else {
+        throw cirth::expectation_failure("unknown argument type");
+      }
     }
   }
 }
@@ -340,19 +409,36 @@ cirth::ast::ClosedCall::ClosedCall(
 std::string cirth::ast::ClosedCall::format() const {
   std::ostringstream os;
   os << "ClosedCall(Left(";
-  for(unsigned int i = 0; i < left_args.size(); ++i) {
+  for(unsigned int i = 0; i < left_required_args.size(); ++i) {
     if(i > 0) os << ", ";
-    os << left_args[i]->format();
+    os << left_required_args[i].format();
   }
   os << "), Right(";
-  for(unsigned int i = 0; i < right_args.size(); ++i) {
+  for(unsigned int i = 0; i < right_required_args.size(); ++i) {
     if(i > 0) os << ", ";
-    os << right_args[i]->format();
+    os << right_required_args[i].format();
+  }
+  for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
+    if(i > 0 || right_required_args.size() > 0) os << ", ";
+    os << right_optional_args[i].format();
+  }
+  if(!!right_arbitrary_arg) {
+    if(right_required_args.size() + right_optional_args.size() > 0) os << ", ";
+    os << right_arbitrary_arg.get().format();
+  }
+  if(!!right_keyword_arg) {
+    if(right_required_args.size() + right_optional_args.size() > 0 ||
+        !!right_arbitrary_arg) os << ", ";
+    os << right_keyword_arg.get().format();
   }
   os << "), Scoped(";
-  for(unsigned int i = 0; i < scoped_args.size(); ++i) {
+  for(unsigned int i = 0; i < scoped_optional_args.size(); ++i) {
     if(i > 0) os << ", ";
-    os << scoped_args[i]->format();
+    os << scoped_optional_args[i].format();
+  }
+  if(!!scoped_keyword_arg) {
+    if(scoped_optional_args.size() > 0) os << ", ";
+    os << scoped_keyword_arg.get().format();
   }
   os << "))";
   return os.str();

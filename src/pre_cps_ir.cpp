@@ -29,37 +29,39 @@ public:
           if(found)
             throw expectation_failure(
                 "application has more than 1 open calls!");
-          found = true;
           opencall_idx = i;
+          found = true;
         }
       }
-      // okay, call term found, rewrite as a closed call
-      PTR<ast::ClosedCall> call(new ast::ClosedCall);
-      call->left_args.reserve(opencall_idx);
-      for(unsigned int i = 0; i < opencall_idx; ++i) {
-        std::vector<PTR<ast::Term> > terms;
-        terms.push_back(app->terms[i]);
-        PTR<ast::OutArgument> arg(new ast::RequiredOutArgument(
-            PTR<ast::Expression>(new ast::Application(terms))));
-        call->left_args.push_back(arg);
-      }
-      call->right_args.reserve(app->terms.size() - opencall_idx - 1);
-      for(unsigned int i = opencall_idx + 1; i < app->terms.size(); ++i) {
-        std::vector<PTR<ast::Term> > terms;
-        terms.push_back(app->terms[i]);
-        PTR<ast::OutArgument> arg(new ast::RequiredOutArgument(
-            PTR<ast::Expression>(new ast::Application(terms))));
-        call->right_args.push_back(arg);
-      }
-      PTR<ast::Term> term(new ast::Term(*app->terms[opencall_idx]));
-      if(found) term->trailers.pop_back();
-      term->trailers.push_back(call);
-      std::vector<PTR<ast::Term> > terms;
-      terms.push_back(term);
-      ast::Application app(terms);
+      // okay, call term found, process
       
-      // k, rewritten, try again.
-      visit(&app);
+      PTR<pre_cps_ir::Call> call(new pre_cps_ir::Call);
+      
+      call->left_positional_args.reserve(opencall_idx);
+      for(unsigned int i = 0; i < opencall_idx; ++i) {
+        app->terms[i]->accept(this);
+        call->left_positional_args.push_back(pre_cps_ir::PositionalOutArgument(
+            m_lastval));
+      }
+      
+      ast::Term term(*app->terms[opencall_idx]);
+      if(found) term.trailers.pop_back();
+      visit(&term);
+      call->function = m_lastval;
+      
+      call->right_positional_args.reserve(app->terms.size() - opencall_idx - 1);
+      for(unsigned int i = opencall_idx + 1; i < app->terms.size(); ++i) {
+        app->terms[i]->accept(this);
+        call->right_positional_args.push_back(pre_cps_ir::PositionalOutArgument(
+            m_lastval));
+      }
+      
+      pre_cps_ir::Name name(gensym());
+      PTR<pre_cps_ir::Assignee> assignee(new pre_cps_ir::SingleAssignee(name));
+      m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
+          assignee, call, false)));
+      m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(name));
+
       return;
     }
     // at this point all applications have just a single term.
@@ -95,7 +97,8 @@ public:
     pre_cps_ir::Name name(gensym());
     PTR<pre_cps_ir::Assignee> assignee(new pre_cps_ir::SingleAssignee(name));
     PTR<pre_cps_ir::Value> array = m_lastval;
-    visit(index->expressions);
+    ast::SubExpression subexp(index->expressions);
+    visit(&subexp);
     PTR<pre_cps_ir::Term> term(new pre_cps_ir::Index(array, m_lastval));
     m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
         assignee, term, false)));
@@ -111,7 +114,8 @@ public:
     PTR<pre_cps_ir::Function> function(new pre_cps_ir::Function(false));
     ConversionVisitor subvisitor(&function->expressions, m_varcount);
     subvisitor.visit(subexp->expressions);
-    PTR<pre_cps_ir::Term> call(new pre_cps_ir::Call(function));
+    PTR<pre_cps_ir::Call> call(new pre_cps_ir::Call);
+    call->function = function;
     pre_cps_ir::Name name(gensym());
     PTR<pre_cps_ir::Assignee> assignee(new pre_cps_ir::SingleAssignee(name));
     m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
@@ -210,14 +214,87 @@ public:
         assignee, rhs, true)));
   }
   
-  void visit(ast::Function* func) {
-    std::cout << func->format() << std::endl;
+  void visit(ast::Function* infunc) {
+    PTR<pre_cps_ir::Function> outfunc(new pre_cps_ir::Function(true));
+    outfunc->left_positional_args.reserve(infunc->left_required_args.size());
+    for(unsigned int i = 0; i < infunc->left_required_args.size(); ++i) {
+      outfunc->left_positional_args.push_back(pre_cps_ir::PositionalInArgument(
+          pre_cps_ir::Name(infunc->left_required_args[i].name)));
+    }
+    outfunc->right_positional_args.reserve(infunc->right_required_args.size());
+    for(unsigned int i = 0; i < infunc->right_required_args.size(); ++i) {
+      outfunc->right_positional_args.push_back(pre_cps_ir::PositionalInArgument(
+          pre_cps_ir::Name(infunc->right_required_args[i].name)));
+    }
+    outfunc->right_optional_args.reserve(infunc->right_optional_args.size());
+    for(unsigned int i = 0; i < infunc->right_optional_args.size(); ++i) {
+      infunc->right_optional_args[i].application->accept(this);
+      outfunc->right_optional_args.push_back(pre_cps_ir::OptionalInArgument(
+          pre_cps_ir::Name(infunc->right_optional_args[i].name), m_lastval));
+    }
+    if(!!infunc->right_arbitrary_arg)
+      outfunc->right_arbitrary_arg = pre_cps_ir::ArbitraryInArgument(
+          pre_cps_ir::Name(infunc->right_arbitrary_arg->name));
+    if(!!infunc->right_keyword_arg)
+      outfunc->right_keyword_arg = pre_cps_ir::KeywordInArgument(
+          pre_cps_ir::Name(infunc->right_keyword_arg->name));
+
+    ConversionVisitor subvisitor(&outfunc->expressions, m_varcount);
+    subvisitor.visit(infunc->expressions);
+
+    m_lastval = outfunc;
   }
   
-  void visit(ast::ClosedCall* call) {
-    PTR<pre_cps_ir::Value> function = m_lastval;
-    
-    std::cout << call->format() << std::endl;
+  void visit(ast::ClosedCall* incall) {
+    PTR<pre_cps_ir::Call> outcall(new pre_cps_ir::Call);
+    outcall->function = m_lastval;
+    outcall->left_positional_args.reserve(incall->left_required_args.size());
+    for(unsigned int i = 0; i < incall->left_required_args.size(); ++i) {
+      incall->left_required_args[i].application->accept(this);
+      outcall->left_positional_args.push_back(
+          pre_cps_ir::PositionalOutArgument(m_lastval));
+    }
+    outcall->right_positional_args.reserve(incall->right_required_args.size());
+    for(unsigned int i = 0; i < incall->right_required_args.size(); ++i) {
+      incall->right_required_args[i].application->accept(this);
+      outcall->right_positional_args.push_back(
+          pre_cps_ir::PositionalOutArgument(m_lastval));
+    }
+    outcall->right_optional_args.reserve(incall->right_optional_args.size());
+    for(unsigned int i = 0; i < incall->right_optional_args.size(); ++i) {
+      incall->right_optional_args[i].application->accept(this);
+      outcall->right_optional_args.push_back(
+          pre_cps_ir::OptionalOutArgument(pre_cps_ir::Name(
+          incall->right_optional_args[i].name), m_lastval));
+    }
+    if(!!incall->right_arbitrary_arg) {
+      ast::SubExpression subexp(incall->right_arbitrary_arg.get().array);
+      visit(&subexp);
+      outcall->right_arbitrary_arg = pre_cps_ir::ArbitraryOutArgument(
+          m_lastval);
+    }
+    if(!!incall->right_keyword_arg) {
+      ast::SubExpression subexp(incall->right_keyword_arg.get().object);
+      visit(&subexp);
+      outcall->right_keyword_arg = pre_cps_ir::KeywordOutArgument(m_lastval);
+    }
+    outcall->scoped_optional_args.reserve(incall->scoped_optional_args.size());
+    for(unsigned int i = 0; i < incall->scoped_optional_args.size(); ++i) {
+      incall->scoped_optional_args[i].application->accept(this);
+      outcall->scoped_optional_args.push_back(
+          pre_cps_ir::OptionalOutArgument(pre_cps_ir::Name(
+          incall->scoped_optional_args[i].name), m_lastval));
+    }
+    if(!!incall->scoped_keyword_arg) {
+      ast::SubExpression subexp(incall->scoped_keyword_arg.get().object);
+      visit(&subexp);
+      outcall->scoped_keyword_arg = pre_cps_ir::KeywordOutArgument(m_lastval);
+    }
+    pre_cps_ir::Name name(gensym());
+    PTR<pre_cps_ir::Assignee> assignee(new pre_cps_ir::SingleAssignee(name));
+    m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
+        assignee, outcall, false)));
+    m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(name));
   }
   
 private:

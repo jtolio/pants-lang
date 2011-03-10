@@ -23,9 +23,13 @@ namespace pre_cps_ir {
     virtual ~Assignee() {}
     protected: Assignee() {} };
 
-  struct Argument {
-    virtual ~Argument() {}
-    protected: Argument() {} };
+  struct InArgument {
+    virtual ~InArgument() {}
+    protected: InArgument() {} };
+
+  struct OutArgument {
+    virtual ~OutArgument() {}
+    protected: OutArgument() {} };
 
   struct Name {
     Name(const std::string& name_, bool user_provided_)
@@ -102,13 +106,37 @@ namespace pre_cps_ir {
     double value;
   };
 
+  struct PositionalOutArgument : public OutArgument {
+    PositionalOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
+    PTR<Value> variable;
+  };
+
+  struct OptionalOutArgument : public OutArgument {
+    OptionalOutArgument(const Name& key_, const PTR<Value>& variable_)
+      : key(key_), variable(variable_) {}
+    Name key;
+    PTR<Value> variable;
+  };
+
+  struct ArbitraryOutArgument : public OutArgument {
+    ArbitraryOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
+    PTR<Value> variable;
+  };
+
+  struct KeywordOutArgument : public OutArgument {
+    KeywordOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
+    PTR<Value> variable;
+  };
+
   struct Call : public Term {
-    Call(const PTR<Value>& function_)
-      : function(function_) {}
     PTR<Value> function;
-    std::vector<PTR<Argument> > left_args;
-    std::vector<PTR<Argument> > right_args;
-    std::vector<PTR<Argument> > scoped_args;
+    std::vector<PositionalOutArgument> left_positional_args;
+    std::vector<PositionalOutArgument> right_positional_args;
+    std::vector<OptionalOutArgument> right_optional_args;
+    boost::optional<ArbitraryOutArgument> right_arbitrary_arg;
+    boost::optional<KeywordOutArgument> right_keyword_arg;
+    std::vector<OptionalOutArgument> scoped_optional_args;
+    boost::optional<KeywordOutArgument> scoped_keyword_arg;
   };
   
   struct DictDefinition {
@@ -126,34 +154,37 @@ namespace pre_cps_ir {
     std::vector<PTR<Value> > values;
   };
 
+  struct PositionalInArgument : public InArgument {
+    PositionalInArgument(const Name& variable_) : variable(variable_) {}
+    Name variable;
+  };
+
+  struct OptionalInArgument : public InArgument {
+    OptionalInArgument(const Name& variable_, const PTR<Value>& defaultval_)
+      : variable(variable_), defaultval(defaultval_) {}
+    Name variable;
+    PTR<Value> defaultval;
+  };
+
+  struct ArbitraryInArgument : public InArgument {
+    ArbitraryInArgument(const Name& variable_) : variable(variable_) {}
+    Name variable;
+  };
+
+  struct KeywordInArgument : public InArgument {
+    KeywordInArgument(const Name& variable_) : variable(variable_) {}
+    Name variable;
+  };
+
   struct Function : public Value {
     Function(bool full_function_) : full_function(full_function_) {}
-    std::vector<PTR<Argument> > left_args;
-    std::vector<PTR<Argument> > right_args;
+    std::vector<PositionalInArgument> left_positional_args;
+    std::vector<PositionalInArgument> right_positional_args;
+    std::vector<OptionalInArgument> right_optional_args;
+    boost::optional<ArbitraryInArgument> right_arbitrary_arg;
+    boost::optional<KeywordInArgument> right_keyword_arg;
     std::vector<PTR<Expression> > expressions;
     bool full_function;
-  };
-
-  struct PositionalArgument : public Argument {
-    PositionalArgument(const PTR<Value>& variable_) : variable(variable_) {}
-    PTR<Value> variable;
-  };
-
-  struct OptionalArgument : public Argument {
-    OptionalArgument(const Name& key_, const PTR<Value>& variable_)
-      : key(key_), variable(variable_) {}
-    Name key;
-    PTR<Value> variable;
-  };
-
-  struct ArbitraryArgument : public Argument {
-    ArbitraryArgument(const PTR<Value>& variable_) : variable(variable_) {}
-    PTR<Value> variable;
-  };
-
-  struct KeywordArgument : public Argument {
-    KeywordArgument(const PTR<Value>& variable_) : variable(variable_) {}
-    PTR<Value> variable;
   };
 
   void convert(const std::vector<PTR<cirth::ast::Expression> >& exps,
