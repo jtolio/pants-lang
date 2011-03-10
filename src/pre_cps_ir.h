@@ -131,6 +131,7 @@ namespace pre_cps_ir {
   struct Call : public Term {
     PTR<Value> function;
     std::vector<PositionalOutArgument> left_positional_args;
+    boost::optional<ArbitraryOutArgument> left_arbitrary_arg;
     std::vector<PositionalOutArgument> right_positional_args;
     std::vector<OptionalOutArgument> right_optional_args;
     boost::optional<ArbitraryOutArgument> right_arbitrary_arg;
@@ -179,6 +180,7 @@ namespace pre_cps_ir {
   struct Function : public Value {
     Function(bool full_function_) : full_function(full_function_) {}
     std::vector<PositionalInArgument> left_positional_args;
+    boost::optional<ArbitraryInArgument> left_arbitrary_arg;
     std::vector<PositionalInArgument> right_positional_args;
     std::vector<OptionalInArgument> right_optional_args;
     boost::optional<ArbitraryInArgument> right_arbitrary_arg;

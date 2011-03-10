@@ -210,6 +210,7 @@ namespace ast {
     Function(const boost::optional<InArgList>& args_,
         const std::vector<PTR<Expression> >& expressions_);
     std::vector<RequiredInArgument> left_required_args;
+    boost::optional<ArbitraryInArgument> left_arbitrary_arg;
     std::vector<RequiredInArgument> right_required_args;
     std::vector<OptionalInArgument> right_optional_args;
     boost::optional<ArbitraryInArgument> right_arbitrary_arg;
@@ -259,6 +260,7 @@ namespace ast {
         const boost::optional<std::vector<PTR<OutArgument> > >& scoped_args_);
 
     std::vector<RequiredOutArgument> left_required_args;
+    boost::optional<ArbitraryOutArgument> left_arbitrary_arg;
     std::vector<RequiredOutArgument> right_required_args;
     std::vector<OptionalOutArgument> right_optional_args;
     boost::optional<ArbitraryOutArgument> right_arbitrary_arg;

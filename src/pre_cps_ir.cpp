@@ -221,6 +221,9 @@ public:
       outfunc->left_positional_args.push_back(pre_cps_ir::PositionalInArgument(
           pre_cps_ir::Name(infunc->left_required_args[i].name)));
     }
+    if(!!infunc->left_arbitrary_arg)
+      outfunc->left_arbitrary_arg = pre_cps_ir::ArbitraryInArgument(
+          pre_cps_ir::Name(infunc->left_arbitrary_arg->name));
     outfunc->right_positional_args.reserve(infunc->right_required_args.size());
     for(unsigned int i = 0; i < infunc->right_required_args.size(); ++i) {
       outfunc->right_positional_args.push_back(pre_cps_ir::PositionalInArgument(
@@ -248,6 +251,12 @@ public:
   void visit(ast::ClosedCall* incall) {
     PTR<pre_cps_ir::Call> outcall(new pre_cps_ir::Call);
     outcall->function = m_lastval;
+    if(!!incall->left_arbitrary_arg) {
+      ast::SubExpression subexp(incall->left_arbitrary_arg.get().array);
+      visit(&subexp);
+      outcall->left_arbitrary_arg = pre_cps_ir::ArbitraryOutArgument(
+          m_lastval);
+    }
     outcall->left_positional_args.reserve(incall->left_required_args.size());
     for(unsigned int i = 0; i < incall->left_required_args.size(); ++i) {
       incall->left_required_args[i].application->accept(this);
