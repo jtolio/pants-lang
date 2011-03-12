@@ -28,5 +28,9 @@ int main(int argc, char** argv) {
   ast.clear();
   wrap::wrap(ir);
 
+  for(unsigned int i = 0; i < ir.size(); ++i) {
+    std::cout << ir[i]->format() << std::endl;
+  }
+
   return 0;
 }

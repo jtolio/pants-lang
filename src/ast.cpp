@@ -217,7 +217,7 @@ cirth::ast::Function::Function(const boost::optional<InArgList>& args_,
   for(unsigned int i = 0; i < expressions_.size(); ++i) {
     if(expressions_[i]) expressions.push_back(expressions_[i]);
   }
-  
+
   if(!args_) return;
 
   if(!!args_->left_args) {
@@ -362,7 +362,7 @@ cirth::ast::ClosedCall::ClosedCall(
       }
     }
   }
-  
+
   right_required_args.reserve(right_args_.size());
   right_optional_args.reserve(right_args_.size());
   for(unsigned int i = 0; i < right_args_.size(); ++i) {

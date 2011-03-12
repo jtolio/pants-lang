@@ -8,7 +8,7 @@ public:
   ConversionVisitor(std::vector<PTR<pre_cps_ir::Expression> >* ir,
       unsigned long long* varcount)
     : m_ir(ir), m_varcount(varcount) {}
-    
+
   void visit(const std::vector<PTR<ast::Expression> >& exps) {
     for(unsigned int i = 0; i < exps.size(); ++i)
       exps[i]->accept(this);
@@ -34,28 +34,28 @@ public:
         }
       }
       // okay, call term found, process
-      
+
       PTR<pre_cps_ir::Call> call(new pre_cps_ir::Call);
-      
+
       call->left_positional_args.reserve(opencall_idx);
       for(unsigned int i = 0; i < opencall_idx; ++i) {
         app->terms[i]->accept(this);
         call->left_positional_args.push_back(pre_cps_ir::PositionalOutArgument(
             m_lastval));
       }
-      
+
       ast::Term term(*app->terms[opencall_idx]);
       if(found) term.trailers.pop_back();
       visit(&term);
       call->function = m_lastval;
-      
+
       call->right_positional_args.reserve(app->terms.size() - opencall_idx - 1);
       for(unsigned int i = opencall_idx + 1; i < app->terms.size(); ++i) {
         app->terms[i]->accept(this);
         call->right_positional_args.push_back(pre_cps_ir::PositionalOutArgument(
             m_lastval));
       }
-      
+
       pre_cps_ir::Name name(gensym());
       PTR<pre_cps_ir::Assignee> assignee(new pre_cps_ir::SingleAssignee(name));
       m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
@@ -67,7 +67,7 @@ public:
     // at this point all applications have just a single term.
     visit(app->terms[0].get());
   }
-  
+
   void visit(ast::Term* term) {
     // if we got here, this is the term from a single-term application
     // process the term from the inside out, value first, trailers next.
@@ -75,14 +75,14 @@ public:
     for(unsigned int i = 0; i < term->trailers.size(); ++i)
       term->trailers[i]->accept(this);
   }
-  
+
   void visit(ast::OpenCall*) {
     // if we got an open call at this point, then it was preempted by some
     // subsequent trailer. treat it as an argumentless closed call
     ast::ClosedCall call;
     visit(&call);
   }
-  
+
   void visit(ast::Field* field) {
     pre_cps_ir::Name name(gensym());
     PTR<pre_cps_ir::Assignee> assignee(new pre_cps_ir::SingleAssignee(name));
@@ -92,7 +92,7 @@ public:
         assignee, term, false)));
     m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(name));
   }
-  
+
   void visit(ast::Index* index) {
     pre_cps_ir::Name name(gensym());
     PTR<pre_cps_ir::Assignee> assignee(new pre_cps_ir::SingleAssignee(name));
@@ -104,12 +104,12 @@ public:
         assignee, term, false)));
     m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(name));
   }
-  
+
   void visit(ast::Variable* var) {
     m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(
         pre_cps_ir::Name(var->name, var->user_provided)));
   }
-  
+
   void visit(ast::SubExpression* subexp) {
     PTR<pre_cps_ir::Function> function(new pre_cps_ir::Function(false));
     ConversionVisitor subvisitor(&function->expressions, m_varcount);
@@ -122,23 +122,24 @@ public:
         assignee, call, false)));
     m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(name));
   }
-  
+
   void visit(ast::Integer* int_) {
     m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Integer(int_->value));
   }
-  
+
   void visit(ast::CharString* char_) {
-    m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::CharString(char_->value));
+    m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::CharString(
+        char_->value));
   }
-  
+
   void visit(ast::ByteString* byte) {
     m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::ByteString(byte->value));
   }
-  
+
   void visit(ast::Float* float_) {
     m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Float(float_->value));
   }
-  
+
   void visit(ast::Dictionary* in_dict) {
     PTR<pre_cps_ir::Dictionary> out_dict(new pre_cps_ir::Dictionary);
     out_dict->definitions.reserve(in_dict->values.size());
@@ -151,7 +152,7 @@ public:
     }
     m_lastval = out_dict;
   }
-  
+
   void visit(ast::Array* in_array) {
     PTR<pre_cps_ir::Array> out_array(new pre_cps_ir::Array);
     out_array->values.reserve(in_array->values.size());
@@ -161,19 +162,19 @@ public:
     }
     m_lastval = out_array;
   }
-  
+
   void visit(ast::Mutation* mut) { visit(mut, true); }
   void visit(ast::Definition* def) { visit(def, false); }
   void visit(ast::Assignment* assignment, bool mutation) {
     PTR<ast::Term> term(assignment->assignee->term);
     PTR<pre_cps_ir::Assignee> assignee;
     PTR<pre_cps_ir::Value> rhs;
-    
+
     if(mutation) {
       assignment->exp->accept(this);
       rhs = m_lastval;
     }
-    
+
     if(term->trailers.size() == 0) {
       ast::Variable* var = dynamic_cast<ast::Variable*>(term->value.get());
       if(var)
@@ -197,11 +198,11 @@ public:
         }
       }
     }
-    
+
     if(!assignee)
       throw expectation_failure("left-hand side of an assignment must be a "
           "variable, field, or index");
-    
+
     if(!mutation) {
       m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
           assignee, PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(
@@ -213,7 +214,7 @@ public:
     m_ir->push_back(PTR<pre_cps_ir::Expression>(new pre_cps_ir::Assignment(
         assignee, rhs, true)));
   }
-  
+
   void visit(ast::Function* infunc) {
     PTR<pre_cps_ir::Function> outfunc(new pre_cps_ir::Function(true));
     outfunc->left_positional_args.reserve(infunc->left_required_args.size());
@@ -247,7 +248,7 @@ public:
 
     m_lastval = outfunc;
   }
-  
+
   void visit(ast::ClosedCall* incall) {
     PTR<pre_cps_ir::Call> outcall(new pre_cps_ir::Call);
     outcall->function = m_lastval;
@@ -305,7 +306,7 @@ public:
         assignee, outcall, false)));
     m_lastval = PTR<pre_cps_ir::Value>(new pre_cps_ir::Variable(name));
   }
-  
+
 private:
   pre_cps_ir::Name gensym() {
     std::ostringstream os;
@@ -324,4 +325,249 @@ void pre_cps_ir::convert(const std::vector<PTR<ast::Expression> >& ast,
   unsigned long long varcount = 0;
   ConversionVisitor visitor(&ir, &varcount);
   visitor.visit(ast);
+}
+
+std::string cirth::pre_cps_ir::Name::format() const {
+  std::ostringstream os;
+  os << "Name(" << name << (user_provided ?
+      ", user_provided)" : ", compiler_provided)");
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::Assignment::format() const {
+  std::ostringstream os;
+  os << "Assignment(" << assignee->format() << ", " << term->format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::SingleAssignee::format() const {
+  std::ostringstream os;
+  os << "SingleAssignee(" << variable.format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::IndexAssignee::format() const {
+  std::ostringstream os;
+  os << "IndexAssignee(" << array->format() << ", " << index->format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::FieldAssignee::format() const {
+  std::ostringstream os;
+  os << "FieldAssignee(" << object->format() << ", " << field.format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::Index::format() const {
+  std::ostringstream os;
+  os << "Index(" << array->format() << ", " << index->format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::Field::format() const {
+  std::ostringstream os;
+  os << "Field(" << object->format() << ", " << field.format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::Variable::format() const {
+  std::ostringstream os;
+  os << "Variable(" << variable.format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::Integer::format() const {
+  std::ostringstream os;
+  os << "Integer(" << value << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::CharString::format() const {
+  std::ostringstream os;
+  os << "CharString(" << value << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::ByteString::format() const {
+  std::ostringstream os;
+  os << "ByteString(" << value << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::Float::format() const {
+  std::ostringstream os;
+  os << "Float(" << value << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::PositionalOutArgument::format() const {
+  std::ostringstream os;
+  os << "PositionalOutArgument(" << variable->format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::OptionalOutArgument::format() const {
+  std::ostringstream os;
+  os << "OptionalOutArgument(" << key.format() << ", "
+     << variable->format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::ArbitraryOutArgument::format() const {
+  std::ostringstream os;
+  os << "ArbitraryOutArgument(" << variable->format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::KeywordOutArgument::format() const {
+  std::ostringstream os;
+  os << "KeywordOutArgument(" << variable->format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::DictDefinition::format() const {
+  std::ostringstream os;
+  os << "DictDefinition(" << key->format() << ", " << value->format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::Dictionary::format() const {
+  std::ostringstream os;
+  os << "Dictionary(";
+  for(unsigned int i = 0; i < definitions.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << definitions[i].format();
+  }
+  os << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::Array::format() const {
+  std::ostringstream os;
+  os << "Array(";
+  for(unsigned int i = 0; i < values.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << values[i]->format();
+  }
+  os << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::PositionalInArgument::format() const {
+  std::ostringstream os;
+  os << "PositionalInArgument(" << variable.format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::OptionalInArgument::format() const {
+  std::ostringstream os;
+  os << "OptionalInArgument(" << variable.format() << ", "
+     << defaultval->format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::ArbitraryInArgument::format() const {
+  std::ostringstream os;
+  os << "ArbitraryInArgument(" << variable.format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::KeywordInArgument::format() const {
+  std::ostringstream os;
+  os << "KeywordInArgument(" << variable.format() << ")";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::Call::format() const {
+  std::ostringstream os;
+  os << "Call(" << function->format() << ", Left(";
+  bool comma_needed = false;
+  for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << left_positional_args[i].format();
+    comma_needed = true;
+  }
+  if(!!left_arbitrary_arg) {
+    if(comma_needed) os << ", ";
+    os << left_arbitrary_arg.get().format();
+  }
+  comma_needed = false;
+  os << "), Right(";
+  for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << right_positional_args[i].format();
+    comma_needed = true;
+  }
+  for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << right_optional_args[i].format();
+    comma_needed = true;
+  }
+  if(!!right_arbitrary_arg) {
+    if(comma_needed) os << ", ";
+    os << right_arbitrary_arg.get().format();
+    comma_needed = true;
+  }
+  if(!!right_keyword_arg) {
+    if(comma_needed) os << ", ";
+    os << right_keyword_arg.get().format();
+  }
+  os << "), Scoped(";
+  comma_needed = false;
+  for(unsigned int i = 0; i < scoped_optional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << scoped_optional_args[i].format();
+    comma_needed = true;
+  }
+  if(!!scoped_keyword_arg) {
+    if(comma_needed) os << ", ";
+    os << scoped_keyword_arg.get().format();
+  }
+  os << "))";
+  return os.str();
+}
+
+std::string cirth::pre_cps_ir::Function::format() const {
+  std::ostringstream os;
+  os << "Function(" << (full_function ? "full_function, " :
+      "partial_function, ");
+  os << "Left(";
+  bool comma_needed = false;
+  for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << left_positional_args[i].format();
+    comma_needed = true;
+  }
+  if(!!left_arbitrary_arg) {
+    if(comma_needed) os << ", ";
+    os << left_arbitrary_arg.get().format();
+  }
+  os << "), Right(";
+  comma_needed = false;
+  for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << right_positional_args[i].format();
+    comma_needed = true;
+  }
+  for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << right_optional_args[i].format();
+    comma_needed = true;
+  }
+  if(!!right_arbitrary_arg) {
+    if(comma_needed) os << ", ";
+    os << right_arbitrary_arg.get().format();
+    comma_needed = true;
+  }
+  if(!!right_keyword_arg) {
+    if(comma_needed) os << ", ";
+    os << right_keyword_arg.get().format();
+  }
+  os << "), Expressions(";
+  for(unsigned int i = 0; i < expressions.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << expressions[i]->format();
+  }
+  os << "))";
+  return os.str();
 }
