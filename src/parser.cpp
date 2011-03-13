@@ -143,7 +143,14 @@ namespace parser {
           phx::new_<OpenCall>())];
       header.name("open call header");
 
-      rightopencall = qi::char_("'?")[
+      char const* exclude = " \n\r\t;,()[]{}|'\".?:=@";
+      char const* digits = "0123456789";
+      identifier = ((qi::char_ - qi::char_(exclude)) - qi::char_(digits)) >>
+          *(qi::char_ - qi::char_(exclude));
+      identifier.name("identifier");
+
+      rightopencall = (qi::char_("'?.") >> !(
+          (qi::char_ - qi::char_(exclude)) - qi::char_(digits)))[
           qi::_val = phx::construct<PTR<ValueModifier> >(
           phx::new_<OpenCall>())];
       rightopencall.name("open call trailer");
@@ -211,12 +218,6 @@ namespace parser {
           explist >> ")"))[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<SubExpression>(qi::_1))];
       subexpression.name("subexpression");
-
-      char const* exclude = " \n\r\t;,()[]{}|'\".?:=@";
-      char const* digits = "0123456789";
-      identifier = ((qi::char_ - qi::char_(exclude)) - qi::char_(digits)) >>
-          *(qi::char_ - qi::char_(exclude));
-      identifier.name("identifier");
 
       variable = identifier[phx::bind(&Variable::name, qi::_val) = qi::_1];
       variable.name("variable");

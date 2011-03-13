@@ -65,6 +65,26 @@ public:
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(call, user_provided)), Trailers(OpenCall())), Term(Value(Variable(function, user_provided)), Trailers(OpenCall(), Field(Variable(afuncfield, user_provided)), OpenCall())))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("call. thing1. notafield", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(call, user_provided)), Trailers(OpenCall())), Term(Value(Variable(thing1, user_provided)), Trailers(OpenCall())), Term(Value(Variable(notafield, user_provided)), Trailers()))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("call. thing1.afield", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(call, user_provided)), Trailers(OpenCall())), Term(Value(Variable(thing1, user_provided)), Trailers(Field(Variable(afield, user_provided)))))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("call. function..afield", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(call, user_provided)), Trailers(OpenCall())), Term(Value(Variable(function, user_provided)), Trailers(OpenCall(), Field(Variable(afield, user_provided)))))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("call. function..afuncfield.", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(call, user_provided)), Trailers(OpenCall())), Term(Value(Variable(function, user_provided)), Trailers(OpenCall(), Field(Variable(afuncfield, user_provided)), OpenCall())))");
   }
 
   void testClosedCall() {
