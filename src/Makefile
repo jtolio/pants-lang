@@ -9,23 +9,26 @@ ast.o: ast.h ast.cpp common.h
 parser.o: parser.cpp parser.h common.h ast.h
 	$(CPP) $(CFLAGS) -c parser.cpp
 
-wrap.o: wrap.cpp wrap.h common.h ast.h
+wrap.o: wrap.cpp wrap.h common.h ir.h
 	$(CPP) $(CFLAGS) -c wrap.cpp
 
-main.o: main.cpp common.h parser.h ast.h
+main.o: main.cpp common.h parser.h ast.h wrap.h ir.h cps_transform.h
 	$(CPP) $(CFLAGS) -c main.cpp
 
-pre_cps_ir.o: pre_cps_ir.cpp pre_cps_ir.h ast.h common.h
-	$(CPP) $(CFLAGS) -c pre_cps_ir.cpp
+ir.o: ir.cpp ir.h ast.h common.h
+	$(CPP) $(CFLAGS) -c ir.cpp
 
-run_tests.o: run_tests.cpp common.h parser.h ast.h
+cps_transform.o: cps_transform.cpp cps_transform.h common.h ir.h
+	$(CPP) $(CFLAGS) -c cps_transform.cpp
+
+run_tests.o: run_tests.cpp common.h parser.h ast.h wrap.h ir.h cps_transform.h
 	$(CPP) $(CFLAGS) -c run_tests.cpp
 
-cirth: main.o parser.o ast.o wrap.o pre_cps_ir.o
-	$(CPP) $(CFLAGS) -o cirth main.o ast.o parser.o wrap.o pre_cps_ir.o
+cirth: main.o parser.o ast.o wrap.o ir.o cps_transform.o
+	$(CPP) $(CFLAGS) -o cirth main.o ast.o parser.o wrap.o ir.o cps_transform.o
 
-test: run_tests.o parser.o ast.o wrap.o pre_cps_ir.o
-	$(CPP) $(CFLAGS) -o run_tests run_tests.o ast.o parser.o wrap.o pre_cps_ir.o -lcppunit -ldl
+test: run_tests.o parser.o ast.o wrap.o ir.o cps_transform.o
+	$(CPP) $(CFLAGS) -o run_tests run_tests.o ast.o parser.o wrap.o ir.o cps_transform.o -lcppunit -ldl
 	./run_tests
 
 clean:

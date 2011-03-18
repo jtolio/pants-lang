@@ -1,11 +1,11 @@
-#ifndef __PRE_CPS_IR_H__
-#define __PRE_CPS_IR_H__
+#ifndef __IR_H__
+#define __IR_H__
 
 #include "common.h"
 #include "ast.h"
 
 namespace cirth {
-namespace pre_cps_ir {
+namespace ir {
 
   struct Expression {
     virtual ~Expression() {}
@@ -159,6 +159,7 @@ namespace pre_cps_ir {
     boost::optional<KeywordOutArgument> right_keyword_arg;
     std::vector<OptionalOutArgument> scoped_optional_args;
     boost::optional<KeywordOutArgument> scoped_keyword_arg;
+    PTR<Value> continuation;
     std::string format() const;
   };
 
@@ -220,7 +221,7 @@ namespace pre_cps_ir {
   };
 
   void convert(const std::vector<PTR<cirth::ast::Expression> >& exps,
-      std::vector<PTR<cirth::pre_cps_ir::Expression> >& out);
+      std::vector<PTR<cirth::ir::Expression> >& out);
 
 }}
 

@@ -1,6 +1,6 @@
 #include "wrap.h"
 
-using namespace cirth::pre_cps_ir;
+using namespace cirth::ir;
 
 void cirth::wrap::wrap(std::vector<PTR<Expression> >& ast) {
 }

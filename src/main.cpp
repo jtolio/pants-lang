@@ -1,7 +1,8 @@
 #include "common.h"
 #include "parser.h"
 #include "wrap.h"
-#include "pre_cps_ir.h"
+#include "ir.h"
+#include "cps_transform.h"
 #include <iostream>
 
 int main(int argc, char** argv) {
@@ -23,13 +24,16 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  std::vector<PTR<pre_cps_ir::Expression> > ir;
-  pre_cps_ir::convert(ast, ir);
+  std::vector<PTR<ir::Expression> > ir;
+  ir::convert(ast, ir);
   ast.clear();
-  wrap::wrap(ir);
+  std::vector<PTR<ir::Expression> > cps;
+  cps_transform::transform(ir, cps);
+  ir.clear();
+  wrap::wrap(cps);
 
-  for(unsigned int i = 0; i < ir.size(); ++i) {
-    std::cout << ir[i]->format() << std::endl;
+  for(unsigned int i = 0; i < cps.size(); ++i) {
+    std::cout << cps[i]->format() << std::endl;
   }
 
   return 0;
