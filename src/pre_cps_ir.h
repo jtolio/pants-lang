@@ -39,10 +39,11 @@ namespace pre_cps_ir {
     Name(const std::string& name_, bool user_provided_)
       : name(name_), user_provided(user_provided_) {}
     Name(const cirth::ast::Variable& var)
-      : name(var.name), user_provided(var.user_provided) {}
+      : name(var.name), user_provided(var.user_provided), scoped(var.scoped) {}
     std::string format() const;
     std::string name;
     bool user_provided;
+    bool scoped;
   };
 
   struct Assignment : public Expression {

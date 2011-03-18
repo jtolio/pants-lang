@@ -18,6 +18,7 @@
          |  <float>
          |  <dictionary>
          |  <array>
+         |  .<variable>
 
 <header> ::= <left-indicator>     # open call
 

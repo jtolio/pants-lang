@@ -110,12 +110,16 @@ namespace ast {
   };
 
   struct Variable : public Value {
-    Variable() : user_provided(true) {}
-    Variable(const std::string& name_) : name(name_), user_provided(true) {}
+    Variable() : user_provided(true), scoped(false) {}
+    Variable(const std::string& name_)
+      : name(name_), user_provided(true), scoped(false) {}
     Variable(const std::string& name_, bool user_provided_)
-      : name(name_), user_provided(user_provided_) {}
+      : name(name_), user_provided(user_provided_), scoped(false) {}
+    Variable(const std::string& name_, bool user_provided_, bool scoped_)
+      : name(name_), user_provided(user_provided_), scoped(scoped_) {}
     std::string name;
     bool user_provided;
+    bool scoped;
     std::string format() const;
     void accept(AstVisitor* visitor) { visitor->visit(this); }
   };

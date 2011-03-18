@@ -43,8 +43,8 @@ std::string cirth::ast::Term::format() const {
 
 std::string cirth::ast::Variable::format() const {
   std::ostringstream os;
-  os << "Variable(" << name << (user_provided ? ", user_provided)" :
-      ", compiler_provided)");
+  os << "Variable(" << name << (user_provided ? ", user_provided, " :
+      ", compiler_provided, ") << (scoped ? "scoped)" : "unscoped)");
   return os.str();
 }
 
