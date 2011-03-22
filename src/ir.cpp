@@ -11,7 +11,7 @@ public:
   void visit(const std::vector<PTR<ast::Expression> >& exps) {
     for(unsigned int i = 0; i < exps.size(); ++i)
       exps[i]->accept(this);
-    m_ir->push_back(m_lastval);
+    m_ir->push_back(PTR<ir::Expression>(new ir::ValueExpression(m_lastval)));
   }
 
   void visit(ast::Application* app) {
@@ -56,9 +56,8 @@ public:
       }
 
       ir::Name name(gensym());
-      PTR<ir::Assignee> assignee(new ir::SingleAssignee(name));
-      m_ir->push_back(PTR<ir::Expression>(new ir::Assignment(
-          assignee, call, false)));
+      m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
+          name, call)));
       m_lastval = PTR<ir::Value>(new ir::Variable(name));
 
       return;
@@ -83,30 +82,19 @@ public:
   }
 
   void visit(ast::Field* field) {
-    ir::Name name(gensym());
-    PTR<ir::Assignee> assignee(new ir::SingleAssignee(name));
-    PTR<ir::Term> term(new ir::Field(m_lastval,
-        ir::Name(field->variable.name, field->variable.user_provided)));
-    m_ir->push_back(PTR<ir::Expression>(new ir::Assignment(
-        assignee, term, false)));
-    m_lastval = PTR<ir::Value>(new ir::Variable(name));
+    m_lastval = PTR<ir::Value>(new ir::Field(m_lastval, ir::Name(
+        field->variable)));
   }
 
   void visit(ast::Index* index) {
-    ir::Name name(gensym());
-    PTR<ir::Assignee> assignee(new ir::SingleAssignee(name));
     PTR<ir::Value> array = m_lastval;
     ast::SubExpression subexp(index->expressions);
     visit(&subexp);
-    PTR<ir::Term> term(new ir::Index(array, m_lastval));
-    m_ir->push_back(PTR<ir::Expression>(new ir::Assignment(
-        assignee, term, false)));
-    m_lastval = PTR<ir::Value>(new ir::Variable(name));
+    m_lastval = PTR<ir::Value>(new ir::Index(array, m_lastval));
   }
 
   void visit(ast::Variable* var) {
-    m_lastval = PTR<ir::Value>(new ir::Variable(
-        ir::Name(var->name, var->user_provided)));
+    m_lastval = PTR<ir::Value>(new ir::Variable(ir::Name(*var)));
   }
 
   void visit(ast::SubExpression* subexp) {
@@ -116,9 +104,8 @@ public:
     PTR<ir::Call> call(new ir::Call);
     call->function = function;
     ir::Name name(gensym());
-    PTR<ir::Assignee> assignee(new ir::SingleAssignee(name));
-    m_ir->push_back(PTR<ir::Expression>(new ir::Assignment(
-        assignee, call, false)));
+    m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
+        name, call)));
     m_lastval = PTR<ir::Value>(new ir::Variable(name));
   }
 
@@ -203,15 +190,15 @@ public:
           "variable, field, or index");
 
     if(!mutation) {
-      m_ir->push_back(PTR<ir::Expression>(new ir::Assignment(
+      m_ir->push_back(PTR<ir::Expression>(new ir::Definition(
           assignee, PTR<ir::Value>(new ir::Variable(
-          ir::Name("null", false))), false)));
+          ir::Name("null", false, false))))));
       assignment->exp->accept(this);
       rhs = m_lastval;
     }
 
-    m_ir->push_back(PTR<ir::Expression>(new ir::Assignment(
-        assignee, rhs, true)));
+    m_ir->push_back(PTR<ir::Expression>(new ir::Mutation(
+        assignee, rhs)));
   }
 
   void visit(ast::Function* infunc) {
@@ -300,9 +287,8 @@ public:
       outcall->scoped_keyword_arg = ir::KeywordOutArgument(m_lastval);
     }
     ir::Name name(gensym());
-    PTR<ir::Assignee> assignee(new ir::SingleAssignee(name));
-    m_ir->push_back(PTR<ir::Expression>(new ir::Assignment(
-        assignee, outcall, false)));
+    m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
+        name, outcall)));
     m_lastval = PTR<ir::Value>(new ir::Variable(name));
   }
 
@@ -310,7 +296,7 @@ private:
   ir::Name gensym() {
     std::ostringstream os;
     os << "precpsir" << ++(*m_varcount);
-    return ir::Name(os.str(), false);
+    return ir::Name(os.str(), false, false);
   }
 
 private:
@@ -333,9 +319,27 @@ std::string cirth::ir::Name::format() const {
   return os.str();
 }
 
-std::string cirth::ir::Assignment::format() const {
+std::string cirth::ir::Definition::format() const {
   std::ostringstream os;
-  os << "Assignment(" << assignee->format() << ", " << term->format() << ")";
+  os << "Definition(" << assignee->format() << ", " << value->format() << ")";
+  return os.str();
+}
+
+std::string cirth::ir::ReturnValue::format() const {
+  std::ostringstream os;
+  os << "ReturnValue(" << assignee.format() << ", " << term->format() << ")";
+  return os.str();
+}
+
+std::string cirth::ir::ValueExpression::format() const {
+  std::ostringstream os;
+  os << "ValueExpression(" << value->format() << ")";
+  return os.str();
+}
+
+std::string cirth::ir::Mutation::format() const {
+  std::ostringstream os;
+  os << "Mutation(" << assignee->format() << ", " << value->format() << ")";
   return os.str();
 }
 

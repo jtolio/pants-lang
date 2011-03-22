@@ -12,12 +12,9 @@ namespace ir {
     virtual std::string format() const = 0;
     protected: Expression() {} };
 
-  struct Term : public Expression {
-    virtual ~Term() {}
-    protected: Term() {} };
-
-  struct Value : public Term {
+  struct Value {
     virtual ~Value() {}
+    virtual std::string format() const = 0;
     protected: Value() {} };
 
   struct Assignee {
@@ -36,8 +33,8 @@ namespace ir {
     protected: OutArgument() {} };
 
   struct Name {
-    Name(const std::string& name_, bool user_provided_)
-      : name(name_), user_provided(user_provided_) {}
+    Name(const std::string& name_, bool user_provided_, bool scoped_)
+      : name(name_), user_provided(user_provided_), scoped(scoped_) {}
     Name(const cirth::ast::Variable& var)
       : name(var.name), user_provided(var.user_provided), scoped(var.scoped) {}
     std::string format() const;
@@ -46,13 +43,20 @@ namespace ir {
     bool scoped;
   };
 
-  struct Assignment : public Expression {
-    Assignment(PTR<Assignee> assignee_, PTR<Term> term_, bool mutation_)
-      : assignee(assignee_), term(term_), mutation(mutation_) {}
+  struct Definition : public Expression {
+    Definition(PTR<Assignee> assignee_, PTR<Value> value_)
+      : assignee(assignee_), value(value_) {}
     PTR<Assignee> assignee;
-    PTR<Term> term;
+    PTR<Value> value;
     std::string format() const;
-    bool mutation;
+  };
+
+  struct Mutation : public Expression {
+    Mutation(PTR<Assignee> assignee_, PTR<Value> value_)
+      : assignee(assignee_), value(value_) {}
+    PTR<Assignee> assignee;
+    PTR<Value> value;
+    std::string format() const;
   };
 
   struct SingleAssignee : public Assignee {
@@ -77,7 +81,7 @@ namespace ir {
     Name field;
   };
 
-  struct Index : public Term {
+  struct Index : public Value {
     Index(const PTR<Value>& array_, const PTR<Value>& index_)
       : array(array_), index(index_) {}
     std::string format() const;
@@ -85,7 +89,7 @@ namespace ir {
     PTR<Value> index;
   };
 
-  struct Field : public Term {
+  struct Field : public Value {
     Field(const PTR<Value>& object_, const Name& field_)
       : object(object_), field(field_) {}
     std::string format() const;
@@ -149,7 +153,7 @@ namespace ir {
     std::string format() const;
   };
 
-  struct Call : public Term {
+  struct Call {
     PTR<Value> function;
     std::vector<PositionalOutArgument> left_positional_args;
     boost::optional<ArbitraryOutArgument> left_arbitrary_arg;
@@ -160,6 +164,21 @@ namespace ir {
     std::vector<OptionalOutArgument> scoped_optional_args;
     boost::optional<KeywordOutArgument> scoped_keyword_arg;
     PTR<Value> continuation;
+    PTR<Value> exception;
+    std::string format() const;
+  };
+
+  struct ReturnValue : public Expression {
+    ReturnValue(const Name& assignee_, PTR<Call> term_)
+      : assignee(assignee_), term(term_) {}
+    Name assignee;
+    PTR<Call> term;
+    std::string format() const;
+  };
+
+  struct ValueExpression : public Expression {
+    ValueExpression(PTR<Value> value_) : value(value_) {}
+    PTR<Value> value;
     std::string format() const;
   };
 

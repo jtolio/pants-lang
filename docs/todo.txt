@@ -1,9 +1,9 @@
 parser
- * make semicolons optional (newlines work too)
  * make in_arg and out_arg order more picky in the parser
  * strings
  * comments
  * more unit tests
+ * named open-call args
 
 rest
  * wrap
