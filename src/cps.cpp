@@ -1,8 +1,8 @@
-#include "cps_transform.h"
+#include "cps.h"
 
 using namespace cirth;
 
-void cps_transform::transform(
+void cps::transform(
     const std::vector<PTR<ir::Expression> >& in_ir,
     std::vector<PTR<ir::Expression> >& out_ir) {
   std::vector<PTR<ir::Expression> >::const_iterator exp(in_ir.begin());

@@ -2,7 +2,7 @@
 #include "parser.h"
 #include "wrap.h"
 #include "ir.h"
-#include "cps_transform.h"
+#include "cps.h"
 #include <iostream>
 
 int main(int argc, char** argv) {
@@ -27,14 +27,14 @@ int main(int argc, char** argv) {
   std::vector<PTR<ir::Expression> > ir;
   ir::convert(ast, ir);
   ast.clear();
-  std::vector<PTR<ir::Expression> > cps;
-  cps_transform::transform(ir, cps);
-  ir.clear();
-  wrap::wrap(cps);
+//  std::vector<PTR<ir::Expression> > cps;
+//  cps::transform(ir, cps);
+//  ir.clear();
+//  wrap::wrap(cps);
 
-  for(unsigned int i = 0; i < cps.size(); ++i) {
-    std::cout << cps[i]->format() << std::endl;
-  }
+//  for(unsigned int i = 0; i < cps.size(); ++i) {
+//    std::cout << cps[i]->format() << std::endl;
+//  }
 
   return 0;
 }

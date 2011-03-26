@@ -5,7 +5,7 @@
 #include "ir.h"
 
 namespace cirth {
-namespace cps_transform {
+namespace cps {
 
   void transform(const std::vector<PTR<cirth::ir::Expression> >& in_ir,
       std::vector<PTR<cirth::ir::Expression> >& out_ir);
