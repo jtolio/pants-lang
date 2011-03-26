@@ -7,10 +7,10 @@
 namespace cirth {
 namespace ir {
 
-  struct Expression {
-    virtual ~Expression() {}
+  struct Assignment {
+    virtual ~Assignment() {}
     virtual std::string format() const = 0;
-    protected: Expression() {} };
+    protected: Assignment() {} };
 
   struct Value {
     virtual ~Value() {}
@@ -43,7 +43,7 @@ namespace ir {
     bool scoped;
   };
 
-  struct Definition : public Expression {
+  struct Definition : public Assignment {
     Definition(PTR<Assignee> assignee_, PTR<Value> value_)
       : assignee(assignee_), value(value_) {}
     PTR<Assignee> assignee;
@@ -51,7 +51,7 @@ namespace ir {
     std::string format() const;
   };
 
-  struct Mutation : public Expression {
+  struct Mutation : public Assignment {
     Mutation(PTR<Assignee> assignee_, PTR<Value> value_)
       : assignee(assignee_), value(value_) {}
     PTR<Assignee> assignee;
@@ -168,20 +168,6 @@ namespace ir {
     std::string format() const;
   };
 
-  struct ReturnValue : public Expression {
-    ReturnValue(const Name& assignee_, PTR<Call> term_)
-      : assignee(assignee_), term(term_) {}
-    Name assignee;
-    PTR<Call> term;
-    std::string format() const;
-  };
-
-  struct ValueExpression : public Expression {
-    ValueExpression(PTR<Value> value_) : value(value_) {}
-    PTR<Value> value;
-    std::string format() const;
-  };
-
   struct DictDefinition {
     DictDefinition(const PTR<Value>& key_, const PTR<Value>& value_)
       : key(key_), value(value_) {}
@@ -227,20 +213,19 @@ namespace ir {
   };
 
   struct Function : public Value {
-    Function(bool full_function_) : full_function(full_function_) {}
     std::vector<PositionalInArgument> left_positional_args;
     boost::optional<ArbitraryInArgument> left_arbitrary_arg;
     std::vector<PositionalInArgument> right_positional_args;
     std::vector<OptionalInArgument> right_optional_args;
     boost::optional<ArbitraryInArgument> right_arbitrary_arg;
     boost::optional<KeywordInArgument> right_keyword_arg;
-    std::vector<PTR<Expression> > expressions;
-    bool full_function;
+    std::vector<PTR<Assignment> > assignments;
+    Call trailing_call;
     std::string format() const;
   };
 
   void convert(const std::vector<PTR<cirth::ast::Expression> >& exps,
-      std::vector<PTR<cirth::ir::Expression> >& out);
+      std::vector<PTR<Assignment> >& assignments, Call& trailing_call);
 
 }}
 
