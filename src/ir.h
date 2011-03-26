@@ -22,16 +22,6 @@ namespace ir {
     virtual std::string format() const = 0;
     protected: Assignee() {} };
 
-  struct InArgument {
-    virtual ~InArgument() {}
-    virtual std::string format() const = 0;
-    protected: InArgument() {} };
-
-  struct OutArgument {
-    virtual ~OutArgument() {}
-    virtual std::string format() const = 0;
-    protected: OutArgument() {} };
-
   struct Name {
     Name(const std::string& name_, bool user_provided_, bool scoped_)
       : name(name_), user_provided(user_provided_), scoped(scoped_) {}
@@ -127,13 +117,13 @@ namespace ir {
     std::string format() const;
   };
 
-  struct PositionalOutArgument : public OutArgument {
+  struct PositionalOutArgument {
     PositionalOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
     PTR<Value> variable;
     std::string format() const;
   };
 
-  struct OptionalOutArgument : public OutArgument {
+  struct OptionalOutArgument {
     OptionalOutArgument(const Name& key_, const PTR<Value>& variable_)
       : key(key_), variable(variable_) {}
     Name key;
@@ -141,13 +131,13 @@ namespace ir {
     std::string format() const;
   };
 
-  struct ArbitraryOutArgument : public OutArgument {
+  struct ArbitraryOutArgument {
     ArbitraryOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
     PTR<Value> variable;
     std::string format() const;
   };
 
-  struct KeywordOutArgument : public OutArgument {
+  struct KeywordOutArgument {
     KeywordOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
     PTR<Value> variable;
     std::string format() const;
@@ -163,8 +153,6 @@ namespace ir {
     boost::optional<KeywordOutArgument> right_keyword_arg;
     std::vector<OptionalOutArgument> scoped_optional_args;
     boost::optional<KeywordOutArgument> scoped_keyword_arg;
-    PTR<Value> continuation;
-    PTR<Value> exception;
     std::string format() const;
   };
 
@@ -200,13 +188,13 @@ namespace ir {
     std::string format() const;
   };
 
-  struct PositionalInArgument : public InArgument {
+  struct PositionalInArgument {
     PositionalInArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
     std::string format() const;
   };
 
-  struct OptionalInArgument : public InArgument {
+  struct OptionalInArgument {
     OptionalInArgument(const Name& variable_, const PTR<Value>& defaultval_)
       : variable(variable_), defaultval(defaultval_) {}
     Name variable;
@@ -214,13 +202,13 @@ namespace ir {
     std::string format() const;
   };
 
-  struct ArbitraryInArgument : public InArgument {
+  struct ArbitraryInArgument {
     ArbitraryInArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
     std::string format() const;
   };
 
-  struct KeywordInArgument : public InArgument {
+  struct KeywordInArgument {
     KeywordInArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
     std::string format() const;
