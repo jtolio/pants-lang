@@ -2,13 +2,12 @@
 
 using namespace cirth;
 
-void cps::transform(
-    const std::vector<PTR<ir::Expression> >& in_ir,
-    std::vector<PTR<ir::Expression> >& out_ir) {
-  std::vector<PTR<ir::Expression> >::const_iterator exp(in_ir.begin());
-  // an expression can be:
-  //  * Definition
-  //  * Mutation
-  //  * ReturnValue
-  //  * ValueExpression (always last)
+void cps::transform(const std::vector<PTR<ir::Assignment> >& in_ir,
+    const PTR<ir::Value>& in_lastval, PTR<cps::Expression>& out_ir) {
+  PTR<cps::Value> continuation;
+  PTR<cps::Value> exception;
+  
+  for(unsigned int i = 0; i < in_ir.size(); ++i) {
+    
+  }
 }

@@ -7,7 +7,7 @@
 namespace cirth {
 namespace wrap {
 
-  void wrap(std::vector<PTR<cirth::ir::Expression> >& ir);
+//  void wrap(std::vector<PTR<cirth::ir::Expression> >& ir);
 
 }}
 

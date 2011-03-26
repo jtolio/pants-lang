@@ -24,8 +24,9 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  std::vector<PTR<ir::Expression> > ir;
-  ir::convert(ast, ir);
+  std::vector<PTR<ir::Assignment> > ir;
+  PTR<ir::Value> lastval;
+  ir::convert(ast, ir, lastval);
   ast.clear();
 //  std::vector<PTR<ir::Expression> > cps;
 //  cps::transform(ir, cps);

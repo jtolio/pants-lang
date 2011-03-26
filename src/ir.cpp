@@ -4,14 +4,17 @@ using namespace cirth;
 
 class ConversionVisitor : public ast::AstVisitor {
 public:
-  ConversionVisitor(std::vector<PTR<ir::Expression> >* ir,
-      unsigned long long* varcount)
-    : m_ir(ir), m_varcount(varcount) {}
+  ConversionVisitor(std::vector<PTR<ir::Assignment> >* ir,
+      PTR<ir::Value>* lastval, unsigned long long* varcount)
+    : m_ir(ir), m_lastval(lastval), m_varcount(varcount)
+  {
+    *m_lastval = PTR<ir::Value>(
+        new ir::Variable(ir::Name("null", false, false)));
+  }
 
   void visit(const std::vector<PTR<ast::Expression> >& exps) {
     for(unsigned int i = 0; i < exps.size(); ++i)
       exps[i]->accept(this);
-    m_ir->push_back(PTR<ir::Expression>(new ir::ValueExpression(m_lastval)));
   }
 
   void visit(ast::Application* app) {
@@ -40,25 +43,25 @@ public:
       for(unsigned int i = 0; i < opencall_idx; ++i) {
         app->terms[i]->accept(this);
         call->left_positional_args.push_back(ir::PositionalOutArgument(
-            m_lastval));
+            *m_lastval));
       }
 
       ast::Term term(*app->terms[opencall_idx]);
       if(found) term.trailers.pop_back();
       visit(&term);
-      call->function = m_lastval;
+      call->function = *m_lastval;
 
       call->right_positional_args.reserve(app->terms.size() - opencall_idx - 1);
       for(unsigned int i = opencall_idx + 1; i < app->terms.size(); ++i) {
         app->terms[i]->accept(this);
         call->right_positional_args.push_back(ir::PositionalOutArgument(
-            m_lastval));
+            *m_lastval));
       }
 
       ir::Name name(gensym());
-      m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
+      m_ir->push_back(PTR<ir::Assignment>(new ir::ReturnValue(
           name, call)));
-      m_lastval = PTR<ir::Value>(new ir::Variable(name));
+      *m_lastval = PTR<ir::Value>(new ir::Variable(name));
 
       return;
     }
@@ -82,48 +85,49 @@ public:
   }
 
   void visit(ast::Field* field) {
-    m_lastval = PTR<ir::Value>(new ir::Field(m_lastval, ir::Name(
+    *m_lastval = PTR<ir::Value>(new ir::Field(*m_lastval, ir::Name(
         field->variable)));
   }
 
   void visit(ast::Index* index) {
-    PTR<ir::Value> array = m_lastval;
+    PTR<ir::Value> array = *m_lastval;
     ast::SubExpression subexp(index->expressions);
     visit(&subexp);
-    m_lastval = PTR<ir::Value>(new ir::Index(array, m_lastval));
+    *m_lastval = PTR<ir::Value>(new ir::Index(array, *m_lastval));
   }
 
   void visit(ast::Variable* var) {
-    m_lastval = PTR<ir::Value>(new ir::Variable(ir::Name(*var)));
+    *m_lastval = PTR<ir::Value>(new ir::Variable(ir::Name(*var)));
   }
 
   void visit(ast::SubExpression* subexp) {
     PTR<ir::Function> function(new ir::Function(false));
-    ConversionVisitor subvisitor(&function->expressions, m_varcount);
+    ConversionVisitor subvisitor(&function->assignments, &function->lastval,
+        m_varcount);
     subvisitor.visit(subexp->expressions);
     PTR<ir::Call> call(new ir::Call);
     call->function = function;
     ir::Name name(gensym());
-    m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
+    m_ir->push_back(PTR<ir::Assignment>(new ir::ReturnValue(
         name, call)));
-    m_lastval = PTR<ir::Value>(new ir::Variable(name));
+    *m_lastval = PTR<ir::Value>(new ir::Variable(name));
   }
 
   void visit(ast::Integer* int_) {
-    m_lastval = PTR<ir::Value>(new ir::Integer(int_->value));
+    *m_lastval = PTR<ir::Value>(new ir::Integer(int_->value));
   }
 
   void visit(ast::CharString* char_) {
-    m_lastval = PTR<ir::Value>(new ir::CharString(
+    *m_lastval = PTR<ir::Value>(new ir::CharString(
         char_->value));
   }
 
   void visit(ast::ByteString* byte) {
-    m_lastval = PTR<ir::Value>(new ir::ByteString(byte->value));
+    *m_lastval = PTR<ir::Value>(new ir::ByteString(byte->value));
   }
 
   void visit(ast::Float* float_) {
-    m_lastval = PTR<ir::Value>(new ir::Float(float_->value));
+    *m_lastval = PTR<ir::Value>(new ir::Float(float_->value));
   }
 
   void visit(ast::Dictionary* in_dict) {
@@ -131,12 +135,12 @@ public:
     out_dict->definitions.reserve(in_dict->values.size());
     for(unsigned int i = 0; i < in_dict->values.size(); ++i) {
       in_dict->values[i].key->accept(this);
-      PTR<ir::Value> key = m_lastval;
+      PTR<ir::Value> key = *m_lastval;
       in_dict->values[i].value->accept(this);
-      PTR<ir::Value> value = m_lastval;
+      PTR<ir::Value> value = *m_lastval;
       out_dict->definitions.push_back(ir::DictDefinition(key, value));
     }
-    m_lastval = out_dict;
+    *m_lastval = out_dict;
   }
 
   void visit(ast::Array* in_array) {
@@ -144,9 +148,9 @@ public:
     out_array->values.reserve(in_array->values.size());
     for(unsigned int i = 0; i < in_array->values.size(); ++i) {
       in_array->values[i]->accept(this);
-      out_array->values.push_back(m_lastval);
+      out_array->values.push_back(*m_lastval);
     }
-    m_lastval = out_array;
+    *m_lastval = out_array;
   }
 
   void visit(ast::Mutation* mut) { visit(mut, true); }
@@ -158,7 +162,7 @@ public:
 
     if(mutation) {
       assignment->exp->accept(this);
-      rhs = m_lastval;
+      rhs = *m_lastval;
     }
 
     if(term->trailers.size() == 0) {
@@ -171,16 +175,16 @@ public:
         term->trailers[i]->accept(this);
       ast::Field* field(dynamic_cast<ast::Field*>(term->trailers.back().get()));
       if(field) {
-        assignee.reset(new ir::FieldAssignee(m_lastval,
+        assignee.reset(new ir::FieldAssignee(*m_lastval,
             ir::Name(field->variable)));
       } else {
         ast::Index* index(dynamic_cast<ast::Index*>(
             term->trailers.back().get()));
         if(index) {
-          PTR<ir::Value> array = m_lastval;
+          PTR<ir::Value> array = *m_lastval;
           ast::SubExpression subexp(index->expressions);
           visit(&subexp);
-          assignee.reset(new ir::IndexAssignee(array, m_lastval));
+          assignee.reset(new ir::IndexAssignee(array, *m_lastval));
         }
       }
     }
@@ -190,14 +194,14 @@ public:
           "variable, field, or index");
 
     if(!mutation) {
-      m_ir->push_back(PTR<ir::Expression>(new ir::Definition(
+      m_ir->push_back(PTR<ir::Assignment>(new ir::Definition(
           assignee, PTR<ir::Value>(new ir::Variable(
           ir::Name("null", false, false))))));
       assignment->exp->accept(this);
-      rhs = m_lastval;
+      rhs = *m_lastval;
     }
 
-    m_ir->push_back(PTR<ir::Expression>(new ir::Mutation(
+    m_ir->push_back(PTR<ir::Assignment>(new ir::Mutation(
         assignee, rhs)));
   }
 
@@ -220,7 +224,7 @@ public:
     for(unsigned int i = 0; i < infunc->right_optional_args.size(); ++i) {
       infunc->right_optional_args[i].application->accept(this);
       outfunc->right_optional_args.push_back(ir::OptionalInArgument(
-          ir::Name(infunc->right_optional_args[i].name), m_lastval));
+          ir::Name(infunc->right_optional_args[i].name), *m_lastval));
     }
     if(!!infunc->right_arbitrary_arg)
       outfunc->right_arbitrary_arg = ir::ArbitraryInArgument(
@@ -229,67 +233,68 @@ public:
       outfunc->right_keyword_arg = ir::KeywordInArgument(
           ir::Name(infunc->right_keyword_arg->name));
 
-    ConversionVisitor subvisitor(&outfunc->expressions, m_varcount);
+    ConversionVisitor subvisitor(&outfunc->assignments, &outfunc->lastval,
+        m_varcount);
     subvisitor.visit(infunc->expressions);
 
-    m_lastval = outfunc;
+    *m_lastval = outfunc;
   }
 
   void visit(ast::ClosedCall* incall) {
     PTR<ir::Call> outcall(new ir::Call);
-    outcall->function = m_lastval;
+    outcall->function = *m_lastval;
     if(!!incall->left_arbitrary_arg) {
       ast::SubExpression subexp(incall->left_arbitrary_arg.get().array);
       visit(&subexp);
       outcall->left_arbitrary_arg = ir::ArbitraryOutArgument(
-          m_lastval);
+          *m_lastval);
     }
     outcall->left_positional_args.reserve(incall->left_required_args.size());
     for(unsigned int i = 0; i < incall->left_required_args.size(); ++i) {
       incall->left_required_args[i].application->accept(this);
       outcall->left_positional_args.push_back(
-          ir::PositionalOutArgument(m_lastval));
+          ir::PositionalOutArgument(*m_lastval));
     }
     outcall->right_positional_args.reserve(incall->right_required_args.size());
     for(unsigned int i = 0; i < incall->right_required_args.size(); ++i) {
       incall->right_required_args[i].application->accept(this);
       outcall->right_positional_args.push_back(
-          ir::PositionalOutArgument(m_lastval));
+          ir::PositionalOutArgument(*m_lastval));
     }
     outcall->right_optional_args.reserve(incall->right_optional_args.size());
     for(unsigned int i = 0; i < incall->right_optional_args.size(); ++i) {
       incall->right_optional_args[i].application->accept(this);
       outcall->right_optional_args.push_back(
           ir::OptionalOutArgument(ir::Name(
-          incall->right_optional_args[i].name), m_lastval));
+          incall->right_optional_args[i].name), *m_lastval));
     }
     if(!!incall->right_arbitrary_arg) {
       ast::SubExpression subexp(incall->right_arbitrary_arg.get().array);
       visit(&subexp);
       outcall->right_arbitrary_arg = ir::ArbitraryOutArgument(
-          m_lastval);
+          *m_lastval);
     }
     if(!!incall->right_keyword_arg) {
       ast::SubExpression subexp(incall->right_keyword_arg.get().object);
       visit(&subexp);
-      outcall->right_keyword_arg = ir::KeywordOutArgument(m_lastval);
+      outcall->right_keyword_arg = ir::KeywordOutArgument(*m_lastval);
     }
     outcall->scoped_optional_args.reserve(incall->scoped_optional_args.size());
     for(unsigned int i = 0; i < incall->scoped_optional_args.size(); ++i) {
       incall->scoped_optional_args[i].application->accept(this);
       outcall->scoped_optional_args.push_back(
           ir::OptionalOutArgument(ir::Name(
-          incall->scoped_optional_args[i].name), m_lastval));
+          incall->scoped_optional_args[i].name), *m_lastval));
     }
     if(!!incall->scoped_keyword_arg) {
       ast::SubExpression subexp(incall->scoped_keyword_arg.get().object);
       visit(&subexp);
-      outcall->scoped_keyword_arg = ir::KeywordOutArgument(m_lastval);
+      outcall->scoped_keyword_arg = ir::KeywordOutArgument(*m_lastval);
     }
     ir::Name name(gensym());
-    m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
+    m_ir->push_back(PTR<ir::Assignment>(new ir::ReturnValue(
         name, outcall)));
-    m_lastval = PTR<ir::Value>(new ir::Variable(name));
+    *m_lastval = PTR<ir::Value>(new ir::Variable(name));
   }
 
 private:
@@ -300,15 +305,16 @@ private:
   }
 
 private:
-  std::vector<PTR<ir::Expression> >* m_ir;
-  PTR<ir::Value> m_lastval;
+  std::vector<PTR<ir::Assignment> >* m_ir;
+  PTR<ir::Value>* m_lastval;
   unsigned long long* m_varcount;
 };
 
 void ir::convert(const std::vector<PTR<ast::Expression> >& ast,
-    std::vector<PTR<ir::Expression> >& ir) {
+    std::vector<PTR<ir::Assignment> >& ir,
+    PTR<ir::Value>& lastval) {
   unsigned long long varcount = 0;
-  ConversionVisitor visitor(&ir, &varcount);
+  ConversionVisitor visitor(&ir, &lastval, &varcount);
   visitor.visit(ast);
 }
 
@@ -328,12 +334,6 @@ std::string cirth::ir::Definition::format() const {
 std::string cirth::ir::ReturnValue::format() const {
   std::ostringstream os;
   os << "ReturnValue(" << assignee.format() << ", " << term->format() << ")";
-  return os.str();
-}
-
-std::string cirth::ir::ValueExpression::format() const {
-  std::ostringstream os;
-  os << "ValueExpression(" << value->format() << ")";
   return os.str();
 }
 
@@ -566,11 +566,11 @@ std::string cirth::ir::Function::format() const {
     if(comma_needed) os << ", ";
     os << right_keyword_arg.get().format();
   }
-  os << "), Expressions(";
-  for(unsigned int i = 0; i < expressions.size(); ++i) {
+  os << "), Assignments(";
+  for(unsigned int i = 0; i < assignments.size(); ++i) {
     if(i > 0) os << ", ";
-    os << expressions[i]->format();
+    os << assignments[i]->format();
   }
-  os << "))";
+  os << "), LastVal(" << lastval->format() << "))";
   return os.str();
 }

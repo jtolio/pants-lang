@@ -196,13 +196,11 @@ namespace cps {
     boost::optional<ArbitraryInArgument> right_arbitrary_arg;
     boost::optional<KeywordInArgument> right_keyword_arg;
     PTR<Expression> expression;
-    Name continuation;
-    Name exception;
     std::string format() const;
   };
 
-  void transform(const std::vector<PTR<cirth::ir::Expression> >& in_ir,
-      std::vector<PTR<Expression> >& out_ir);
+  void transform(const std::vector<PTR<cirth::ir::Assignment> >& in_ir,
+      const PTR<cirth::ir::Value>& in_lastval, PTR<Expression>& out_ir);
 
 }}
 

@@ -7,10 +7,10 @@
 namespace cirth {
 namespace ir {
 
-  struct Expression {
-    virtual ~Expression() {}
+  struct Assignment {
+    virtual ~Assignment() {}
     virtual std::string format() const = 0;
-    protected: Expression() {} };
+    protected: Assignment() {} };
 
   struct Value {
     virtual ~Value() {}
@@ -33,7 +33,7 @@ namespace ir {
     bool scoped;
   };
 
-  struct Definition : public Expression {
+  struct Definition : public Assignment {
     Definition(PTR<Assignee> assignee_, PTR<Value> value_)
       : assignee(assignee_), value(value_) {}
     PTR<Assignee> assignee;
@@ -41,7 +41,7 @@ namespace ir {
     std::string format() const;
   };
 
-  struct Mutation : public Expression {
+  struct Mutation : public Assignment {
     Mutation(PTR<Assignee> assignee_, PTR<Value> value_)
       : assignee(assignee_), value(value_) {}
     PTR<Assignee> assignee;
@@ -156,17 +156,11 @@ namespace ir {
     std::string format() const;
   };
 
-  struct ReturnValue : public Expression {
+  struct ReturnValue : public Assignment {
     ReturnValue(const Name& assignee_, PTR<Call> term_)
       : assignee(assignee_), term(term_) {}
     Name assignee;
     PTR<Call> term;
-    std::string format() const;
-  };
-
-  struct ValueExpression : public Expression {
-    ValueExpression(PTR<Value> value_) : value(value_) {}
-    PTR<Value> value;
     std::string format() const;
   };
 
@@ -222,13 +216,15 @@ namespace ir {
     std::vector<OptionalInArgument> right_optional_args;
     boost::optional<ArbitraryInArgument> right_arbitrary_arg;
     boost::optional<KeywordInArgument> right_keyword_arg;
-    std::vector<PTR<Expression> > expressions;
+    std::vector<PTR<Assignment> > assignments;
+    PTR<Value> lastval;
     bool full_function;
     std::string format() const;
   };
 
   void convert(const std::vector<PTR<cirth::ast::Expression> >& exps,
-      std::vector<PTR<cirth::ir::Expression> >& out);
+      std::vector<PTR<cirth::ir::Assignment> >& out,
+      PTR<cirth::ir::Value>& lastval);
 
 }}
 

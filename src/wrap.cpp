@@ -2,8 +2,8 @@
 
 using namespace cirth::ir;
 
-void cirth::wrap::wrap(std::vector<PTR<Expression> >& ast) {
-}
+//void cirth::wrap::wrap(std::vector<PTR<Expression> >& ast) {
+//}
 
 /*
   BIND_NAME("if");
