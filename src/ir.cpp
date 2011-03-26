@@ -4,18 +4,14 @@ using namespace cirth;
 
 class ConversionVisitor : public ast::AstVisitor {
 public:
-  ConversionVisitor(std::vector<PTR<ir::Assignment> >* assignments,
-      ir::Call* trailing_call)
-    : m_assignments(assignments), m_trailingCall(trailing_call) {}
+  ConversionVisitor(std::vector<PTR<ir::Expression> >* ir,
+      unsigned long long* varcount)
+    : m_ir(ir), m_varcount(varcount) {}
 
   void visit(const std::vector<PTR<ast::Expression> >& exps) {
     for(unsigned int i = 0; i < exps.size(); ++i)
       exps[i]->accept(this);
-    *m_trailingCall = ir::Call();
-    m_trailingCall->function = PTR<ir::Value>(new ir::Variable(ir::Name("halt",
-        false, false)));
-    m_trailingCall->right_positional_args.push_back(PositionalOutArgument(
-        m_lastval));
+    m_ir->push_back(PTR<ir::Expression>(new ir::ValueExpression(m_lastval)));
   }
 
   void visit(ast::Application* app) {
@@ -102,12 +98,7 @@ public:
   }
 
   void visit(ast::SubExpression* subexp) {
-    PTR<ir::Function> function(new ir::Function);
-    ir::Name name(gensym());
-
-
-
-
+    PTR<ir::Function> function(new ir::Function(false));
     ConversionVisitor subvisitor(&function->expressions, m_varcount);
     subvisitor.visit(subexp->expressions);
     PTR<ir::Call> call(new ir::Call);
@@ -309,16 +300,15 @@ private:
   }
 
 private:
-  std::vector<PTR<ir::Assignment> >* m_assignments;
-  ir::Call* m_trailingCall;
+  std::vector<PTR<ir::Expression> >* m_ir;
   PTR<ir::Value> m_lastval;
   unsigned long long* m_varcount;
 };
 
 void ir::convert(const std::vector<PTR<ast::Expression> >& ast,
-    std::vector<PTR<ir::Assignment> >& assignments,
-    ir::Call& trailing_call) {
-  ConversionVisitor visitor(&assignments, &trailing_call);
+    std::vector<PTR<ir::Expression> >& ir) {
+  unsigned long long varcount = 0;
+  ConversionVisitor visitor(&ir, &varcount);
   visitor.visit(ast);
 }
 
