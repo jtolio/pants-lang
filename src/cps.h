@@ -8,7 +8,7 @@ namespace cirth {
 namespace cps {
 
   typedef cirth::ir::Name Name;
-  
+
   struct Value {
     virtual ~Value() {}
     virtual std::string format() const = 0;
@@ -123,7 +123,7 @@ namespace cps {
     PTR<Value> exception;
     std::string format() const;
   };
-  
+
   struct Assignee {
     virtual ~Assignee() {}
     virtual std::string format() const = 0;
@@ -150,18 +150,19 @@ namespace cps {
     PTR<Value> object;
     Name field;
   };
-  
+
   struct Assignment : public Expression {
-    Assignment(PTR<Assignee> assignee_, PTR<Value> value_, bool definition_,
+    Assignment(PTR<Assignee> assignee_, PTR<Value> value_, bool mutation_,
         PTR<Expression> next_expression_)
-      : assignee(assignee_), value(value_), definition(definition_), 
+      : assignee(assignee_), value(value_), mutation(mutation_),
         next_expression(next_expression_) {}
     PTR<Assignee> assignee;
     PTR<Value> value;
-    bool definition;
+    bool mutation;
     PTR<Expression> next_expression;
+    std::string format() const;
   };
-    
+
   struct PositionalInArgument {
     PositionalInArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
@@ -199,7 +200,7 @@ namespace cps {
     std::string format() const;
   };
 
-  void transform(const std::vector<PTR<cirth::ir::Assignment> >& in_ir,
+  void transform(const std::vector<PTR<cirth::ir::Expression> >& in_ir,
       const PTR<cirth::ir::Value>& in_lastval, PTR<Expression>& out_ir);
 
 }}

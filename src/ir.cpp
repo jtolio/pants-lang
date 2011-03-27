@@ -4,7 +4,7 @@ using namespace cirth;
 
 class ConversionVisitor : public ast::AstVisitor {
 public:
-  ConversionVisitor(std::vector<PTR<ir::Assignment> >* ir,
+  ConversionVisitor(std::vector<PTR<ir::Expression> >* ir,
       PTR<ir::Value>* lastval, unsigned long long* varcount)
     : m_ir(ir), m_lastval(lastval), m_varcount(varcount)
   {
@@ -59,7 +59,7 @@ public:
       }
 
       ir::Name name(gensym());
-      m_ir->push_back(PTR<ir::Assignment>(new ir::ReturnValue(
+      m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
           name, call)));
       *m_lastval = PTR<ir::Value>(new ir::Variable(name));
 
@@ -102,13 +102,13 @@ public:
 
   void visit(ast::SubExpression* subexp) {
     PTR<ir::Function> function(new ir::Function(false));
-    ConversionVisitor subvisitor(&function->assignments, &function->lastval,
+    ConversionVisitor subvisitor(&function->expressions, &function->lastval,
         m_varcount);
     subvisitor.visit(subexp->expressions);
     PTR<ir::Call> call(new ir::Call);
     call->function = function;
     ir::Name name(gensym());
-    m_ir->push_back(PTR<ir::Assignment>(new ir::ReturnValue(
+    m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
         name, call)));
     *m_lastval = PTR<ir::Value>(new ir::Variable(name));
   }
@@ -194,15 +194,15 @@ public:
           "variable, field, or index");
 
     if(!mutation) {
-      m_ir->push_back(PTR<ir::Assignment>(new ir::Definition(
+      m_ir->push_back(PTR<ir::Expression>(new ir::Assignment(
           assignee, PTR<ir::Value>(new ir::Variable(
-          ir::Name("null", false, false))))));
+          ir::Name("null", false, false))), false)));
       assignment->exp->accept(this);
       rhs = *m_lastval;
     }
 
-    m_ir->push_back(PTR<ir::Assignment>(new ir::Mutation(
-        assignee, rhs)));
+    m_ir->push_back(PTR<ir::Expression>(new ir::Assignment(
+        assignee, rhs, true)));
   }
 
   void visit(ast::Function* infunc) {
@@ -233,7 +233,7 @@ public:
       outfunc->right_keyword_arg = ir::KeywordInArgument(
           ir::Name(infunc->right_keyword_arg->name));
 
-    ConversionVisitor subvisitor(&outfunc->assignments, &outfunc->lastval,
+    ConversionVisitor subvisitor(&outfunc->expressions, &outfunc->lastval,
         m_varcount);
     subvisitor.visit(infunc->expressions);
 
@@ -292,7 +292,7 @@ public:
       outcall->scoped_keyword_arg = ir::KeywordOutArgument(*m_lastval);
     }
     ir::Name name(gensym());
-    m_ir->push_back(PTR<ir::Assignment>(new ir::ReturnValue(
+    m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
         name, outcall)));
     *m_lastval = PTR<ir::Value>(new ir::Variable(name));
   }
@@ -305,13 +305,13 @@ private:
   }
 
 private:
-  std::vector<PTR<ir::Assignment> >* m_ir;
+  std::vector<PTR<ir::Expression> >* m_ir;
   PTR<ir::Value>* m_lastval;
   unsigned long long* m_varcount;
 };
 
 void ir::convert(const std::vector<PTR<ast::Expression> >& ast,
-    std::vector<PTR<ir::Assignment> >& ir,
+    std::vector<PTR<ir::Expression> >& ir,
     PTR<ir::Value>& lastval) {
   unsigned long long varcount = 0;
   ConversionVisitor visitor(&ir, &lastval, &varcount);
@@ -325,21 +325,16 @@ std::string cirth::ir::Name::format() const {
   return os.str();
 }
 
-std::string cirth::ir::Definition::format() const {
-  std::ostringstream os;
-  os << "Definition(" << assignee->format() << ", " << value->format() << ")";
-  return os.str();
-}
-
 std::string cirth::ir::ReturnValue::format() const {
   std::ostringstream os;
   os << "ReturnValue(" << assignee.format() << ", " << term->format() << ")";
   return os.str();
 }
 
-std::string cirth::ir::Mutation::format() const {
+std::string cirth::ir::Assignment::format() const {
   std::ostringstream os;
-  os << "Mutation(" << assignee->format() << ", " << value->format() << ")";
+  os << "Assignment(" << assignee->format() << ", " << value->format() << ", "
+     << mutation << ")";
   return os.str();
 }
 
@@ -566,10 +561,10 @@ std::string cirth::ir::Function::format() const {
     if(comma_needed) os << ", ";
     os << right_keyword_arg.get().format();
   }
-  os << "), Assignments(";
-  for(unsigned int i = 0; i < assignments.size(); ++i) {
+  os << "), Expressions(";
+  for(unsigned int i = 0; i < expressions.size(); ++i) {
     if(i > 0) os << ", ";
-    os << assignments[i]->format();
+    os << expressions[i]->format();
   }
   os << "), LastVal(" << lastval->format() << "))";
   return os.str();
