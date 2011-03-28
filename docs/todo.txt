@@ -1,4 +1,6 @@
 parser
+ * translate array index/update to object methods
+ * finish cps translation
  * make in_arg and out_arg order more picky in the parser
  * strings
  * comments

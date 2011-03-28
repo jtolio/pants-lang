@@ -189,13 +189,24 @@ namespace cps {
   };
 
   struct Function : public Value {
+    PTR<Expression> expression;
+  };
+
+  struct UserFunction : public Function {
     std::vector<PositionalInArgument> left_positional_args;
     boost::optional<ArbitraryInArgument> left_arbitrary_arg;
     std::vector<PositionalInArgument> right_positional_args;
     std::vector<OptionalInArgument> right_optional_args;
     boost::optional<ArbitraryInArgument> right_arbitrary_arg;
     boost::optional<KeywordInArgument> right_keyword_arg;
-    PTR<Expression> expression;
+    std::string format() const;
+  };
+
+  struct Continuation : public Function {
+    std::string format() const;
+  };
+
+  struct SubExpression : public Function {
     std::string format() const;
   };
 

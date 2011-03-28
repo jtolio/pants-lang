@@ -14,7 +14,15 @@ std::string cps::Variable::format() const {
   return "TODO";
 }
 
-std::string cps::Function::format() const {
+std::string cps::UserFunction::format() const {
+  return "TODO";
+}
+
+std::string cps::Continuation::format() const {
+  return "TODO";
+}
+
+std::string cps::SubExpression::format() const {
   return "TODO";
 }
 
@@ -94,7 +102,7 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
         call->scoped_keyword_arg = cps::KeywordOutArgument(trans(
             rv->term->scoped_keyword_arg.get().variable));
       }
-      PTR<cps::Function> continuation(new cps::Function);
+      PTR<cps::Continuation> continuation(new cps::Continuation);
       continuation->expression = out_ir;
       throw expectation_failure("TODO");
 //      continuation->left_positional_args.push_back(cps::PositionalInArgument(
