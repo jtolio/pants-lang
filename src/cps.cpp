@@ -6,7 +6,7 @@ std::string cps::Call::format() const {
   return "TODO";
 }
 
-std::string cps::Assignment::format() const {
+std::string cps::Mutation::format() const {
   return "TODO";
 }
 
@@ -42,6 +42,14 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
   out_ir = call;
 
   for(unsigned int i = in_ir.size(); i > 0; --i) {
+    ir::Mutation* mutation(dynamic_cast<ir::Mutation*>(in_ir[i-1].get()));
+    if(mutation) {
+      out_ir = PTR<cps::Mutation>(new cps::Mutation(
+          trans(mutation->assignee),
+          trans(mutation->value),
+          out_ir));
+      continue;
+    }
     ir::ReturnValue* rv(dynamic_cast<ir::ReturnValue*>(in_ir[i-1].get()));
     if(rv) {
       PTR<cps::Call> call(new cps::Call);
@@ -95,15 +103,11 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
       call->continuation = continuation;
       continue;
     }
-    ir::Assignment* assignment(dynamic_cast<ir::Assignment*>(in_ir[i-1].get()));
-    if(assignment) {
-      out_ir = PTR<cps::Assignment>(new cps::Assignment(
-          trans(assignment->assignee),
-          trans(assignment->value),
-          assignment->mutation,
-          out_ir));
+    ir::Definition* definition(dynamic_cast<ir::Definition*>(in_ir[i-1].get()));
+    if(definition) {
+      throw expectation_failure("TODO");
       continue;
     }
-    throw expectation_failure("unknown IR assignment type!");
+   throw expectation_failure("unknown IR assignment type!");
   }
 }

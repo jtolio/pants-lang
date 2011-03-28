@@ -153,17 +153,25 @@ public:
     *m_lastval = out_array;
   }
 
-  void visit(ast::Mutation* mut) { visit(mut, true); }
-  void visit(ast::Definition* def) { visit(def, false); }
-  void visit(ast::Assignment* assignment, bool mutation) {
+  void visit(ast::Definition* assignment) {
+    ir::Name assignee(assignment->assignee);
+
+    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(
+        assignee, PTR<ir::Value>(new ir::Variable(
+        ir::Name("null", false, false))))));
+    assignment->exp->accept(this);
+
+    m_ir->push_back(PTR<ir::Expression>(new ir::Mutation(PTR<ir::Assignee>(
+        new ir::SingleAssignee(assignee)), *m_lastval)));
+  }
+
+  void visit(ast::Mutation* assignment) {
     PTR<ast::Term> term(assignment->assignee->term);
     PTR<ir::Assignee> assignee;
     PTR<ir::Value> rhs;
 
-    if(mutation) {
-      assignment->exp->accept(this);
-      rhs = *m_lastval;
-    }
+    assignment->exp->accept(this);
+    rhs = *m_lastval;
 
     if(term->trailers.size() == 0) {
       ast::Variable* var = dynamic_cast<ast::Variable*>(term->value.get());
@@ -193,16 +201,8 @@ public:
       throw expectation_failure("left-hand side of an assignment must be a "
           "variable, field, or index");
 
-    if(!mutation) {
-      m_ir->push_back(PTR<ir::Expression>(new ir::Assignment(
-          assignee, PTR<ir::Value>(new ir::Variable(
-          ir::Name("null", false, false))), false)));
-      assignment->exp->accept(this);
-      rhs = *m_lastval;
-    }
-
-    m_ir->push_back(PTR<ir::Expression>(new ir::Assignment(
-        assignee, rhs, true)));
+    m_ir->push_back(PTR<ir::Expression>(new ir::Mutation(
+        assignee, rhs)));
   }
 
   void visit(ast::Function* infunc) {
@@ -331,10 +331,15 @@ std::string cirth::ir::ReturnValue::format() const {
   return os.str();
 }
 
-std::string cirth::ir::Assignment::format() const {
+std::string cirth::ir::Definition::format() const {
   std::ostringstream os;
-  os << "Assignment(" << assignee->format() << ", " << value->format() << ", "
-     << mutation << ")";
+  os << "Definition(" << assignee.format() << ", " << value->format() << ")";
+  return os.str();
+}
+
+std::string cirth::ir::Mutation::format() const {
+  std::ostringstream os;
+  os << "Mutation(" << assignee->format() << ", " << value->format() << ")";
   return os.str();
 }
 

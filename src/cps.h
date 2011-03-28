@@ -151,14 +151,13 @@ namespace cps {
     Name field;
   };
 
-  struct Assignment : public Expression {
-    Assignment(PTR<Assignee> assignee_, PTR<Value> value_, bool mutation_,
+  struct Mutation : public Expression {
+    Mutation(PTR<Assignee> assignee_, PTR<Value> value_,
         PTR<Expression> next_expression_)
-      : assignee(assignee_), value(value_), mutation(mutation_),
+      : assignee(assignee_), value(value_),
         next_expression(next_expression_) {}
     PTR<Assignee> assignee;
     PTR<Value> value;
-    bool mutation;
     PTR<Expression> next_expression;
     std::string format() const;
   };

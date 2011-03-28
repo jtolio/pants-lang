@@ -1,6 +1,4 @@
 parser
- * fix object and array assignment. variable definition and field/index
-   definition are totally different. variable definition can be a function call
  * make in_arg and out_arg order more picky in the parser
  * strings
  * comments

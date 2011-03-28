@@ -33,12 +33,19 @@ namespace ir {
     bool scoped;
   };
 
-  struct Assignment : public Expression {
-    Assignment(PTR<Assignee> assignee_, PTR<Value> value_, bool mutation_)
-      : assignee(assignee_), value(value_), mutation(mutation_) {}
+  struct Definition : public Expression {
+    Definition(const Name& assignee_, PTR<Value> value_)
+      : assignee(assignee_), value(value_) {}
+    Name assignee;
+    PTR<Value> value;
+    std::string format() const;
+  };
+
+  struct Mutation : public Expression {
+    Mutation(PTR<Assignee> assignee_, PTR<Value> value_)
+      : assignee(assignee_), value(value_) {}
     PTR<Assignee> assignee;
     PTR<Value> value;
-    bool mutation;
     std::string format() const;
   };
 

@@ -11,9 +11,15 @@ std::string cirth::ast::Application::format() const {
   return os.str();
 }
 
-std::string cirth::ast::Assignment::format() const {
+std::string cirth::ast::Mutation::format() const {
   std::ostringstream os;
-  os << name() << "(" << assignee->format() << ", " << exp->format() << ")";
+  os << "Mutation(" << assignee->format() << ", " << exp->format() << ")";
+  return os.str();
+}
+
+std::string cirth::ast::Definition::format() const {
+  std::ostringstream os;
+  os << "Definition(" << assignee.format() << ", " << exp->format() << ")";
   return os.str();
 }
 

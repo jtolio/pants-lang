@@ -87,26 +87,12 @@ namespace ast {
     std::string format() const;
   };
 
-  struct Assignment : public Expression {
+  struct Mutation : public Expression {
+    Mutation(PTR<Assignee> a, PTR<Expression> e) : assignee(a), exp(e) {}
     PTR<Assignee> assignee;
     PTR<Expression> exp;
-    virtual std::string name() const = 0;
+    void accept(AstVisitor* visitor) { visitor->visit(this); }
     std::string format() const;
-    protected:
-    Assignment(PTR<Assignee> assignee_, PTR<Expression> exp_)
-      : assignee(assignee_), exp(exp_) {}
-  };
-
-  struct Mutation : public Assignment {
-    Mutation(PTR<Assignee> a, PTR<Expression> e) : Assignment(a, e) {}
-    std::string name() const { return "Mutation"; }
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
-  };
-
-  struct Definition : public Assignment {
-    Definition(PTR<Assignee> a, PTR<Expression> e) : Assignment(a, e) {}
-    std::string name() const { return "Definition"; }
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Variable : public Value {
@@ -122,6 +108,14 @@ namespace ast {
     bool scoped;
     std::string format() const;
     void accept(AstVisitor* visitor) { visitor->visit(this); }
+  };
+
+  struct Definition : public Expression {
+    Definition(const Variable& a, PTR<Expression> e) : assignee(a), exp(e) {}
+    Variable assignee;
+    PTR<Expression> exp;
+    void accept(AstVisitor* visitor) { visitor->visit(this); }
+    std::string format() const;
   };
 
   struct SubExpression : public Value {

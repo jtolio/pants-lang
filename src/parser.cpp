@@ -107,24 +107,24 @@ namespace parser {
           phx::new_<Application>(qi::_1))];
       nl_application.name("newline-significant application");
 
-      mutation = (S(assignee) >> S(":=" >> expression))[
+      mutation = (S(assignee) >> S("=" >> expression))[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Mutation>(
           qi::_1, qi::_2))];
       mutation.name("newline-indifferent mutation");
 
-      nl_mutation = (NLS(assignee) >> NLS(":=" >> nl_expression))[
+      nl_mutation = (NLS(assignee) >> NLS("=" >> nl_expression))[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Mutation>(
           qi::_1, qi::_2))];
       nl_mutation.name("newline-significant mutation");
 
-      definition = (S(assignee) >> S("=" >> expression))[
+      definition = (S(identifier) >> S(":=" >> expression))[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Definition>(
-          qi::_1, qi::_2))];
+          phx::construct<Variable>(qi::_1), qi::_2))];
       definition.name("newline-indifferent definition");
 
-      nl_definition = (NLS(assignee) >> NLS("=" >> nl_expression))[
+      nl_definition = (NLS(identifier) >> NLS(":=" >> nl_expression))[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Definition>(
-          qi::_1, qi::_2))];
+          phx::construct<Variable>(qi::_1), qi::_2))];
       nl_definition.name("newline-significant definition");
 
       assignee = term[qi::_val = phx::construct<PTR<Assignee> >(
