@@ -17,11 +17,6 @@ namespace ir {
     virtual std::string format() const = 0;
     protected: Value() {} };
 
-  struct Assignee {
-    virtual ~Assignee() {}
-    virtual std::string format() const = 0;
-    protected: Assignee() {} };
-
   struct Name {
     Name(const std::string& name_, bool user_provided_, bool scoped_)
       : name(name_), user_provided(user_provided_), scoped(scoped_) {}
@@ -41,42 +36,21 @@ namespace ir {
     std::string format() const;
   };
 
-  struct Mutation : public Expression {
-    Mutation(PTR<Assignee> assignee_, PTR<Value> value_)
+  struct VariableMutation : public Expression {
+    VariableMutation(const Name& assignee_, PTR<Value> value_)
       : assignee(assignee_), value(value_) {}
-    PTR<Assignee> assignee;
+    Name assignee;
     PTR<Value> value;
     std::string format() const;
   };
 
-  struct SingleAssignee : public Assignee {
-    SingleAssignee(const Name& variable_) : variable(variable_) {}
-    std::string format() const;
-    Name variable;
-  };
-
-  struct IndexAssignee : public Assignee {
-    IndexAssignee(const PTR<Value>& array_, const PTR<Value>& index_)
-      : array(array_), index(index_) {}
-    std::string format() const;
-    PTR<Value> array;
-    PTR<Value> index;
-  };
-
-  struct FieldAssignee : public Assignee {
-    FieldAssignee(const PTR<Value>& object_, const Name& field_)
-      : object(object_), field(field_) {}
-    std::string format() const;
+  struct ObjectMutation : public Expression {
+    ObjectMutation(PTR<Value> object_, const Name& field_, PTR<Value> value_)
+      : object(object_), field(field_), value(value_) {}
     PTR<Value> object;
     Name field;
-  };
-
-  struct Index : public Value {
-    Index(const PTR<Value>& array_, const PTR<Value>& index_)
-      : array(array_), index(index_) {}
+    PTR<Value> value;
     std::string format() const;
-    PTR<Value> array;
-    PTR<Value> index;
   };
 
   struct Field : public Value {

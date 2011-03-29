@@ -14,14 +14,6 @@ namespace cps {
     virtual std::string format() const = 0;
     protected: Value() {} };
 
-  struct Index : public Value {
-    Index(const PTR<Value>& array_, const PTR<Value>& index_)
-      : array(array_), index(index_) {}
-    std::string format() const;
-    PTR<Value> array;
-    PTR<Value> index;
-  };
-
   struct Field : public Value {
     Field(const PTR<Value>& object_, const Name& field_)
       : object(object_), field(field_) {}
@@ -124,39 +116,24 @@ namespace cps {
     std::string format() const;
   };
 
-  struct Assignee {
-    virtual ~Assignee() {}
-    virtual std::string format() const = 0;
-    protected: Assignee() {} };
-
-  struct SingleAssignee : public Assignee {
-    SingleAssignee(const Name& variable_) : variable(variable_) {}
-    std::string format() const;
-    Name variable;
-  };
-
-  struct IndexAssignee : public Assignee {
-    IndexAssignee(const PTR<Value>& array_, const PTR<Value>& index_)
-      : array(array_), index(index_) {}
-    std::string format() const;
-    PTR<Value> array;
-    PTR<Value> index;
-  };
-
-  struct FieldAssignee : public Assignee {
-    FieldAssignee(const PTR<Value>& object_, const Name& field_)
-      : object(object_), field(field_) {}
-    std::string format() const;
-    PTR<Value> object;
-    Name field;
-  };
-
-  struct Mutation : public Expression {
-    Mutation(PTR<Assignee> assignee_, PTR<Value> value_,
+  struct VariableMutation : public Expression {
+    VariableMutation(const Name& assignee_, PTR<Value> value_,
         PTR<Expression> next_expression_)
       : assignee(assignee_), value(value_),
         next_expression(next_expression_) {}
-    PTR<Assignee> assignee;
+    Name assignee;
+    PTR<Value> value;
+    PTR<Expression> next_expression;
+    std::string format() const;
+  };
+
+  struct ObjectMutation : public Expression {
+    ObjectMutation(PTR<Value> object_, const Name& assignee_, PTR<Value> value_,
+        PTR<Expression> next_expression_)
+      : object(object_), assignee(assignee_), value(value_),
+        next_expression(next_expression_) {}
+    PTR<Value> object;
+    Name assignee;
     PTR<Value> value;
     PTR<Expression> next_expression;
     std::string format() const;

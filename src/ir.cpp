@@ -93,7 +93,14 @@ public:
     PTR<ir::Value> array = *m_lastval;
     ast::SubExpression subexp(index->expressions);
     visit(&subexp);
-    *m_lastval = PTR<ir::Value>(new ir::Index(array, *m_lastval));
+    PTR<ir::Value> loc = *m_lastval;
+    ir::Name name(gensym());
+    PTR<ir::Call> call(new ir::Call);
+    call->callable = PTR<ir::Value>(new ir::Field(array, ir::Name("~index",
+        true, false)));
+    call->right_positional_args.push_back(ir::PositionalOutArgument(loc));
+    m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(name, call)));
+    *m_lastval = PTR<ir::Value>(new ir::Variable(name));
   }
 
   void visit(ast::Variable* var) {
@@ -161,13 +168,12 @@ public:
         ir::Name("null", false, false))))));
     assignment->exp->accept(this);
 
-    m_ir->push_back(PTR<ir::Expression>(new ir::Mutation(PTR<ir::Assignee>(
-        new ir::SingleAssignee(assignee)), *m_lastval)));
+    m_ir->push_back(PTR<ir::Expression>(new ir::VariableMutation(assignee,
+        *m_lastval)));
   }
 
   void visit(ast::Mutation* assignment) {
     PTR<ast::Term> term(assignment->assignee->term);
-    PTR<ir::Assignee> assignee;
     PTR<ir::Value> rhs;
 
     assignment->exp->accept(this);
@@ -175,34 +181,44 @@ public:
 
     if(term->trailers.size() == 0) {
       ast::Variable* var = dynamic_cast<ast::Variable*>(term->value.get());
-      if(var)
-        assignee.reset(new ir::SingleAssignee(ir::Name(*var)));
-    } else {
-      term->value->accept(this);
-      for(unsigned int i = 0; i < term->trailers.size() - 1; ++i)
-        term->trailers[i]->accept(this);
-      ast::Field* field(dynamic_cast<ast::Field*>(term->trailers.back().get()));
-      if(field) {
-        assignee.reset(new ir::FieldAssignee(*m_lastval,
-            ir::Name(field->variable)));
-      } else {
-        ast::Index* index(dynamic_cast<ast::Index*>(
-            term->trailers.back().get()));
-        if(index) {
-          PTR<ir::Value> array = *m_lastval;
-          ast::SubExpression subexp(index->expressions);
-          visit(&subexp);
-          assignee.reset(new ir::IndexAssignee(array, *m_lastval));
-        }
+      if(var) {
+        m_ir->push_back(PTR<ir::Expression>(new ir::VariableMutation(
+            ir::Name(*var), rhs)));
+        *m_lastval = rhs;
+        return;
       }
     }
 
-    if(!assignee)
-      throw expectation_failure("left-hand side of an assignment must be a "
-          "variable, field, or index");
+    term->value->accept(this);
+    for(unsigned int i = 0; i < term->trailers.size() - 1; ++i)
+      term->trailers[i]->accept(this);
 
-    m_ir->push_back(PTR<ir::Expression>(new ir::Mutation(
-        assignee, rhs)));
+    ast::Field* field(dynamic_cast<ast::Field*>(term->trailers.back().get()));
+    if(field) {
+      m_ir->push_back(PTR<ir::Expression>(new ir::ObjectMutation(*m_lastval,
+          ir::Name(field->variable), rhs)));
+      *m_lastval = rhs;
+      return;
+    }
+
+    ast::Index* index(dynamic_cast<ast::Index*>(term->trailers.back().get()));
+    if(index) {
+      PTR<ir::Value> array = *m_lastval;
+      ast::SubExpression subexp(index->expressions);
+      visit(&subexp);
+      PTR<ir::Value> loc = *m_lastval;
+      PTR<ir::Call> call(new ir::Call);
+      call->callable = PTR<ir::Value>(new ir::Field(array, ir::Name("~update",
+          true, false)));
+      call->right_positional_args.push_back(ir::PositionalOutArgument(loc));
+      call->right_positional_args.push_back(ir::PositionalOutArgument(rhs));
+      m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(gensym(), call)));
+      *m_lastval = rhs;
+      return;
+    }
+
+    throw expectation_failure("left-hand side of an assignment must be a "
+        "variable, field, or index");
   }
 
   void visit(ast::Function* infunc) {
@@ -337,33 +353,17 @@ std::string cirth::ir::Definition::format() const {
   return os.str();
 }
 
-std::string cirth::ir::Mutation::format() const {
+std::string cirth::ir::VariableMutation::format() const {
   std::ostringstream os;
-  os << "Mutation(" << assignee->format() << ", " << value->format() << ")";
+  os << "VariableMutation(" << assignee.format() << ", " << value->format()
+     << ")";
   return os.str();
 }
 
-std::string cirth::ir::SingleAssignee::format() const {
+std::string cirth::ir::ObjectMutation::format() const {
   std::ostringstream os;
-  os << "SingleAssignee(" << variable.format() << ")";
-  return os.str();
-}
-
-std::string cirth::ir::IndexAssignee::format() const {
-  std::ostringstream os;
-  os << "IndexAssignee(" << array->format() << ", " << index->format() << ")";
-  return os.str();
-}
-
-std::string cirth::ir::FieldAssignee::format() const {
-  std::ostringstream os;
-  os << "FieldAssignee(" << object->format() << ", " << field.format() << ")";
-  return os.str();
-}
-
-std::string cirth::ir::Index::format() const {
-  std::ostringstream os;
-  os << "Index(" << array->format() << ", " << index->format() << ")";
+  os << "ObjectMutation(" << object->format() << ", " << field.format() << ", "
+     << value->format() << ")";
   return os.str();
 }
 

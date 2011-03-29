@@ -6,7 +6,11 @@ std::string cps::Call::format() const {
   return "TODO";
 }
 
-std::string cps::Mutation::format() const {
+std::string cps::ObjectMutation::format() const {
+  return "TODO";
+}
+
+std::string cps::VariableMutation::format() const {
   return "TODO";
 }
 
@@ -31,11 +35,6 @@ static PTR<cps::Value> trans(const PTR<ir::Value>& val) {
   return PTR<cps::Value>();
 }
 
-static PTR<cps::Assignee> trans(const PTR<ir::Assignee>& assignee) {
-  throw expectation_failure("TODO");
-  return PTR<cps::Assignee>();
-}
-
 void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
     const PTR<ir::Value>& in_lastval, PTR<cps::Expression>& out_ir) {
   PTR<cps::Value> continuation = PTR<cps::Value>(
@@ -50,12 +49,19 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
   out_ir = call;
 
   for(unsigned int i = in_ir.size(); i > 0; --i) {
-    ir::Mutation* mutation(dynamic_cast<ir::Mutation*>(in_ir[i-1].get()));
-    if(mutation) {
-      out_ir = PTR<cps::Mutation>(new cps::Mutation(
-          trans(mutation->assignee),
-          trans(mutation->value),
-          out_ir));
+    ir::VariableMutation* varmutation(dynamic_cast<ir::VariableMutation*>(
+        in_ir[i-1].get()));
+    if(varmutation) {
+      out_ir = PTR<cps::VariableMutation>(new cps::VariableMutation(
+          varmutation->assignee, trans(varmutation->value), out_ir));
+      continue;
+    }
+    ir::ObjectMutation* objmutation(dynamic_cast<ir::ObjectMutation*>(
+        in_ir[i-1].get()));
+    if(objmutation) {
+      out_ir = PTR<cps::ObjectMutation>(new cps::ObjectMutation(
+          trans(objmutation->object), objmutation->field,
+          trans(objmutation->value), out_ir));
       continue;
     }
     ir::ReturnValue* rv(dynamic_cast<ir::ReturnValue*>(in_ir[i-1].get()));
