@@ -14,7 +14,7 @@ std::string cps::Variable::format() const {
   return "TODO";
 }
 
-std::string cps::UserFunction::format() const {
+std::string cps::Function::format() const {
   return "TODO";
 }
 
@@ -44,7 +44,7 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
       new cps::Variable(cps::Name("catch", false, false)));
 
   PTR<cps::Call> call(new cps::Call);
-  call->function = continuation;
+  call->callable = continuation;
   call->right_positional_args.push_back(cps::PositionalOutArgument(trans(
       in_lastval)));
   out_ir = call;
@@ -62,7 +62,7 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
     if(rv) {
       PTR<cps::Call> call(new cps::Call);
       out_ir = call;
-      call->function = trans(rv->term->function);
+      call->callable = trans(rv->term->callable);
       call->left_positional_args.reserve(rv->term->left_positional_args.size());
       for(unsigned int i = 0; i < rv->term->left_positional_args.size(); ++i) {
         call->left_positional_args.push_back(cps::PositionalOutArgument(trans(

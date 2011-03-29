@@ -49,7 +49,7 @@ public:
       ast::Term term(*app->terms[opencall_idx]);
       if(found) term.trailers.pop_back();
       visit(&term);
-      call->function = *m_lastval;
+      call->callable = *m_lastval;
 
       call->right_positional_args.reserve(app->terms.size() - opencall_idx - 1);
       for(unsigned int i = opencall_idx + 1; i < app->terms.size(); ++i) {
@@ -101,12 +101,12 @@ public:
   }
 
   void visit(ast::SubExpression* subexp) {
-    PTR<ir::Function> function(new ir::Function(false));
-    ConversionVisitor subvisitor(&function->expressions, &function->lastval,
+    PTR<ir::Scope> scope(new ir::Scope);
+    ConversionVisitor subvisitor(&scope->expressions, &scope->lastval,
         m_varcount);
     subvisitor.visit(subexp->expressions);
     PTR<ir::Call> call(new ir::Call);
-    call->function = function;
+    call->callable = scope;
     ir::Name name(gensym());
     m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
         name, call)));
@@ -206,7 +206,7 @@ public:
   }
 
   void visit(ast::Function* infunc) {
-    PTR<ir::Function> outfunc(new ir::Function(true));
+    PTR<ir::Function> outfunc(new ir::Function);
     outfunc->left_positional_args.reserve(infunc->left_required_args.size());
     for(unsigned int i = 0; i < infunc->left_required_args.size(); ++i) {
       outfunc->left_positional_args.push_back(ir::PositionalInArgument(
@@ -242,7 +242,7 @@ public:
 
   void visit(ast::ClosedCall* incall) {
     PTR<ir::Call> outcall(new ir::Call);
-    outcall->function = *m_lastval;
+    outcall->callable = *m_lastval;
     if(!!incall->left_arbitrary_arg) {
       ast::SubExpression subexp(incall->left_arbitrary_arg.get().array);
       visit(&subexp);
@@ -483,7 +483,7 @@ std::string cirth::ir::KeywordInArgument::format() const {
 
 std::string cirth::ir::Call::format() const {
   std::ostringstream os;
-  os << "Call(" << function->format() << ", Left(";
+  os << "Call(" << callable->format() << ", Left(";
   bool comma_needed = false;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
     if(comma_needed) os << ", ";
@@ -532,9 +532,7 @@ std::string cirth::ir::Call::format() const {
 
 std::string cirth::ir::Function::format() const {
   std::ostringstream os;
-  os << "Function(" << (full_function ? "full_function, " :
-      "partial_function, ");
-  os << "Left(";
+  os << "Function(Left(";
   bool comma_needed = false;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
     if(comma_needed) os << ", ";
@@ -567,6 +565,17 @@ std::string cirth::ir::Function::format() const {
     os << right_keyword_arg.get().format();
   }
   os << "), Expressions(";
+  for(unsigned int i = 0; i < expressions.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << expressions[i]->format();
+  }
+  os << "), LastVal(" << lastval->format() << "))";
+  return os.str();
+}
+
+std::string cirth::ir::Scope::format() const {
+  std::ostringstream os;
+  os << "Scope(Expressions(";
   for(unsigned int i = 0; i < expressions.size(); ++i) {
     if(i > 0) os << ", ";
     os << expressions[i]->format();

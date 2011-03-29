@@ -144,7 +144,7 @@ namespace ir {
   };
 
   struct Call {
-    PTR<Value> function;
+    PTR<Value> callable;
     std::vector<PositionalOutArgument> left_positional_args;
     boost::optional<ArbitraryOutArgument> left_arbitrary_arg;
     std::vector<PositionalOutArgument> right_positional_args;
@@ -208,17 +208,22 @@ namespace ir {
     std::string format() const;
   };
 
-  struct Function : public Value {
-    Function(bool full_function_) : full_function(full_function_) {}
+  struct Callable : public Value {
+    std::vector<PTR<Expression> > expressions;
+    PTR<Value> lastval;
+  };
+
+  struct Function : public Callable {
     std::vector<PositionalInArgument> left_positional_args;
     boost::optional<ArbitraryInArgument> left_arbitrary_arg;
     std::vector<PositionalInArgument> right_positional_args;
     std::vector<OptionalInArgument> right_optional_args;
     boost::optional<ArbitraryInArgument> right_arbitrary_arg;
     boost::optional<KeywordInArgument> right_keyword_arg;
-    std::vector<PTR<Expression> > expressions;
-    PTR<Value> lastval;
-    bool full_function;
+    std::string format() const;
+  };
+
+  struct Scope : public Callable {
     std::string format() const;
   };
 

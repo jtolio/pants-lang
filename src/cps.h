@@ -110,7 +110,7 @@ namespace cps {
   };
 
   struct Call : public Expression {
-    PTR<Value> function;
+    PTR<Value> callable;
     std::vector<PositionalOutArgument> left_positional_args;
     boost::optional<ArbitraryOutArgument> left_arbitrary_arg;
     std::vector<PositionalOutArgument> right_positional_args;
@@ -188,11 +188,11 @@ namespace cps {
     std::string format() const;
   };
 
-  struct Function : public Value {
+  struct Callable : public Value {
     PTR<Expression> expression;
   };
 
-  struct UserFunction : public Function {
+  struct Function : public Callable {
     std::vector<PositionalInArgument> left_positional_args;
     boost::optional<ArbitraryInArgument> left_arbitrary_arg;
     std::vector<PositionalInArgument> right_positional_args;
@@ -202,11 +202,11 @@ namespace cps {
     std::string format() const;
   };
 
-  struct Continuation : public Function {
+  struct Continuation : public Callable {
     std::string format() const;
   };
 
-  struct SubExpression : public Function {
+  struct SubExpression : public Callable {
     std::string format() const;
   };
 
