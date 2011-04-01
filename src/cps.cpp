@@ -3,47 +3,238 @@
 using namespace cirth;
 
 std::string cps::Call::format() const {
-  return "TODO";
+  std::ostringstream os;
+  os << "Call(" << callable->format() << ", Left(";
+  bool comma_needed = false;
+  for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << left_positional_args[i].format();
+    comma_needed = true;
+  }
+  if(!!left_arbitrary_arg) {
+    if(comma_needed) os << ", ";
+    os << left_arbitrary_arg.get().format();
+  }
+  os << "), Right(";
+  comma_needed = false;
+  for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << right_positional_args[i].format();
+    comma_needed = true;
+  }
+  for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << right_optional_args[i].format();
+    comma_needed = true;
+  }
+  if(!!right_arbitrary_arg) {
+    if(comma_needed) os << ", ";
+    os << right_arbitrary_arg.get().format();
+    comma_needed = true;
+  }
+  if(!!right_keyword_arg) {
+    if(comma_needed) os << ", ";
+    os << right_keyword_arg.get().format();
+  }
+  os << "), Scoped(";
+  comma_needed = false;
+  for(unsigned int i = 0; i < scoped_optional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << scoped_optional_args[i].format();
+    comma_needed = true;
+  }
+  if(!!scoped_keyword_arg) {
+    if(comma_needed) os << ", ";
+    os << scoped_keyword_arg.get().format();
+  }
+  os << ")";
+  if(continuation.get())
+    os << ", Continuation(" << continuation->format() << ")";
+  if(exception.get())
+    os << ", Exception(" << exception->format() << ")";
+  os << ")";
+  return os.str();
 }
 
 std::string cps::ObjectMutation::format() const {
-  return "TODO";
+  std::ostringstream os;
+  os << "ObjectMutation(" << object->format() << ", " << field.format() << ", "
+     << value->format() << ", " << next_expression->format() << ")";
+  return os.str();
 }
 
 std::string cps::VariableMutation::format() const {
-  return "TODO";
+  std::ostringstream os;
+  os << "VariableMutation(" << assignee.format() << ", " << value->format()
+     << ", " << next_expression->format() << ")";
+  return os.str();
 }
 
 std::string cps::Variable::format() const {
-  return "TODO";
+  std::ostringstream os;
+  os << "Variable(" << variable.format() << ")";
+  return os.str();
 }
 
 std::string cps::Function::format() const {
-  return "TODO";
+  std::ostringstream os;
+  os << "Function(Left(";
+  bool comma_needed = false;
+  for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << left_positional_args[i].format();
+    comma_needed = true;
+  }
+  if(!!left_arbitrary_arg) {
+    if(comma_needed) os << ", ";
+    os << left_arbitrary_arg.get().format();
+  }
+  os << "), Right(";
+  comma_needed = false;
+  for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << right_positional_args[i].format();
+    comma_needed = true;
+  }
+  for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
+    if(comma_needed) os << ", ";
+    os << right_optional_args[i].format();
+    comma_needed = true;
+  }
+  if(!!right_arbitrary_arg) {
+    if(comma_needed) os << ", ";
+    os << right_arbitrary_arg.get().format();
+    comma_needed = true;
+  }
+  if(!!right_keyword_arg) {
+    if(comma_needed) os << ", ";
+    os << right_keyword_arg.get().format();
+  }
+  os << "), " << expression->format() << ")";
+  return os.str();
 }
 
 std::string cps::Continuation::format() const {
-  return "TODO";
+  std::ostringstream os;
+  os << "Continuation(" << rv.format() << ", " << expression->format() << ")";
+  return os.str();
 }
 
-std::string cps::SubExpression::format() const {
-  return "TODO";
+std::string cps::Scope::format() const {
+  std::ostringstream os;
+  os << "Scope(" << expression->format() << ")";
+  return os.str();
 }
 
-static PTR<cps::Value> trans(const PTR<ir::Value>& val) {
+std::string cps::PositionalOutArgument::format() const {
+  std::ostringstream os;
+  os << "PositionalOutArgument(" << variable->format() << ")";
+  return os.str();
+}
+
+std::string cps::OptionalOutArgument::format() const {
+  std::ostringstream os;
+  os << "OptionalOutArgument(" << key.format() << ", " << variable->format()
+     << ")";
+  return os.str();
+}
+
+std::string cps::ArbitraryOutArgument::format() const {
+  std::ostringstream os;
+  os << "ArbitraryOutArgument(" << variable->format() << ")";
+  return os.str();
+}
+
+std::string cps::KeywordOutArgument::format() const {
+  std::ostringstream os;
+  os << "KeywordOutArgument(" << variable->format() << ")";
+  return os.str();
+}
+
+std::string cps::PositionalInArgument::format() const {
+  std::ostringstream os;
+  os << "PositionalInArgument(" << variable.format() << ")";
+  return os.str();
+}
+
+std::string cps::OptionalInArgument::format() const {
+  std::ostringstream os;
+  os << "OptionalInArgument(" << variable.format() << ", "
+     << defaultval->format() << ")";
+  return os.str();
+}
+
+std::string cps::ArbitraryInArgument::format() const {
+  std::ostringstream os;
+  os << "ArbitraryInArgument(" << variable.format() << ")";
+  return os.str();
+}
+
+std::string cps::KeywordInArgument::format() const {
+  std::ostringstream os;
+  os << "KeywordInArgument(" << variable.format() << ")";
+  return os.str();
+}
+
+static PTR<cps::Value> trans(ir::Field* val) {
   throw expectation_failure("TODO");
   return PTR<cps::Value>();
 }
 
+static PTR<cps::Value> trans(ir::Variable* val) {
+  throw expectation_failure("TODO");
+  return PTR<cps::Value>();
+}
+
+static PTR<cps::Value> trans(ir::Integer* val) {
+  throw expectation_failure("TODO");
+  return PTR<cps::Value>();
+}
+
+static PTR<cps::Value> trans(ir::CharString* val) {
+  throw expectation_failure("TODO");
+  return PTR<cps::Value>();
+}
+
+static PTR<cps::Value> trans(ir::ByteString* val) {
+  throw expectation_failure("TODO");
+  return PTR<cps::Value>();
+}
+
+static PTR<cps::Value> trans(ir::Float* val) {
+  throw expectation_failure("TODO");
+  return PTR<cps::Value>();
+}
+
+static PTR<cps::Value> trans(ir::Dictionary* val) {
+  throw expectation_failure("TODO");
+  return PTR<cps::Value>();
+}
+
+static PTR<cps::Value> trans(ir::Array* val) {
+  throw expectation_failure("TODO");
+  return PTR<cps::Value>();
+}
+
+static PTR<cps::Value> trans(ir::Function* val) {
+  throw expectation_failure("TODO");
+  return PTR<cps::Value>();
+}
+
+static PTR<cps::Value> trans(ir::Scope* val) {
+  throw expectation_failure("TODO");
+  return PTR<cps::Value>();
+}
+
+static PTR<cps::Value> trans(const PTR<ir::Value>& val) {
+  return trans(val.get());
+}
+
 void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
     const PTR<ir::Value>& in_lastval, PTR<cps::Expression>& out_ir) {
-  PTR<cps::Value> continuation = PTR<cps::Value>(
-      new cps::Variable(cps::Name("halt", false, false)));
-  PTR<cps::Value> exception = PTR<cps::Value>(
-      new cps::Variable(cps::Name("catch", false, false)));
-
   PTR<cps::Call> call(new cps::Call);
-  call->callable = continuation;
+  call->callable = PTR<cps::Value>(new cps::Variable(cps::Name("halt", false,
+      false)));
   call->right_positional_args.push_back(cps::PositionalOutArgument(trans(
       in_lastval)));
   out_ir = call;
@@ -67,7 +258,6 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
     ir::ReturnValue* rv(dynamic_cast<ir::ReturnValue*>(in_ir[i-1].get()));
     if(rv) {
       PTR<cps::Call> call(new cps::Call);
-      out_ir = call;
       call->callable = trans(rv->term->callable);
       call->left_positional_args.reserve(rv->term->left_positional_args.size());
       for(unsigned int i = 0; i < rv->term->left_positional_args.size(); ++i) {
@@ -108,18 +298,22 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
         call->scoped_keyword_arg = cps::KeywordOutArgument(trans(
             rv->term->scoped_keyword_arg.get().variable));
       }
-      PTR<cps::Continuation> continuation(new cps::Continuation);
+      PTR<cps::Continuation> continuation(new cps::Continuation(rv->assignee));
       continuation->expression = out_ir;
-      throw expectation_failure("TODO");
-//      continuation->left_positional_args.push_back(cps::PositionalInArgument(
-//          rv->assignee
-//       ));
       call->continuation = continuation;
+      out_ir = call;
       continue;
     }
     ir::Definition* definition(dynamic_cast<ir::Definition*>(in_ir[i-1].get()));
     if(definition) {
-      throw expectation_failure("TODO");
+      PTR<cps::Call> call(new cps::Call);
+      call->right_positional_args.push_back(cps::PositionalOutArgument(trans(
+          definition->value)));
+      PTR<cps::Continuation> continuation(new cps::Continuation(
+          definition->assignee));
+      continuation->expression = out_ir;
+      call->callable = continuation;
+      out_ir = call;
       continue;
     }
    throw expectation_failure("unknown IR assignment type!");

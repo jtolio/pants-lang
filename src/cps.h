@@ -128,12 +128,12 @@ namespace cps {
   };
 
   struct ObjectMutation : public Expression {
-    ObjectMutation(PTR<Value> object_, const Name& assignee_, PTR<Value> value_,
+    ObjectMutation(PTR<Value> object_, const Name& field_, PTR<Value> value_,
         PTR<Expression> next_expression_)
-      : object(object_), assignee(assignee_), value(value_),
+      : object(object_), field(field_), value(value_),
         next_expression(next_expression_) {}
     PTR<Value> object;
-    Name assignee;
+    Name field;
     PTR<Value> value;
     PTR<Expression> next_expression;
     std::string format() const;
@@ -180,10 +180,12 @@ namespace cps {
   };
 
   struct Continuation : public Callable {
+    Continuation(const Name& rv_) : rv(rv_) {}
+    Name rv;
     std::string format() const;
   };
 
-  struct SubExpression : public Callable {
+  struct Scope : public Callable {
     std::string format() const;
   };
 
