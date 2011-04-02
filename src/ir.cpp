@@ -5,12 +5,9 @@ using namespace cirth;
 class ConversionVisitor : public ast::AstVisitor {
 public:
   ConversionVisitor(std::vector<PTR<ir::Expression> >* ir,
-      PTR<ir::Value>* lastval, unsigned long long* varcount)
+      ir::Name* lastval, unsigned long long* varcount)
     : m_ir(ir), m_lastval(lastval), m_varcount(varcount)
-  {
-    *m_lastval = PTR<ir::Value>(
-        new ir::Variable(ir::Name("null", false, false)));
-  }
+  {}
 
   void visit(const std::vector<PTR<ast::Expression> >& exps) {
     for(unsigned int i = 0; i < exps.size(); ++i)
@@ -37,7 +34,7 @@ public:
       }
       // okay, call term found, process
 
-      PTR<ir::Call> call(new ir::Call);
+      PTR<ir::Call> call(new ir::Call(gensym()));
 
       call->left_positional_args.reserve(opencall_idx);
       for(unsigned int i = 0; i < opencall_idx; ++i) {
@@ -61,7 +58,7 @@ public:
       ir::Name name(gensym());
       m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
           name, call)));
-      *m_lastval = PTR<ir::Value>(new ir::Variable(name));
+      *m_lastval = name;
 
       return;
     }
@@ -85,56 +82,73 @@ public:
   }
 
   void visit(ast::Field* field) {
-    *m_lastval = PTR<ir::Value>(new ir::Field(*m_lastval, ir::Name(
-        field->variable)));
+    ir::Name val(gensym());
+    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(val,
+        PTR<ir::Value>(new ir::Field(*m_lastval, ir::Name(
+        field->variable))))));
+    *m_lastval = val;
   }
 
   void visit(ast::Index* index) {
-    PTR<ir::Value> array = *m_lastval;
+    ir::Name array(*m_lastval);
     ast::SubExpression subexp(index->expressions);
     visit(&subexp);
-    PTR<ir::Value> loc = *m_lastval;
+    ir::Name loc(*m_lastval);
     ir::Name name(gensym());
-    PTR<ir::Call> call(new ir::Call);
-    call->callable = PTR<ir::Value>(new ir::Field(array, ir::Name("~index",
-        true, false)));
+    ir::Name callable(gensym());
+    PTR<ir::Call> call(new ir::Call(gensym()));
+    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(call->callable,
+        PTR<ir::Value>(new ir::Field(array, ir::Name("~index", true,
+        false))))));
     call->right_positional_args.push_back(ir::PositionalOutArgument(loc));
     m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(name, call)));
-    *m_lastval = PTR<ir::Value>(new ir::Variable(name));
+    *m_lastval = name;
   }
 
   void visit(ast::Variable* var) {
-    *m_lastval = PTR<ir::Value>(new ir::Variable(ir::Name(*var)));
+    *m_lastval = ir::Name(*var);
   }
 
   void visit(ast::SubExpression* subexp) {
-    PTR<ir::Scope> scope(new ir::Scope);
+    PTR<ir::Scope> scope(new ir::Scope(ir::Name("null", false, false)));
     ConversionVisitor subvisitor(&scope->expressions, &scope->lastval,
         m_varcount);
     subvisitor.visit(subexp->expressions);
-    PTR<ir::Call> call(new ir::Call);
-    call->callable = scope;
+    PTR<ir::Call> call(new ir::Call(gensym()));
+    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(call->callable,
+        scope)));
     ir::Name name(gensym());
     m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
         name, call)));
-    *m_lastval = PTR<ir::Value>(new ir::Variable(name));
+    *m_lastval = name;
   }
 
   void visit(ast::Integer* int_) {
-    *m_lastval = PTR<ir::Value>(new ir::Integer(int_->value));
+    ir::Name val(gensym());
+    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(val,
+        PTR<ir::Value>(new ir::Integer(int_->value)))));
+    *m_lastval = val;
   }
 
   void visit(ast::CharString* char_) {
-    *m_lastval = PTR<ir::Value>(new ir::CharString(
-        char_->value));
+    ir::Name val(gensym());
+    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(val,
+        PTR<ir::Value>(new ir::CharString(char_->value)))));
+    *m_lastval = val;
   }
 
   void visit(ast::ByteString* byte) {
-    *m_lastval = PTR<ir::Value>(new ir::ByteString(byte->value));
+    ir::Name val(gensym());
+    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(val,
+        PTR<ir::Value>(new ir::ByteString(byte->value)))));
+    *m_lastval = val;
   }
 
   void visit(ast::Float* float_) {
-    *m_lastval = PTR<ir::Value>(new ir::Float(float_->value));
+    ir::Name val(gensym());
+    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(val,
+        PTR<ir::Value>(new ir::Float(float_->value)))));
+    *m_lastval = val;
   }
 
   void visit(ast::Dictionary* in_dict) {
@@ -142,12 +156,14 @@ public:
     out_dict->definitions.reserve(in_dict->values.size());
     for(unsigned int i = 0; i < in_dict->values.size(); ++i) {
       in_dict->values[i].key->accept(this);
-      PTR<ir::Value> key = *m_lastval;
+      ir::Name key(*m_lastval);
       in_dict->values[i].value->accept(this);
-      PTR<ir::Value> value = *m_lastval;
+      ir::Name value(*m_lastval);
       out_dict->definitions.push_back(ir::DictDefinition(key, value));
     }
-    *m_lastval = out_dict;
+    ir::Name val(gensym());
+    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(val, out_dict)));
+    *m_lastval = val;
   }
 
   void visit(ast::Array* in_array) {
@@ -157,7 +173,9 @@ public:
       in_array->values[i]->accept(this);
       out_array->values.push_back(*m_lastval);
     }
-    *m_lastval = out_array;
+    ir::Name val(gensym());
+    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(val, out_array)));
+    *m_lastval = val;
   }
 
   void visit(ast::Definition* assignment) {
@@ -174,10 +192,9 @@ public:
 
   void visit(ast::Mutation* assignment) {
     PTR<ast::Term> term(assignment->assignee->term);
-    PTR<ir::Value> rhs;
 
     assignment->exp->accept(this);
-    rhs = *m_lastval;
+    ir::Name rhs(*m_lastval);
 
     if(term->trailers.size() == 0) {
       ast::Variable* var = dynamic_cast<ast::Variable*>(term->value.get());
@@ -203,13 +220,14 @@ public:
 
     ast::Index* index(dynamic_cast<ast::Index*>(term->trailers.back().get()));
     if(index) {
-      PTR<ir::Value> array = *m_lastval;
+      ir::Name array(*m_lastval);
       ast::SubExpression subexp(index->expressions);
       visit(&subexp);
-      PTR<ir::Value> loc = *m_lastval;
-      PTR<ir::Call> call(new ir::Call);
-      call->callable = PTR<ir::Value>(new ir::Field(array, ir::Name("~update",
-          true, false)));
+      ir::Name loc(*m_lastval);
+      PTR<ir::Call> call(new ir::Call(gensym()));
+      m_ir->push_back(PTR<ir::Expression>(new ir::Definition(call->callable,
+          PTR<ir::Value>(new ir::Field(array, ir::Name("~update", true,
+          false))))));
       call->right_positional_args.push_back(ir::PositionalOutArgument(loc));
       call->right_positional_args.push_back(ir::PositionalOutArgument(rhs));
       m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(gensym(), call)));
@@ -222,7 +240,7 @@ public:
   }
 
   void visit(ast::Function* infunc) {
-    PTR<ir::Function> outfunc(new ir::Function);
+    PTR<ir::Function> outfunc(new ir::Function(ir::Name("null", false, false)));
     outfunc->left_positional_args.reserve(infunc->left_required_args.size());
     for(unsigned int i = 0; i < infunc->left_required_args.size(); ++i) {
       outfunc->left_positional_args.push_back(ir::PositionalInArgument(
@@ -253,12 +271,13 @@ public:
         m_varcount);
     subvisitor.visit(infunc->expressions);
 
-    *m_lastval = outfunc;
+    ir::Name val(gensym());
+    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(val, outfunc)));
+    *m_lastval = val;
   }
 
   void visit(ast::ClosedCall* incall) {
-    PTR<ir::Call> outcall(new ir::Call);
-    outcall->callable = *m_lastval;
+    PTR<ir::Call> outcall(new ir::Call(*m_lastval));
     if(!!incall->left_arbitrary_arg) {
       ast::SubExpression subexp(incall->left_arbitrary_arg.get().array);
       visit(&subexp);
@@ -310,25 +329,25 @@ public:
     ir::Name name(gensym());
     m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
         name, outcall)));
-    *m_lastval = PTR<ir::Value>(new ir::Variable(name));
+    *m_lastval = name;
   }
 
 private:
   ir::Name gensym() {
     std::ostringstream os;
-    os << "precpsir" << ++(*m_varcount);
+    os << "ir" << ++(*m_varcount);
     return ir::Name(os.str(), false, false);
   }
 
 private:
   std::vector<PTR<ir::Expression> >* m_ir;
-  PTR<ir::Value>* m_lastval;
+  ir::Name* m_lastval;
   unsigned long long* m_varcount;
 };
 
 void ir::convert(const std::vector<PTR<ast::Expression> >& ast,
     std::vector<PTR<ir::Expression> >& ir,
-    PTR<ir::Value>& lastval) {
+    ir::Name& lastval) {
   unsigned long long varcount = 0;
   ConversionVisitor visitor(&ir, &lastval, &varcount);
   visitor.visit(ast);
@@ -357,21 +376,21 @@ std::string cirth::ir::Definition::format() const {
 
 std::string cirth::ir::VariableMutation::format() const {
   std::ostringstream os;
-  os << "VariableMutation(" << assignee.format() << ", " << value->format()
+  os << "VariableMutation(" << assignee.format() << ", " << value.format()
      << ")";
   return os.str();
 }
 
 std::string cirth::ir::ObjectMutation::format() const {
   std::ostringstream os;
-  os << "ObjectMutation(" << object->format() << ", " << field.format() << ", "
-     << value->format() << ")";
+  os << "ObjectMutation(" << object.format() << ", " << field.format() << ", "
+     << value.format() << ")";
   return os.str();
 }
 
 std::string cirth::ir::Field::format() const {
   std::ostringstream os;
-  os << "Field(" << object->format() << ", " << field.format() << ")";
+  os << "Field(" << object.format() << ", " << field.format() << ")";
   return os.str();
 }
 
@@ -407,32 +426,32 @@ std::string cirth::ir::Float::format() const {
 
 std::string cirth::ir::PositionalOutArgument::format() const {
   std::ostringstream os;
-  os << "PositionalOutArgument(" << variable->format() << ")";
+  os << "PositionalOutArgument(" << variable.format() << ")";
   return os.str();
 }
 
 std::string cirth::ir::OptionalOutArgument::format() const {
   std::ostringstream os;
   os << "OptionalOutArgument(" << key.format() << ", "
-     << variable->format() << ")";
+     << variable.format() << ")";
   return os.str();
 }
 
 std::string cirth::ir::ArbitraryOutArgument::format() const {
   std::ostringstream os;
-  os << "ArbitraryOutArgument(" << variable->format() << ")";
+  os << "ArbitraryOutArgument(" << variable.format() << ")";
   return os.str();
 }
 
 std::string cirth::ir::KeywordOutArgument::format() const {
   std::ostringstream os;
-  os << "KeywordOutArgument(" << variable->format() << ")";
+  os << "KeywordOutArgument(" << variable.format() << ")";
   return os.str();
 }
 
 std::string cirth::ir::DictDefinition::format() const {
   std::ostringstream os;
-  os << "DictDefinition(" << key->format() << ", " << value->format() << ")";
+  os << "DictDefinition(" << key.format() << ", " << value.format() << ")";
   return os.str();
 }
 
@@ -452,7 +471,7 @@ std::string cirth::ir::Array::format() const {
   os << "Array(";
   for(unsigned int i = 0; i < values.size(); ++i) {
     if(i > 0) os << ", ";
-    os << values[i]->format();
+    os << values[i].format();
   }
   os << ")";
   return os.str();
@@ -467,7 +486,7 @@ std::string cirth::ir::PositionalInArgument::format() const {
 std::string cirth::ir::OptionalInArgument::format() const {
   std::ostringstream os;
   os << "OptionalInArgument(" << variable.format() << ", "
-     << defaultval->format() << ")";
+     << defaultval.format() << ")";
   return os.str();
 }
 
@@ -485,7 +504,7 @@ std::string cirth::ir::KeywordInArgument::format() const {
 
 std::string cirth::ir::Call::format() const {
   std::ostringstream os;
-  os << "Call(" << callable->format() << ", Left(";
+  os << "Call(" << callable.format() << ", Left(";
   bool comma_needed = false;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
     if(comma_needed) os << ", ";
@@ -571,7 +590,7 @@ std::string cirth::ir::Function::format() const {
     if(i > 0) os << ", ";
     os << expressions[i]->format();
   }
-  os << "), LastVal(" << lastval->format() << "))";
+  os << "), LastVal(" << lastval.format() << "))";
   return os.str();
 }
 
@@ -582,6 +601,6 @@ std::string cirth::ir::Scope::format() const {
     if(i > 0) os << ", ";
     os << expressions[i]->format();
   }
-  os << "), LastVal(" << lastval->format() << "))";
+  os << "), LastVal(" << lastval.format() << "))";
   return os.str();
 }

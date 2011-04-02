@@ -15,10 +15,10 @@ namespace cps {
     protected: Value() {} };
 
   struct Field : public Value {
-    Field(const PTR<Value>& object_, const Name& field_)
+    Field(const Name& object_, const Name& field_)
       : object(object_), field(field_) {}
     std::string format(unsigned int indent_level) const;
-    PTR<Value> object;
+    Name object;
     Name field;
   };
 
@@ -53,10 +53,10 @@ namespace cps {
   };
 
   struct DictDefinition {
-    DictDefinition(const PTR<Value>& key_, const PTR<Value>& value_)
+    DictDefinition(const Name& key_, const Name& value_)
       : key(key_), value(value_) {}
-    PTR<Value> key;
-    PTR<Value> value;
+    Name key;
+    Name value;
     std::string format(unsigned int indent_level) const;
   };
 
@@ -66,7 +66,7 @@ namespace cps {
   };
 
   struct Array : public Value {
-    std::vector<PTR<Value> > values;
+    std::vector<Name> values;
     std::string format(unsigned int indent_level) const;
   };
 
@@ -82,22 +82,22 @@ namespace cps {
   };
 
   struct OptionalOutArgument {
-    OptionalOutArgument(const Name& key_, const PTR<Value>& variable_)
+    OptionalOutArgument(const Name& key_, const Name& variable_)
       : key(key_), variable(variable_) {}
     Name key;
-    PTR<Value> variable;
+    Name variable;
     std::string format(unsigned int indent_level) const;
   };
 
   struct ArbitraryOutArgument {
-    ArbitraryOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
-    PTR<Value> variable;
+    ArbitraryOutArgument(const Name& variable_) : variable(variable_) {}
+    Name variable;
     std::string format(unsigned int indent_level) const;
   };
 
   struct KeywordOutArgument {
-    KeywordOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
-    PTR<Value> variable;
+    KeywordOutArgument(const Name& variable_) : variable(variable_) {}
+    Name variable;
     std::string format(unsigned int indent_level) const;
   };
 
@@ -117,24 +117,24 @@ namespace cps {
   };
 
   struct VariableMutation : public Expression {
-    VariableMutation(const Name& assignee_, PTR<Value> value_,
+    VariableMutation(const Name& assignee_, Name value_,
         PTR<Expression> next_expression_)
       : assignee(assignee_), value(value_),
         next_expression(next_expression_) {}
     Name assignee;
-    PTR<Value> value;
+    Name value;
     PTR<Expression> next_expression;
     std::string format(unsigned int indent_level) const;
   };
 
   struct ObjectMutation : public Expression {
-    ObjectMutation(PTR<Value> object_, const Name& field_, PTR<Value> value_,
+    ObjectMutation(const Name& object_, const Name& field_, const Name& value_,
         PTR<Expression> next_expression_)
       : object(object_), field(field_), value(value_),
         next_expression(next_expression_) {}
-    PTR<Value> object;
+    Name object;
     Name field;
-    PTR<Value> value;
+    Name value;
     PTR<Expression> next_expression;
     std::string format(unsigned int indent_level) const;
   };
@@ -146,10 +146,10 @@ namespace cps {
   };
 
   struct OptionalInArgument {
-    OptionalInArgument(const Name& variable_, const PTR<Value>& defaultval_)
+    OptionalInArgument(const Name& variable_, const Name& defaultval_)
       : variable(variable_), defaultval(defaultval_) {}
     Name variable;
-    PTR<Value> defaultval;
+    Name defaultval;
     std::string format(unsigned int indent_level) const;
   };
 
@@ -180,8 +180,7 @@ namespace cps {
   };
 
   struct Continuation : public Callable {
-    Continuation(const Name& rv_) : rv(rv_) {}
-    Name rv;
+    std::vector<PositionalInArgument> vars;
     std::string format(unsigned int indent_level) const;
   };
 
@@ -190,7 +189,7 @@ namespace cps {
   };
 
   void transform(const std::vector<PTR<cirth::ir::Expression> >& in_ir,
-      const PTR<cirth::ir::Value>& in_lastval, PTR<Expression>& out_ir);
+      const ir::Name& in_lastval, PTR<Expression>& out_ir);
 
 }}
 

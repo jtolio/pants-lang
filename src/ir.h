@@ -34,7 +34,6 @@ namespace ir {
     virtual void visit(Scope*) = 0;
   };
 
-
   struct Expression {
     virtual ~Expression() {}
     virtual std::string format() const = 0;
@@ -68,29 +67,29 @@ namespace ir {
   };
 
   struct VariableMutation : public Expression {
-    VariableMutation(const Name& assignee_, PTR<Value> value_)
+    VariableMutation(const Name& assignee_, const Name& value_)
       : assignee(assignee_), value(value_) {}
     Name assignee;
-    PTR<Value> value;
+    Name value;
     std::string format() const;
     void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
   };
 
   struct ObjectMutation : public Expression {
-    ObjectMutation(PTR<Value> object_, const Name& field_, PTR<Value> value_)
+    ObjectMutation(const Name& object_, const Name& field_, const Name& value_)
       : object(object_), field(field_), value(value_) {}
-    PTR<Value> object;
+    Name object;
     Name field;
-    PTR<Value> value;
+    Name value;
     std::string format() const;
     void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Field : public Value {
-    Field(const PTR<Value>& object_, const Name& field_)
+    Field(const Name& object_, const Name& field_)
       : object(object_), field(field_) {}
     std::string format() const;
-    PTR<Value> object;
+    Name object;
     Name field;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
@@ -131,33 +130,34 @@ namespace ir {
   };
 
   struct PositionalOutArgument {
-    PositionalOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
-    PTR<Value> variable;
+    PositionalOutArgument(const Name& variable_) : variable(variable_) {}
+    Name variable;
     std::string format() const;
   };
 
   struct OptionalOutArgument {
-    OptionalOutArgument(const Name& key_, const PTR<Value>& variable_)
+    OptionalOutArgument(const Name& key_, const Name& variable_)
       : key(key_), variable(variable_) {}
     Name key;
-    PTR<Value> variable;
+    Name variable;
     std::string format() const;
   };
 
   struct ArbitraryOutArgument {
-    ArbitraryOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
-    PTR<Value> variable;
+    ArbitraryOutArgument(const Name& variable_) : variable(variable_) {}
+    Name variable;
     std::string format() const;
   };
 
   struct KeywordOutArgument {
-    KeywordOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
-    PTR<Value> variable;
+    KeywordOutArgument(const Name& variable_) : variable(variable_) {}
+    Name variable;
     std::string format() const;
   };
 
   struct Call {
-    PTR<Value> callable;
+    Call(const Name& callable_) : callable(callable_) {}
+    Name callable;
     std::vector<PositionalOutArgument> left_positional_args;
     boost::optional<ArbitraryOutArgument> left_arbitrary_arg;
     std::vector<PositionalOutArgument> right_positional_args;
@@ -179,10 +179,10 @@ namespace ir {
   };
 
   struct DictDefinition {
-    DictDefinition(const PTR<Value>& key_, const PTR<Value>& value_)
+    DictDefinition(const Name& key_, const Name& value_)
       : key(key_), value(value_) {}
-    PTR<Value> key;
-    PTR<Value> value;
+    Name key;
+    Name value;
     std::string format() const;
   };
 
@@ -193,7 +193,7 @@ namespace ir {
   };
 
   struct Array : public Value {
-    std::vector<PTR<Value> > values;
+    std::vector<Name> values;
     std::string format() const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
@@ -205,10 +205,10 @@ namespace ir {
   };
 
   struct OptionalInArgument {
-    OptionalInArgument(const Name& variable_, const PTR<Value>& defaultval_)
+    OptionalInArgument(const Name& variable_, const Name& defaultval_)
       : variable(variable_), defaultval(defaultval_) {}
     Name variable;
-    PTR<Value> defaultval;
+    Name defaultval;
     std::string format() const;
   };
 
@@ -226,10 +226,12 @@ namespace ir {
 
   struct Callable : public Value {
     std::vector<PTR<Expression> > expressions;
-    PTR<Value> lastval;
+    Name lastval;
+    protected: Callable(const Name& lastval_) : lastval(lastval_) {}
   };
 
   struct Function : public Callable {
+    Function(const Name& lastval_) : Callable(lastval_) {}
     std::vector<PositionalInArgument> left_positional_args;
     boost::optional<ArbitraryInArgument> left_arbitrary_arg;
     std::vector<PositionalInArgument> right_positional_args;
@@ -241,13 +243,14 @@ namespace ir {
   };
 
   struct Scope : public Callable {
+    Scope(const Name& lastval_) : Callable(lastval_) {}
     std::string format() const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   void convert(const std::vector<PTR<cirth::ast::Expression> >& exps,
       std::vector<PTR<cirth::ir::Expression> >& out,
-      PTR<cirth::ir::Value>& lastval);
+      cirth::ir::Name& lastval);
 
 }}
 
