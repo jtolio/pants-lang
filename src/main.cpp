@@ -28,14 +28,10 @@ int main(int argc, char** argv) {
   PTR<ir::Value> lastval;
   ir::convert(ast, ir, lastval);
   ast.clear();
-//  std::vector<PTR<ir::Expression> > cps;
-//  cps::transform(ir, cps);
-//  ir.clear();
-//  wrap::wrap(cps);
-
-//  for(unsigned int i = 0; i < cps.size(); ++i) {
-//    std::cout << cps[i]->format() << std::endl;
-//  }
+  PTR<cps::Expression> cps;
+  cps::transform(ir, lastval, cps);
+  ir.clear();
+  std::cout << cps->format(1) << std::endl;
 
   return 0;
 }

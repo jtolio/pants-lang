@@ -334,10 +334,12 @@ void ir::convert(const std::vector<PTR<ast::Expression> >& ast,
   visitor.visit(ast);
 }
 
-std::string cirth::ir::Name::format() const {
+std::string cirth::ir::Name::format(unsigned int) const {
   std::ostringstream os;
-  os << "Name(" << name << (user_provided ?
-      ", user_provided)" : ", compiler_provided)");
+  os << "Name(" << name;
+  if(user_provided) os << ", user_provided";
+  if(scoped) os << ", scoped";
+  os << ")";
   return os.str();
 }
 

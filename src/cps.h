@@ -11,13 +11,13 @@ namespace cps {
 
   struct Value {
     virtual ~Value() {}
-    virtual std::string format() const = 0;
+    virtual std::string format(unsigned int indent_level) const = 0;
     protected: Value() {} };
 
   struct Field : public Value {
     Field(const PTR<Value>& object_, const Name& field_)
       : object(object_), field(field_) {}
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     PTR<Value> object;
     Name field;
   };
@@ -25,31 +25,31 @@ namespace cps {
   struct Variable : public Value {
     Variable(const Name& variable_) : variable(variable_) {}
     Name variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct Integer : public Value {
     Integer(const long long& value_) : value(value_) {}
     long long value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct CharString : public Value {
     CharString(const std::string& value_) : value(value_) {}
     std::string value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct ByteString : public Value {
     ByteString(const std::string& value_) : value(value_) {}
     std::string value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct Float : public Value {
     Float(const double& value_) : value(value_) {}
     double value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct DictDefinition {
@@ -57,28 +57,28 @@ namespace cps {
       : key(key_), value(value_) {}
     PTR<Value> key;
     PTR<Value> value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct Dictionary : public Value {
     std::vector<DictDefinition> definitions;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct Array : public Value {
     std::vector<PTR<Value> > values;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct Expression {
     virtual ~Expression() {}
-    virtual std::string format() const = 0;
+    virtual std::string format(unsigned int indent_level) const = 0;
     protected: Expression() {} };
 
   struct PositionalOutArgument {
     PositionalOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
     PTR<Value> variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct OptionalOutArgument {
@@ -86,19 +86,19 @@ namespace cps {
       : key(key_), variable(variable_) {}
     Name key;
     PTR<Value> variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct ArbitraryOutArgument {
     ArbitraryOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
     PTR<Value> variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct KeywordOutArgument {
     KeywordOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
     PTR<Value> variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct Call : public Expression {
@@ -113,7 +113,7 @@ namespace cps {
     boost::optional<KeywordOutArgument> scoped_keyword_arg;
     PTR<Value> continuation;
     PTR<Value> exception;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct VariableMutation : public Expression {
@@ -124,7 +124,7 @@ namespace cps {
     Name assignee;
     PTR<Value> value;
     PTR<Expression> next_expression;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct ObjectMutation : public Expression {
@@ -136,13 +136,13 @@ namespace cps {
     Name field;
     PTR<Value> value;
     PTR<Expression> next_expression;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct PositionalInArgument {
     PositionalInArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct OptionalInArgument {
@@ -150,19 +150,19 @@ namespace cps {
       : variable(variable_), defaultval(defaultval_) {}
     Name variable;
     PTR<Value> defaultval;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct ArbitraryInArgument {
     ArbitraryInArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct KeywordInArgument {
     KeywordInArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct Callable : public Value {
@@ -176,17 +176,17 @@ namespace cps {
     std::vector<OptionalInArgument> right_optional_args;
     boost::optional<ArbitraryInArgument> right_arbitrary_arg;
     boost::optional<KeywordInArgument> right_keyword_arg;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct Continuation : public Callable {
     Continuation(const Name& rv_) : rv(rv_) {}
     Name rv;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct Scope : public Callable {
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   void transform(const std::vector<PTR<cirth::ir::Expression> >& in_ir,

@@ -52,7 +52,7 @@ namespace ir {
       : name(name_), user_provided(user_provided_), scoped(scoped_) {}
     Name(const cirth::ast::Variable& var)
       : name(var.name), user_provided(var.user_provided), scoped(var.scoped) {}
-    std::string format() const;
+    std::string format(unsigned int indent_level = 0) const;
     std::string name;
     bool user_provided;
     bool scoped;
