@@ -7,14 +7,44 @@
 namespace cirth {
 namespace ir {
 
+  struct Definition; struct VariableMutation; struct ObjectMutation;
+  struct ReturnValue;
+
+  struct ExpressionVisitor {
+    virtual void visit(Definition*) = 0;
+    virtual void visit(VariableMutation*) = 0;
+    virtual void visit(ObjectMutation*) = 0;
+    virtual void visit(ReturnValue*) = 0;
+  };
+
+  struct Field; struct Variable; struct Integer; struct CharString;
+  struct ByteString; struct Float; struct Dictionary; struct Array;
+  struct Function; struct Scope;
+
+  struct ValueVisitor {
+    virtual void visit(Field*) = 0;
+    virtual void visit(Variable*) = 0;
+    virtual void visit(Integer*) = 0;
+    virtual void visit(CharString*) = 0;
+    virtual void visit(ByteString*) = 0;
+    virtual void visit(Float*) = 0;
+    virtual void visit(Dictionary*) = 0;
+    virtual void visit(Array*) = 0;
+    virtual void visit(Function*) = 0;
+    virtual void visit(Scope*) = 0;
+  };
+
+
   struct Expression {
     virtual ~Expression() {}
     virtual std::string format() const = 0;
+    virtual void accept(ExpressionVisitor* visitor) = 0;
     protected: Expression() {} };
 
   struct Value {
     virtual ~Value() {}
     virtual std::string format() const = 0;
+    virtual void accept(ValueVisitor* visitor) = 0;
     protected: Value() {} };
 
   struct Name {
@@ -34,6 +64,7 @@ namespace ir {
     Name assignee;
     PTR<Value> value;
     std::string format() const;
+    void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
   };
 
   struct VariableMutation : public Expression {
@@ -42,6 +73,7 @@ namespace ir {
     Name assignee;
     PTR<Value> value;
     std::string format() const;
+    void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
   };
 
   struct ObjectMutation : public Expression {
@@ -51,6 +83,7 @@ namespace ir {
     Name field;
     PTR<Value> value;
     std::string format() const;
+    void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Field : public Value {
@@ -59,36 +92,42 @@ namespace ir {
     std::string format() const;
     PTR<Value> object;
     Name field;
+    void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Variable : public Value {
     Variable(const Name& variable_) : variable(variable_) {}
     Name variable;
     std::string format() const;
+    void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Integer : public Value {
     Integer(const long long& value_) : value(value_) {}
     long long value;
     std::string format() const;
+    void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct CharString : public Value {
     CharString(const std::string& value_) : value(value_) {}
     std::string value;
     std::string format() const;
+    void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct ByteString : public Value {
     ByteString(const std::string& value_) : value(value_) {}
     std::string value;
     std::string format() const;
+    void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Float : public Value {
     Float(const double& value_) : value(value_) {}
     double value;
     std::string format() const;
+    void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct PositionalOutArgument {
@@ -136,6 +175,7 @@ namespace ir {
     Name assignee;
     PTR<Call> term;
     std::string format() const;
+    void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
   };
 
   struct DictDefinition {
@@ -149,11 +189,13 @@ namespace ir {
   struct Dictionary : public Value {
     std::vector<DictDefinition> definitions;
     std::string format() const;
+    void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Array : public Value {
     std::vector<PTR<Value> > values;
     std::string format() const;
+    void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct PositionalInArgument {
@@ -195,10 +237,12 @@ namespace ir {
     boost::optional<ArbitraryInArgument> right_arbitrary_arg;
     boost::optional<KeywordInArgument> right_keyword_arg;
     std::string format() const;
+    void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Scope : public Callable {
     std::string format() const;
+    void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   void convert(const std::vector<PTR<cirth::ast::Expression> >& exps,

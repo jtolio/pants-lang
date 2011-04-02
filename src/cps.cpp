@@ -176,59 +176,193 @@ std::string cps::KeywordInArgument::format() const {
   return os.str();
 }
 
-static PTR<cps::Value> trans(ir::Field* val) {
-  throw expectation_failure("TODO");
-  return PTR<cps::Value>();
+std::string cps::Array::format() const {
+  std::ostringstream os;
+  os << "Array(";
+  for(unsigned int i = 0; i < values.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << values[i]->format();
+  }
+  os << ")";
+  return os.str();
 }
 
-static PTR<cps::Value> trans(ir::Variable* val) {
-  throw expectation_failure("TODO");
-  return PTR<cps::Value>();
+std::string cps::Dictionary::format() const {
+  std::ostringstream os;
+  os << "Dictionary(";
+  for(unsigned int i = 0; i < definitions.size(); ++i) {
+    if(i > 0) os << ", ";
+    os << "Definition(" << definitions[i].key->format() << ", "
+       << definitions[i].value->format() << ")";
+  }
+  os << ")";
+  return os.str();
 }
 
-static PTR<cps::Value> trans(ir::Integer* val) {
-  throw expectation_failure("TODO");
-  return PTR<cps::Value>();
+std::string cps::Float::format() const {
+  std::ostringstream os;
+  os << "Float(" << value << ")";
+  return os.str();
 }
 
-static PTR<cps::Value> trans(ir::CharString* val) {
-  throw expectation_failure("TODO");
-  return PTR<cps::Value>();
+std::string cps::ByteString::format() const {
+  std::ostringstream os;
+  os << "ByteString(" << value << ")";
+  return os.str();
 }
 
-static PTR<cps::Value> trans(ir::ByteString* val) {
-  throw expectation_failure("TODO");
-  return PTR<cps::Value>();
+std::string cps::CharString::format() const {
+  std::ostringstream os;
+  os << "CharString(" << value << ")";
+  return os.str();
 }
 
-static PTR<cps::Value> trans(ir::Float* val) {
-  throw expectation_failure("TODO");
-  return PTR<cps::Value>();
+std::string cps::Integer::format() const {
+  std::ostringstream os;
+  os << "Integer(" << value << ")";
+  return os.str();
 }
 
-static PTR<cps::Value> trans(ir::Dictionary* val) {
-  throw expectation_failure("TODO");
-  return PTR<cps::Value>();
+std::string cps::Field::format() const {
+  std::ostringstream os;
+  os << "Field(" << object->format() << ", " << field.format() << ")";
+  return os.str();
 }
 
-static PTR<cps::Value> trans(ir::Array* val) {
-  throw expectation_failure("TODO");
-  return PTR<cps::Value>();
-}
-
-static PTR<cps::Value> trans(ir::Function* val) {
-  throw expectation_failure("TODO");
-  return PTR<cps::Value>();
-}
-
-static PTR<cps::Value> trans(ir::Scope* val) {
-  throw expectation_failure("TODO");
-  return PTR<cps::Value>();
-}
+class ValueTranslation : public ir::ValueVisitor {
+public:
+  ValueTranslation(PTR<cps::Value>* rv_) : rv(rv_) {}
+  void visit(ir::Variable* var) {
+    *rv = PTR<cps::Value>(new cps::Variable(var->variable));
+  }
+  void visit(ir::Integer* val) {
+    *rv = PTR<cps::Value>(new cps::Integer(val->value));
+  }
+  void visit(ir::CharString* val) {
+    *rv = PTR<cps::Value>(new cps::CharString(val->value));
+  }
+  void visit(ir::ByteString* val) {
+    *rv = PTR<cps::Value>(new cps::ByteString(val->value));
+  }
+  void visit(ir::Float* val) {
+    *rv = PTR<cps::Value>(new cps::Float(val->value));
+  }
+  void visit(ir::Field* val) {
+    PTR<cps::Value> obj;
+    ValueTranslation visitor(&obj);
+    val->object->accept(&visitor);
+    *rv = PTR<cps::Value>(new cps::Field(obj, val->field));
+  }
+  void visit(ir::Dictionary* old_dict) {
+    PTR<cps::Dictionary> new_dict(new cps::Dictionary);
+    *rv = new_dict;
+    new_dict->definitions.reserve(old_dict->definitions.size());
+    for(unsigned int i = 0; i < old_dict->definitions.size(); ++i) {
+      PTR<cps::Value> key;
+      PTR<cps::Value> val;
+      ValueTranslation keyvisitor(&key);
+      ValueTranslation valvisitor(&val);
+      old_dict->definitions[i].key->accept(&keyvisitor);
+      old_dict->definitions[i].value->accept(&valvisitor);
+      new_dict->definitions.push_back(cps::DictDefinition(key, val));
+    }
+  }
+  void visit(ir::Array* old_array) {
+    PTR<cps::Array> new_array(new cps::Array);
+    *rv = new_array;
+    new_array->values.reserve(old_array->values.size());
+    for(unsigned int i = 0; i < old_array->values.size(); ++i) {
+      PTR<cps::Value> val;
+      ValueTranslation visitor(&val);
+      old_array->values[i]->accept(&visitor);
+      new_array->values.push_back(val);
+    }
+  }
+  void visit(ir::Function*) { throw expectation_failure("TODO"); }
+  void visit(ir::Scope*) { throw expectation_failure("TODO"); }
+private:
+  PTR<cps::Value>* rv;
+};
 
 static PTR<cps::Value> trans(const PTR<ir::Value>& val) {
-  return trans(val.get());
+  PTR<cps::Value> rv;
+  ValueTranslation visitor(&rv);
+  val->accept(&visitor);
+  return rv;
 }
+
+class ExpressionTranslation : public ir::ExpressionVisitor {
+public:
+  ExpressionTranslation(PTR<cps::Expression>* out_ir_) : out_ir(out_ir_) {}
+  void visit(ir::Definition* definition) {
+    PTR<cps::Call> call(new cps::Call);
+    call->right_positional_args.push_back(cps::PositionalOutArgument(trans(
+        definition->value)));
+    PTR<cps::Continuation> continuation(new cps::Continuation(
+        definition->assignee));
+    continuation->expression = *out_ir;
+    call->callable = continuation;
+    *out_ir = call;
+  }
+  void visit(ir::VariableMutation* varmutation) {
+    *out_ir = PTR<cps::VariableMutation>(new cps::VariableMutation(
+        varmutation->assignee, trans(varmutation->value), *out_ir));
+  }
+  void visit(ir::ObjectMutation* objmutation) {
+    *out_ir = PTR<cps::ObjectMutation>(new cps::ObjectMutation(
+        trans(objmutation->object), objmutation->field,
+        trans(objmutation->value), *out_ir));
+  }
+  void visit(ir::ReturnValue* rv) {
+    PTR<cps::Call> call(new cps::Call);
+    call->callable = trans(rv->term->callable);
+    call->left_positional_args.reserve(rv->term->left_positional_args.size());
+    for(unsigned int i = 0; i < rv->term->left_positional_args.size(); ++i) {
+      call->left_positional_args.push_back(cps::PositionalOutArgument(trans(
+          rv->term->left_positional_args[i].variable)));
+    }
+    if(!!rv->term->left_arbitrary_arg) {
+      call->left_arbitrary_arg = cps::ArbitraryOutArgument(trans(
+          rv->term->left_arbitrary_arg.get().variable));
+    }
+    call->right_positional_args.reserve(
+        rv->term->right_positional_args.size());
+    for(unsigned int i = 0; i < rv->term->right_positional_args.size(); ++i) {
+      call->right_positional_args.push_back(cps::PositionalOutArgument(trans(
+          rv->term->right_positional_args[i].variable)));
+    }
+    call->right_optional_args.reserve(rv->term->right_optional_args.size());
+    for(unsigned int i = 0; i < rv->term->right_optional_args.size(); ++i) {
+      call->right_optional_args.push_back(cps::OptionalOutArgument(
+          rv->term->right_optional_args[i].key,
+          trans(rv->term->right_optional_args[i].variable)));
+    }
+    if(!!rv->term->right_arbitrary_arg) {
+      call->right_arbitrary_arg = cps::ArbitraryOutArgument(trans(
+          rv->term->right_arbitrary_arg.get().variable));
+    }
+    if(!!rv->term->right_keyword_arg) {
+      call->right_keyword_arg = cps::KeywordOutArgument(trans(
+          rv->term->right_keyword_arg.get().variable));
+    }
+    call->scoped_optional_args.reserve(rv->term->scoped_optional_args.size());
+    for(unsigned int i = 0; i < rv->term->scoped_optional_args.size(); ++i) {
+      call->scoped_optional_args.push_back(cps::OptionalOutArgument(
+          rv->term->scoped_optional_args[i].key,
+          trans(rv->term->scoped_optional_args[i].variable)));
+    }
+    if(!!rv->term->scoped_keyword_arg) {
+      call->scoped_keyword_arg = cps::KeywordOutArgument(trans(
+          rv->term->scoped_keyword_arg.get().variable));
+    }
+    PTR<cps::Continuation> continuation(new cps::Continuation(rv->assignee));
+    continuation->expression = *out_ir;
+    call->continuation = continuation;
+    *out_ir = call;
+  }
+private:
+  PTR<cps::Expression>* out_ir;
+};
 
 void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
     const PTR<ir::Value>& in_lastval, PTR<cps::Expression>& out_ir) {
@@ -238,84 +372,8 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
   call->right_positional_args.push_back(cps::PositionalOutArgument(trans(
       in_lastval)));
   out_ir = call;
-
+  ExpressionTranslation visitor(&out_ir);
   for(unsigned int i = in_ir.size(); i > 0; --i) {
-    ir::VariableMutation* varmutation(dynamic_cast<ir::VariableMutation*>(
-        in_ir[i-1].get()));
-    if(varmutation) {
-      out_ir = PTR<cps::VariableMutation>(new cps::VariableMutation(
-          varmutation->assignee, trans(varmutation->value), out_ir));
-      continue;
-    }
-    ir::ObjectMutation* objmutation(dynamic_cast<ir::ObjectMutation*>(
-        in_ir[i-1].get()));
-    if(objmutation) {
-      out_ir = PTR<cps::ObjectMutation>(new cps::ObjectMutation(
-          trans(objmutation->object), objmutation->field,
-          trans(objmutation->value), out_ir));
-      continue;
-    }
-    ir::ReturnValue* rv(dynamic_cast<ir::ReturnValue*>(in_ir[i-1].get()));
-    if(rv) {
-      PTR<cps::Call> call(new cps::Call);
-      call->callable = trans(rv->term->callable);
-      call->left_positional_args.reserve(rv->term->left_positional_args.size());
-      for(unsigned int i = 0; i < rv->term->left_positional_args.size(); ++i) {
-        call->left_positional_args.push_back(cps::PositionalOutArgument(trans(
-            rv->term->left_positional_args[i].variable)));
-      }
-      if(!!rv->term->left_arbitrary_arg) {
-        call->left_arbitrary_arg = cps::ArbitraryOutArgument(trans(
-            rv->term->left_arbitrary_arg.get().variable));
-      }
-      call->right_positional_args.reserve(
-          rv->term->right_positional_args.size());
-      for(unsigned int i = 0; i < rv->term->right_positional_args.size(); ++i) {
-        call->right_positional_args.push_back(cps::PositionalOutArgument(trans(
-            rv->term->right_positional_args[i].variable)));
-      }
-      call->right_optional_args.reserve(rv->term->right_optional_args.size());
-      for(unsigned int i = 0; i < rv->term->right_optional_args.size(); ++i) {
-        call->right_optional_args.push_back(cps::OptionalOutArgument(
-            rv->term->right_optional_args[i].key,
-            trans(rv->term->right_optional_args[i].variable)));
-      }
-      if(!!rv->term->right_arbitrary_arg) {
-        call->right_arbitrary_arg = cps::ArbitraryOutArgument(trans(
-            rv->term->right_arbitrary_arg.get().variable));
-      }
-      if(!!rv->term->right_keyword_arg) {
-        call->right_keyword_arg = cps::KeywordOutArgument(trans(
-            rv->term->right_keyword_arg.get().variable));
-      }
-      call->scoped_optional_args.reserve(rv->term->scoped_optional_args.size());
-      for(unsigned int i = 0; i < rv->term->scoped_optional_args.size(); ++i) {
-        call->scoped_optional_args.push_back(cps::OptionalOutArgument(
-            rv->term->scoped_optional_args[i].key,
-            trans(rv->term->scoped_optional_args[i].variable)));
-      }
-      if(!!rv->term->scoped_keyword_arg) {
-        call->scoped_keyword_arg = cps::KeywordOutArgument(trans(
-            rv->term->scoped_keyword_arg.get().variable));
-      }
-      PTR<cps::Continuation> continuation(new cps::Continuation(rv->assignee));
-      continuation->expression = out_ir;
-      call->continuation = continuation;
-      out_ir = call;
-      continue;
-    }
-    ir::Definition* definition(dynamic_cast<ir::Definition*>(in_ir[i-1].get()));
-    if(definition) {
-      PTR<cps::Call> call(new cps::Call);
-      call->right_positional_args.push_back(cps::PositionalOutArgument(trans(
-          definition->value)));
-      PTR<cps::Continuation> continuation(new cps::Continuation(
-          definition->assignee));
-      continuation->expression = out_ir;
-      call->callable = continuation;
-      out_ir = call;
-      continue;
-    }
-   throw expectation_failure("unknown IR assignment type!");
+    in_ir[i-1]->accept(&visitor);
   }
 }
