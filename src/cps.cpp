@@ -278,8 +278,63 @@ public:
       new_array->values.push_back(val);
     }
   }
-  void visit(ir::Function*) { throw expectation_failure("TODO"); }
-  void visit(ir::Scope*) { throw expectation_failure("TODO"); }
+  void visit(ir::Scope* old_scope) {
+    PTR<cps::Scope> new_scope(new cps::Scope);
+    *rv = new_scope;
+    cps::transform(old_scope->expressions, old_scope->lastval,
+        new_scope->expression);
+  }
+  void visit(ir::Function* old_func) {
+    PTR<cps::Function> new_func(new cps::Function);
+    *rv = new_func;
+    // transform internals
+    cps::transform(old_func->expressions, old_func->lastval,
+        new_func->expression);
+    // redefine return
+    PTR<cps::Call> call(new cps::Call);
+    call->right_positional_args.push_back(cps::PositionalOutArgument(
+        PTR<cps::Value>(new cps::Variable(cps::Name("continuation", false,
+        false)))));
+    PTR<cps::Continuation> continuation(new cps::Continuation(cps::Name(
+        "return", true, false)));
+    continuation->expression = new_func->expression;
+    call->callable = continuation;
+    new_func->expression = call;
+    // transform args
+    new_func->left_positional_args.reserve(
+        old_func->left_positional_args.size());
+    for(unsigned int i = 0; i < old_func->left_positional_args.size(); ++i) {
+      new_func->left_positional_args.push_back(cps::PositionalInArgument(
+          old_func->left_positional_args[i].variable));
+    }
+    if(!!old_func->left_arbitrary_arg) {
+      new_func->left_arbitrary_arg = cps::ArbitraryInArgument(
+          old_func->left_arbitrary_arg.get().variable);
+    }
+    new_func->right_positional_args.reserve(
+        old_func->right_positional_args.size());
+    for(unsigned int i = 0; i < old_func->right_positional_args.size(); ++i) {
+      new_func->right_positional_args.push_back(cps::PositionalInArgument(
+          old_func->right_positional_args[i].variable));
+    }
+    new_func->right_optional_args.reserve(
+        old_func->right_optional_args.size());
+    for(unsigned int i = 0; i < old_func->right_optional_args.size(); ++i) {
+      PTR<cps::Value> val;
+      ValueTranslation visitor(&val);
+      old_func->right_optional_args[i].defaultval->accept(&visitor);
+      new_func->right_optional_args.push_back(cps::OptionalInArgument(
+          old_func->right_optional_args[i].variable, val));
+    }
+    if(!!old_func->right_arbitrary_arg) {
+      new_func->right_arbitrary_arg = cps::ArbitraryInArgument(
+          old_func->right_arbitrary_arg.get().variable);
+    }
+    if(!!old_func->right_keyword_arg) {
+      new_func->right_keyword_arg = cps::KeywordInArgument(
+          old_func->right_keyword_arg.get().variable);
+    }
+  }
 private:
   PTR<cps::Value>* rv;
 };
@@ -367,8 +422,8 @@ private:
 void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
     const PTR<ir::Value>& in_lastval, PTR<cps::Expression>& out_ir) {
   PTR<cps::Call> call(new cps::Call);
-  call->callable = PTR<cps::Value>(new cps::Variable(cps::Name("halt", false,
-      false)));
+  call->callable = PTR<cps::Value>(new cps::Variable(cps::Name("continuation",
+      false, false)));
   call->right_positional_args.push_back(cps::PositionalOutArgument(trans(
       in_lastval)));
   out_ir = call;
