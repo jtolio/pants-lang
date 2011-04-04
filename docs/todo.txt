@@ -1,5 +1,4 @@
 parser
- * translate array/dictionary creation to object calls
  * make in_arg and out_arg order more picky in the parser
  * strings
  * comments

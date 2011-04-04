@@ -159,30 +159,38 @@ public:
   }
 
   void visit(ast::Dictionary* in_dict) {
-    PTR<ir::Dictionary> out_dict(new ir::Dictionary);
-    out_dict->definitions.reserve(in_dict->values.size());
+    ir::Name out_dict(gensym());
+    PTR<ir::Call> constructor(new ir::Call(ir::Name("Dictionary", true)));
+    m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(out_dict,
+        constructor)));
     for(unsigned int i = 0; i < in_dict->values.size(); ++i) {
       in_dict->values[i].key->accept(this);
       ir::Name key(*m_lastval);
       in_dict->values[i].value->accept(this);
       ir::Name value(*m_lastval);
-      out_dict->definitions.push_back(ir::DictDefinition(key, value));
+      PTR<ir::Call> update(new ir::Call(gensym()));
+      m_ir->push_back(PTR<ir::Expression>(new ir::Definition(update->callable,
+          PTR<ir::Value>(new ir::Field(out_dict, ir::Name("~update", true))))));
+      update->right_positional_args.push_back(ir::PositionalOutArgument(key));
+      update->right_positional_args.push_back(ir::PositionalOutArgument(value));
+      m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(gensym(),
+          update)));
     }
-    ir::Name val(gensym());
-    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(val, out_dict)));
-    *m_lastval = val;
+    *m_lastval = out_dict;
   }
 
   void visit(ast::Array* in_array) {
-    PTR<ir::Array> out_array(new ir::Array);
-    out_array->values.reserve(in_array->values.size());
+    ir::Name out_array(gensym());
+    PTR<ir::Call> constructor(new ir::Call(ir::Name("Array", true)));
+    m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(out_array,
+        constructor)));
+    constructor->right_positional_args.reserve(in_array->values.size());
     for(unsigned int i = 0; i < in_array->values.size(); ++i) {
       in_array->values[i]->accept(this);
-      out_array->values.push_back(*m_lastval);
+      constructor->right_positional_args.push_back(ir::PositionalOutArgument(
+          *m_lastval));
     }
-    ir::Name val(gensym());
-    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(val, out_array)));
-    *m_lastval = val;
+    *m_lastval = out_array;
   }
 
   void visit(ast::Definition* assignment) {
@@ -459,35 +467,6 @@ std::string cirth::ir::KeywordOutArgument::format(unsigned int indent_level)
     const {
   std::ostringstream os;
   os << "KeywordOutArgument(" << variable.format(indent_level+1) << ")";
-  return os.str();
-}
-
-std::string cirth::ir::DictDefinition::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "DictDefinition(" << key.format(indent_level+1) << ", "
-     << value.format(indent_level+1) << ")";
-  return os.str();
-}
-
-std::string cirth::ir::Dictionary::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "Dictionary(";
-  for(unsigned int i = 0; i < definitions.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << definitions[i].format(indent_level+1);
-  }
-  os << ")";
-  return os.str();
-}
-
-std::string cirth::ir::Array::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "Array(";
-  for(unsigned int i = 0; i < values.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << values[i].format(indent_level+1);
-  }
-  os << ")";
   return os.str();
 }
 

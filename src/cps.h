@@ -9,8 +9,8 @@ namespace cps {
 
   typedef cirth::ir::Name Name;
   struct Callable; struct Field; struct Variable; struct Integer;
-  struct CharString; struct ByteString; struct Float; struct Dictionary;
-  struct Array; struct Function; struct Continuation; struct Scope;
+  struct CharString; struct ByteString; struct Float; struct Function;
+  struct Continuation; struct Scope;
 
   struct ValueVisitor {
     virtual void visit(Field*) = 0;
@@ -19,8 +19,6 @@ namespace cps {
     virtual void visit(CharString*) = 0;
     virtual void visit(ByteString*) = 0;
     virtual void visit(Float*) = 0;
-    virtual void visit(Dictionary*) = 0;
-    virtual void visit(Array*) = 0;
     virtual void visit(Function*) = 0;
     virtual void visit(Continuation*) = 0;
     virtual void visit(Scope*) = 0;
@@ -82,18 +80,6 @@ namespace cps {
     Name key;
     Name value;
     std::string format(unsigned int indent_level) const;
-  };
-
-  struct Dictionary : public Value {
-    std::vector<Definition> definitions;
-    std::string format(unsigned int indent_level) const;
-    void accept(ValueVisitor* v) { v->visit(this); }
-  };
-
-  struct Array : public Value {
-    std::vector<Name> values;
-    std::string format(unsigned int indent_level) const;
-    void accept(ValueVisitor* v) { v->visit(this); }
   };
 
   struct Expression {

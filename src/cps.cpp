@@ -147,28 +147,6 @@ std::string cps::Scope::format(unsigned int indent_level) const {
   return os.str();
 }
 
-std::string cps::Array::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "Array(\n" << indent(indent_level);
-  for(unsigned int i = 0; i < values.size(); ++i) {
-    if(i > 0) os << ",\n" << indent(indent_level);
-    os << values[i].format(indent_level+1);
-  }
-  os << ")";
-  return os.str();
-}
-
-std::string cps::Dictionary::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "Dictionary(\n" << indent(indent_level);
-  for(unsigned int i = 0; i < definitions.size(); ++i) {
-    if(i > 0) os << ",\n" << indent(indent_level);
-    os << definitions[i].format(indent_level+1);
-  }
-  os << ")";
-  return os.str();
-}
-
 std::string cps::Float::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Float(" << value << ")";
@@ -227,23 +205,6 @@ public:
   }
   void visit(ir::Field* val) {
     *rv = PTR<cps::Value>(new cps::Field(val->object, val->field));
-  }
-  void visit(ir::Dictionary* old_dict) {
-    PTR<cps::Dictionary> new_dict(new cps::Dictionary);
-    *rv = new_dict;
-    new_dict->definitions.reserve(old_dict->definitions.size());
-    for(unsigned int i = 0; i < old_dict->definitions.size(); ++i) {
-      new_dict->definitions.push_back(cps::Definition(
-          old_dict->definitions[i].key, old_dict->definitions[i].value));
-    }
-  }
-  void visit(ir::Array* old_array) {
-    PTR<cps::Array> new_array(new cps::Array);
-    *rv = new_array;
-    new_array->values.reserve(old_array->values.size());
-    for(unsigned int i = 0; i < old_array->values.size(); ++i) {
-      new_array->values.push_back(old_array->values[i]);
-    }
   }
   void visit(ir::Scope* old_scope) {
     PTR<cps::Scope> new_scope(new cps::Scope);
@@ -417,17 +378,6 @@ public:
 
   void visit(cps::Field* val) { m_names->insert(val->object); }
   void visit(cps::Variable* val) { m_names->insert(val->variable); }
-  void visit(cps::Dictionary* val) {
-    for(unsigned int i = 0; i < val->definitions.size(); ++i) {
-      m_names->insert(val->definitions[i].key);
-      m_names->insert(val->definitions[i].value);
-    }
-  }
-  void visit(cps::Array* val) {
-    for(unsigned int i = 0; i < val->values.size(); ++i) {
-      m_names->insert(val->values[i]);
-    }
-  }
   void visit(cps::Function* val) { val->free_names(*m_names); }
   void visit(cps::Continuation* val) { val->free_names(*m_names); }
   void visit(cps::Scope* val) { val->free_names(*m_names); }

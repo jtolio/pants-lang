@@ -18,8 +18,7 @@ namespace ir {
   };
 
   struct Field; struct Variable; struct Integer; struct CharString;
-  struct ByteString; struct Float; struct Dictionary; struct Array;
-  struct Function; struct Scope;
+  struct ByteString; struct Float; struct Function; struct Scope;
 
   struct ValueVisitor {
     virtual void visit(Field*) = 0;
@@ -28,8 +27,6 @@ namespace ir {
     virtual void visit(CharString*) = 0;
     virtual void visit(ByteString*) = 0;
     virtual void visit(Float*) = 0;
-    virtual void visit(Dictionary*) = 0;
-    virtual void visit(Array*) = 0;
     virtual void visit(Function*) = 0;
     virtual void visit(Scope*) = 0;
   };
@@ -183,26 +180,6 @@ namespace ir {
     PTR<Call> term;
     std::string format(unsigned int indent_level) const;
     void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
-  };
-
-  struct DictDefinition {
-    DictDefinition(const Name& key_, const Name& value_)
-      : key(key_), value(value_) {}
-    Name key;
-    Name value;
-    std::string format(unsigned int indent_level) const;
-  };
-
-  struct Dictionary : public Value {
-    std::vector<DictDefinition> definitions;
-    std::string format(unsigned int indent_level) const;
-    void accept(ValueVisitor* visitor) { visitor->visit(this); }
-  };
-
-  struct Array : public Value {
-    std::vector<Name> values;
-    std::string format(unsigned int indent_level) const;
-    void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct PositionalInArgument {
