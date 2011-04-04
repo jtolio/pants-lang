@@ -49,8 +49,14 @@ std::string cirth::ast::Term::format() const {
 
 std::string cirth::ast::Variable::format() const {
   std::ostringstream os;
-  os << "Variable(" << name << (user_provided ? ", user_provided, " :
-      ", compiler_provided, ") << (scoped ? "scoped)" : "unscoped)");
+  os << "Variable(" << name << (user_provided ? ", user_provided)" :
+      ", compiler_provided)");
+  return os.str();
+}
+
+std::string cirth::ast::HiddenObjectField::format() const {
+  std::ostringstream os;
+  os << "HiddenObjectField(" << name << ")";
   return os.str();
 }
 

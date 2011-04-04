@@ -37,7 +37,7 @@ namespace parser {
     qi::rule<Iterator, PTR<Value>()> subexpression;
     qi::rule<Iterator, PTR<Value>()> function;
     qi::rule<Iterator, PTR<Value>()> valvariable;
-    qi::rule<Iterator, PTR<Value>()> scopedvariable;
+    qi::rule<Iterator, PTR<Value>()> hiddenobjectfield;
     qi::rule<Iterator, Variable()> variable;
     qi::rule<Iterator, PTR<Value>()> integer;
     qi::rule<Iterator, PTR<Value>()> bytestring;
@@ -213,7 +213,7 @@ namespace parser {
             | floating
             | dictionary
             | array
-            | scopedvariable;
+            | hiddenobjectfield;
       value.name("value");
 
       subexpression = (qi::lit("(") >> S(
@@ -228,10 +228,10 @@ namespace parser {
           phx::new_<Variable>(qi::_1))];
       valvariable.name("variable value");
 
-      scopedvariable = qi::lit(".") >> identifier[
+      hiddenobjectfield = qi::lit(".") >> identifier[
           qi::_val = phx::construct<PTR<Value> >(
-          phx::new_<Variable>(qi::_1, true, true))];
-      valvariable.name("scoped variable value");
+          phx::new_<HiddenObjectField>(qi::_1))];
+      hiddenobjectfield.name("scoped variable value");
 
       integer = qi::long_long[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<Integer>(qi::_1))];

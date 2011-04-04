@@ -15,7 +15,7 @@ namespace ast {
   struct ArbitraryInArgument; struct KeywordInArgument;
   struct RequiredOutArgument; struct OptionalOutArgument;
   struct ArbitraryOutArgument; struct KeywordOutArgument;
-  struct OpenCall; struct ClosedCall; struct Field;
+  struct OpenCall; struct ClosedCall; struct Field; struct HiddenObjectField;
 
   struct AstVisitor {
     virtual void visit(Term*) = 0;
@@ -35,6 +35,7 @@ namespace ast {
     virtual void visit(ClosedCall*) = 0;
     virtual void visit(Field*) = 0;
     virtual void visit(Index*) = 0;
+    virtual void visit(HiddenObjectField*) = 0;
   };
 
   struct Expression {
@@ -96,16 +97,13 @@ namespace ast {
   };
 
   struct Variable : public Value {
-    Variable() : user_provided(true), scoped(false) {}
+    Variable() : user_provided(true) {}
     Variable(const std::string& name_)
-      : name(name_), user_provided(true), scoped(false) {}
+      : name(name_), user_provided(true) {}
     Variable(const std::string& name_, bool user_provided_)
-      : name(name_), user_provided(user_provided_), scoped(false) {}
-    Variable(const std::string& name_, bool user_provided_, bool scoped_)
-      : name(name_), user_provided(user_provided_), scoped(scoped_) {}
+      : name(name_), user_provided(user_provided_) {}
     std::string name;
     bool user_provided;
-    bool scoped;
     std::string format() const;
     void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
@@ -150,6 +148,13 @@ namespace ast {
     Float(const double& value_) : value(value_) {}
     double value;
     std::string format() const;
+    void accept(AstVisitor* visitor) { visitor->visit(this); }
+  };
+
+  struct HiddenObjectField : public Value {
+    HiddenObjectField(const std::string& name_) : name(name_) {}
+    std::string format() const;
+    std::string name;
     void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 

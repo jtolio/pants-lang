@@ -260,9 +260,9 @@ public:
     // redefine return
     PTR<cps::Call> call(new cps::Call);
     call->right_positional_args.push_back(PTR<cps::Value>(
-        new cps::Variable(cps::Name("continuation", false, false))));
+        new cps::Variable(cps::Name("continuation", false))));
     PTR<cps::Continuation> continuation(new cps::Continuation);
-    continuation->vars.push_back(cps::Name("return", true, false));
+    continuation->vars.push_back(cps::Name("return", true));
     continuation->expression = new_func->expression;
     call->callable = continuation;
     new_func->expression = call;
@@ -387,7 +387,7 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
     const ir::Name& in_lastval, PTR<cps::Expression>& out_ir) {
   PTR<cps::Call> call(new cps::Call);
   call->callable = PTR<cps::Value>(new cps::Variable(cps::Name("continuation",
-      false, false)));
+      false)));
   call->right_positional_args.push_back(PTR<cps::Value>(new cps::Variable(
       in_lastval)));
   out_ir = call;
@@ -407,10 +407,39 @@ static void callables_in_values(PTR<cps::Value> value,
   callable->expression->callables(callables);
 }
 
-static void names_in_values(PTR<cps::Value> value,
-    std::vector<cps::Name>& names) {
+class FreeNameSearchVisitor : public cps::ValueVisitor {
+public:
+  FreeNameSearchVisitor(std::set<cps::Name>* names) : m_names(names) {}
+  void visit(cps::Integer* val) {}
+  void visit(cps::CharString* val) {}
+  void visit(cps::ByteString* val) {}
+  void visit(cps::Float* val) {}
+
+  void visit(cps::Field* val) { m_names->insert(val->object); }
+  void visit(cps::Variable* val) { m_names->insert(val->variable); }
+  void visit(cps::Dictionary* val) {
+    for(unsigned int i = 0; i < val->definitions.size(); ++i) {
+      m_names->insert(val->definitions[i].key);
+      m_names->insert(val->definitions[i].value);
+    }
+  }
+  void visit(cps::Array* val) {
+    for(unsigned int i = 0; i < val->values.size(); ++i) {
+      m_names->insert(val->values[i]);
+    }
+  }
+  void visit(cps::Function* val) { val->free_names(*m_names); }
+  void visit(cps::Continuation* val) { val->free_names(*m_names); }
+  void visit(cps::Scope* val) { val->free_names(*m_names); }
+private:
+  std::set<cps::Name>* m_names;
+};
+
+static void free_names_in_values(PTR<cps::Value> value,
+    std::set<cps::Name>& names) {
   if(!value) return;
-//  check for field, variable, callable, dictionary, array,
+  FreeNameSearchVisitor visitor(&names);
+  value->accept(&visitor);
 }
 
 void cps::Call::callables(std::vector<PTR<cps::Callable> >& callables) {
@@ -423,21 +452,79 @@ void cps::Call::callables(std::vector<PTR<cps::Callable> >& callables) {
 }
 
 void cps::Call::free_names(std::set<Name>& names) {
-  names_in_values(callable, names);
+  free_names_in_values(callable, names);
   for(unsigned int i = 0; i < left_positional_args.size(); ++i)
-    names.erase(left_positional_args[i]);
-  if(!!left_arbitrary_arg) names.erase(left_arbitrary_arg.get());
+    names.insert(left_positional_args[i]);
+  if(!!left_arbitrary_arg) names.insert(left_arbitrary_arg.get());
   for(unsigned int i = 0; i < right_positional_args.size(); ++i)
-    names.erase(right_positional_args[i]);
-  for(unsigned int i = 0; i < right_optional_args.size(); ++i)
-    names.erase(right_optional_args[i].key);
-  if(!!right_arbitrary_arg) names.erase(right_arbitrary_arg.get());
-  if(!!right_keyword_arg) names.erase(right_keyword_arg.get());
-//  for(unsigned int i = 0; i < scoped_optional_args.size(); ++i)
-//    names.erase(scoped_optional_args[i].key);
-//  if(!!scoped_keyword_arg) names.erase(scoped_keyword_arg.get());
+    free_names_in_values(right_positional_args[i], names);
   for(unsigned int i = 0; i < right_optional_args.size(); ++i)
     names.insert(right_optional_args[i].value);
-  names_in_values(continuation);
-  names_in_values(exception);
+  if(!!right_arbitrary_arg) names.insert(right_arbitrary_arg.get());
+  if(!!right_keyword_arg) names.insert(right_keyword_arg.get());
+  free_names_in_values(continuation, names);
+  free_names_in_values(exception, names);
+}
+
+void cps::Function::arg_names(std::set<cps::Name>& names) {
+  for(unsigned int i = 0; i < left_positional_args.size(); ++i)
+    names.insert(left_positional_args[i]);
+  if(!!left_arbitrary_arg) names.insert(left_arbitrary_arg.get());
+  for(unsigned int i = 0; i < right_positional_args.size(); ++i)
+    names.insert(right_positional_args[i]);
+  for(unsigned int i = 0; i < right_optional_args.size(); ++i)
+    names.insert(right_optional_args[i].key);
+  if(!!right_arbitrary_arg) names.insert(right_arbitrary_arg.get());
+  if(!!right_keyword_arg) names.insert(right_keyword_arg.get());
+  names.insert(cps::Name("hidden_object", false));
+  names.insert(cps::Name("return", true));
+  names.insert(cps::Name("continuation", false));
+  names.insert(cps::Name("exception", false));
+}
+
+void cps::Function::free_names(std::set<cps::Name>& names) {
+  std::set<Name> new_names;
+  expression->free_names(new_names);
+  std::set<Name> args;
+  arg_names(args);
+  for(std::set<Name>::iterator it(args.begin()); it != args.end(); ++it)
+    new_names.erase(*it);
+  for(std::set<Name>::iterator it(new_names.begin());
+      it != new_names.end(); ++it)
+    names.insert(*it);
+  for(unsigned int i = 0; i < right_optional_args.size(); ++i)
+    names.insert(right_optional_args[i].value);
+}
+
+void cps::Continuation::arg_names(std::set<Name>& names) {
+  for(unsigned int i = 0; i < vars.size(); ++i)
+    names.insert(vars[i]);
+}
+
+void cps::Continuation::free_names(std::set<Name>& names) {
+  std::set<Name> new_names;
+  expression->free_names(new_names);
+  for(unsigned int i = 0; i < vars.size(); ++i)
+    new_names.erase(vars[i]);
+  for(std::set<Name>::iterator it(new_names.begin());
+      it != new_names.end(); ++it)
+    names.insert(*it);
+}
+
+void cps::Scope::arg_names(std::set<Name>& names) {
+  names.insert(cps::Name("hidden_object", false));
+  names.insert(cps::Name("continuation", false));
+  names.insert(cps::Name("exception", false));
+}
+
+void cps::Scope::free_names(std::set<Name>& names) {
+  std::set<Name> new_names;
+  expression->free_names(new_names);
+  std::set<Name> args;
+  arg_names(args);
+  for(std::set<Name>::iterator it(args.begin()); it != args.end(); ++it)
+    new_names.erase(*it);
+  for(std::set<Name>::iterator it(new_names.begin());
+      it != new_names.end(); ++it)
+    names.insert(*it);
 }

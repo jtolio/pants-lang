@@ -8,17 +8,35 @@ namespace cirth {
 namespace cps {
 
   typedef cirth::ir::Name Name;
-  struct Callable;
+  struct Callable; struct Field; struct Variable; struct Integer;
+  struct CharString; struct ByteString; struct Float; struct Dictionary;
+  struct Array; struct Function; struct Continuation; struct Scope;
+
+  struct ValueVisitor {
+    virtual void visit(Field*) = 0;
+    virtual void visit(Variable*) = 0;
+    virtual void visit(Integer*) = 0;
+    virtual void visit(CharString*) = 0;
+    virtual void visit(ByteString*) = 0;
+    virtual void visit(Float*) = 0;
+    virtual void visit(Dictionary*) = 0;
+    virtual void visit(Array*) = 0;
+    virtual void visit(Function*) = 0;
+    virtual void visit(Continuation*) = 0;
+    virtual void visit(Scope*) = 0;
+  };
 
   struct Value {
     virtual ~Value() {}
     virtual std::string format(unsigned int indent_level) const = 0;
+    virtual void accept(ValueVisitor*) = 0;
     protected: Value() {} };
 
   struct Field : public Value {
     Field(const Name& object_, const Name& field_)
       : object(object_), field(field_) {}
     std::string format(unsigned int indent_level) const;
+    void accept(ValueVisitor* v) { v->visit(this); }
     Name object;
     Name field;
   };
@@ -27,30 +45,35 @@ namespace cps {
     Variable(const Name& variable_) : variable(variable_) {}
     Name variable;
     std::string format(unsigned int indent_level) const;
+    void accept(ValueVisitor* v) { v->visit(this); }
   };
 
   struct Integer : public Value {
     Integer(const long long& value_) : value(value_) {}
     long long value;
     std::string format(unsigned int indent_level) const;
+    void accept(ValueVisitor* v) { v->visit(this); }
   };
 
   struct CharString : public Value {
     CharString(const std::string& value_) : value(value_) {}
     std::string value;
     std::string format(unsigned int indent_level) const;
+    void accept(ValueVisitor* v) { v->visit(this); }
   };
 
   struct ByteString : public Value {
     ByteString(const std::string& value_) : value(value_) {}
     std::string value;
     std::string format(unsigned int indent_level) const;
+    void accept(ValueVisitor* v) { v->visit(this); }
   };
 
   struct Float : public Value {
     Float(const double& value_) : value(value_) {}
     double value;
     std::string format(unsigned int indent_level) const;
+    void accept(ValueVisitor* v) { v->visit(this); }
   };
 
   struct Definition {
@@ -64,11 +87,13 @@ namespace cps {
   struct Dictionary : public Value {
     std::vector<Definition> definitions;
     std::string format(unsigned int indent_level) const;
+    void accept(ValueVisitor* v) { v->visit(this); }
   };
 
   struct Array : public Value {
     std::vector<Name> values;
     std::string format(unsigned int indent_level) const;
+    void accept(ValueVisitor* v) { v->visit(this); }
   };
 
   struct Expression {
@@ -146,47 +171,24 @@ namespace cps {
     boost::optional<Name> right_arbitrary_arg;
     boost::optional<Name> right_keyword_arg;
     std::string format(unsigned int indent_level) const;
-    void arg_names(std::set<Name>& names) {
-      for(unsigned int i = 0; i < left_positional_args.size(); ++i)
-        names.insert(left_positional_args[i]);
-      if(!!left_arbitrary_arg) names.insert(left_arbitrary_arg.get());
-      for(unsigned int i = 0; i < right_positional_args.size(); ++i)
-        names.insert(right_positional_args[i]);
-      for(unsigned int i = 0; i < right_optional_args.size(); ++i)
-        names.insert(right_optional_args[i].key);
-      if(!!right_arbitrary_arg) names.insert(right_arbitrary_arg.get());
-      if(!!right_keyword_arg) names.insert(right_keyword_arg.get());
-    }
-    void free_names(std::set<Name>& names) {
-      expression->free_names(names);
-      std::set<Name> args;
-      arg_names(args);
-      for(std::set<Name>::iterator it(args.begin()); it != args.end(); ++it)
-        names.erase(*it);
-      for(unsigned int i = 0; i < right_optional_args.size(); ++i)
-        names.insert(right_optional_args[i].value);
-    }
+    void accept(ValueVisitor* v) { v->visit(this); }
+    void arg_names(std::set<Name>& names);
+    void free_names(std::set<Name>& names);
   };
 
   struct Continuation : public Callable {
     std::vector<Name> vars;
     std::string format(unsigned int indent_level) const;
-    void arg_names(std::set<Name>& names) {
-      for(unsigned int i = 0; i < vars.size(); ++i)
-        names.insert(vars[i]);
-    }
-    void free_names(std::set<Name>& names) {
-      expression->free_names(names);
-      for(unsigned int i = 0; i < vars.size(); ++i)
-        names.erase(vars[i]);
-    }
+    void accept(ValueVisitor* v) { v->visit(this); }
+    void arg_names(std::set<Name>& names);
+    void free_names(std::set<Name>& names);
   };
 
   struct Scope : public Callable {
     std::string format(unsigned int indent_level) const;
-    void arg_names(std::set<Name>& names) {}
-    void free_names(std::set<Name>& names)
-      { expression->free_names(names); }
+    void accept(ValueVisitor* v) { v->visit(this); }
+    void arg_names(std::set<Name>& names);
+    void free_names(std::set<Name>& names);
   };
 
   void transform(const std::vector<PTR<cirth::ir::Expression> >& in_ir,

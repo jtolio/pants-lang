@@ -47,14 +47,21 @@ namespace ir {
     protected: Value() {} };
 
   struct Name {
-    Name(const std::string& name_, bool user_provided_, bool scoped_)
-      : name(name_), user_provided(user_provided_), scoped(scoped_) {}
+    Name(const std::string& name_, bool user_provided_)
+      : name(name_), user_provided(user_provided_) {}
     Name(const cirth::ast::Variable& var)
-      : name(var.name), user_provided(var.user_provided), scoped(var.scoped) {}
+      : name(var.name), user_provided(var.user_provided)
+    { if(!name.size()) { throw expectation_failure("expected variable name"); }}
     std::string format(unsigned int indent_level = 0) const;
     std::string name;
     bool user_provided;
-    bool scoped;
+    bool operator<(const Name& rhs) const {
+      if(name == rhs.name) return user_provided < rhs.user_provided;
+      return name < rhs.name;
+    }
+    bool operator==(const Name& rhs) const {
+      return name == rhs.name && user_provided == rhs.user_provided;
+    }
   };
 
   struct Definition : public Expression {

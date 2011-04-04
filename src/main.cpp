@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
   }
 
   std::vector<PTR<ir::Expression> > ir;
-  ir::Name lastval("null", false, false);
+  ir::Name lastval("null", false);
   ir::convert(ast, ir, lastval);
   ast.clear();
   PTR<cps::Expression> cps;

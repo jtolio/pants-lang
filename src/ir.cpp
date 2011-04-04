@@ -98,8 +98,7 @@ public:
     ir::Name callable(gensym());
     PTR<ir::Call> call(new ir::Call(gensym()));
     m_ir->push_back(PTR<ir::Expression>(new ir::Definition(call->callable,
-        PTR<ir::Value>(new ir::Field(array, ir::Name("~index", true,
-        false))))));
+        PTR<ir::Value>(new ir::Field(array, ir::Name("~index", true))))));
     call->right_positional_args.push_back(ir::PositionalOutArgument(loc));
     m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(name, call)));
     *m_lastval = name;
@@ -109,8 +108,16 @@ public:
     *m_lastval = ir::Name(*var);
   }
 
+  void visit(ast::HiddenObjectField* field) {
+    ir::Name val(gensym());
+    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(val,
+        PTR<ir::Value>(new ir::Field(ir::Name("hidden_object", false),
+        ir::Name(field->name, true))))));
+    *m_lastval = val;
+  }
+
   void visit(ast::SubExpression* subexp) {
-    PTR<ir::Scope> scope(new ir::Scope(ir::Name("null", false, false)));
+    PTR<ir::Scope> scope(new ir::Scope(ir::Name("null", false)));
     ConversionVisitor subvisitor(&scope->expressions, &scope->lastval,
         m_varcount);
     subvisitor.visit(subexp->expressions);
@@ -182,8 +189,7 @@ public:
     ir::Name assignee(assignment->assignee);
 
     m_ir->push_back(PTR<ir::Expression>(new ir::Definition(
-        assignee, PTR<ir::Value>(new ir::Variable(
-        ir::Name("null", false, false))))));
+        assignee, PTR<ir::Value>(new ir::Variable(ir::Name("null", false))))));
     assignment->exp->accept(this);
 
     m_ir->push_back(PTR<ir::Expression>(new ir::VariableMutation(assignee,
@@ -226,8 +232,7 @@ public:
       ir::Name loc(*m_lastval);
       PTR<ir::Call> call(new ir::Call(gensym()));
       m_ir->push_back(PTR<ir::Expression>(new ir::Definition(call->callable,
-          PTR<ir::Value>(new ir::Field(array, ir::Name("~update", true,
-          false))))));
+          PTR<ir::Value>(new ir::Field(array, ir::Name("~update", true))))));
       call->right_positional_args.push_back(ir::PositionalOutArgument(loc));
       call->right_positional_args.push_back(ir::PositionalOutArgument(rhs));
       m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(gensym(), call)));
@@ -240,7 +245,7 @@ public:
   }
 
   void visit(ast::Function* infunc) {
-    PTR<ir::Function> outfunc(new ir::Function(ir::Name("null", false, false)));
+    PTR<ir::Function> outfunc(new ir::Function(ir::Name("null", false)));
     outfunc->left_positional_args.reserve(infunc->left_required_args.size());
     for(unsigned int i = 0; i < infunc->left_required_args.size(); ++i) {
       outfunc->left_positional_args.push_back(ir::PositionalInArgument(
@@ -336,7 +341,7 @@ private:
   ir::Name gensym() {
     std::ostringstream os;
     os << "ir" << ++(*m_varcount);
-    return ir::Name(os.str(), false, false);
+    return ir::Name(os.str(), false);
   }
 
 private:
@@ -356,7 +361,6 @@ void ir::convert(const std::vector<PTR<ast::Expression> >& ast,
 std::string cirth::ir::Name::format(unsigned int) const {
   std::ostringstream os;
   os << (user_provided ? "u" : "c")
-     << (scoped ? "s" : "u")
      << "_"
      << name;
   return os.str();

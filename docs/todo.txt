@@ -1,11 +1,5 @@
-brain dump:
- * ir::Name doesn't work in std::set yet
- * scoped variables are not handled right with free variable resolution
- * names_in_values
-
 parser
- * translate array index/update to object methods
- * finish cps translation
+ * translate array/dictionary creation to object calls
  * make in_arg and out_arg order more picky in the parser
  * strings
  * comments
@@ -14,8 +8,6 @@ parser
 
 rest
  * wrap
- * desugar
- * cps_transform
  * rename
  * output c
   * scopes
