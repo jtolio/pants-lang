@@ -221,9 +221,9 @@ public:
     // redefine return
     PTR<cps::Call> call(new cps::Call);
     call->right_positional_args.push_back(PTR<cps::Value>(
-        new cps::Variable(cps::Name("continuation", false))));
+        new cps::Variable(CONTINUATION)));
     PTR<cps::Continuation> continuation(new cps::Continuation);
-    continuation->vars.push_back(cps::Name("return", true));
+    continuation->vars.push_back(RETURN);
     continuation->expression = new_func->expression;
     call->callable = continuation;
     new_func->expression = call;
@@ -347,8 +347,7 @@ private:
 void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
     const ir::Name& in_lastval, PTR<cps::Expression>& out_ir) {
   PTR<cps::Call> call(new cps::Call);
-  call->callable = PTR<cps::Value>(new cps::Variable(cps::Name("continuation",
-      false)));
+  call->callable = PTR<cps::Value>(new cps::Variable(CONTINUATION));
   call->right_positional_args.push_back(PTR<cps::Value>(new cps::Variable(
       in_lastval)));
   out_ir = call;
@@ -426,10 +425,10 @@ void cps::Function::arg_names(std::set<cps::Name>& names) {
     names.insert(right_optional_args[i].key);
   if(!!right_arbitrary_arg) names.insert(right_arbitrary_arg.get());
   if(!!right_keyword_arg) names.insert(right_keyword_arg.get());
-  names.insert(cps::Name("hidden_object", false));
-  names.insert(cps::Name("return", true));
-  names.insert(cps::Name("continuation", false));
-  names.insert(cps::Name("exception", false));
+  names.insert(HIDDEN_OBJECT);
+  names.insert(RETURN);
+  names.insert(CONTINUATION);
+  names.insert(EXCEPTION);
 }
 
 void cps::Function::free_names(std::set<cps::Name>& names) {
@@ -462,9 +461,9 @@ void cps::Continuation::free_names(std::set<Name>& names) {
 }
 
 void cps::Scope::arg_names(std::set<Name>& names) {
-  names.insert(cps::Name("hidden_object", false));
-  names.insert(cps::Name("continuation", false));
-  names.insert(cps::Name("exception", false));
+  names.insert(HIDDEN_OBJECT);
+  names.insert(CONTINUATION);
+  names.insert(EXCEPTION);
 }
 
 void cps::Scope::free_names(std::set<Name>& names) {

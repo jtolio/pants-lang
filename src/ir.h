@@ -4,6 +4,17 @@
 #include "common.h"
 #include "ast.h"
 
+#define UPDATE_FIELD      ir::Name("~update", true)
+#define LOOKUP_FIELD      ir::Name("~index", true)
+#define DICT_CONSTRUCTOR  ir::Name("Dictionary", true)
+#define ARRAY_CONSTRUCTOR ir::Name("Array", true)
+#define NULL_VALUE        ir::Name("null", false)
+#define HIDDEN_OBJECT     ir::Name("hidden_object", false)
+#define CONTINUATION      ir::Name("continuation", false)
+#define EXCEPTION         ir::Name("exception", false)
+#define RETURN            ir::Name("return", true)
+#define GENSYM_PREFIX     "ir_"
+
 namespace cirth {
 namespace ir {
 

@@ -98,7 +98,7 @@ public:
     ir::Name callable(gensym());
     PTR<ir::Call> call(new ir::Call(gensym()));
     m_ir->push_back(PTR<ir::Expression>(new ir::Definition(call->callable,
-        PTR<ir::Value>(new ir::Field(array, ir::Name("~index", true))))));
+        PTR<ir::Value>(new ir::Field(array, LOOKUP_FIELD)))));
     call->right_positional_args.push_back(ir::PositionalOutArgument(loc));
     m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(name, call)));
     *m_lastval = name;
@@ -111,13 +111,13 @@ public:
   void visit(ast::HiddenObjectField* field) {
     ir::Name val(gensym());
     m_ir->push_back(PTR<ir::Expression>(new ir::Definition(val,
-        PTR<ir::Value>(new ir::Field(ir::Name("hidden_object", false),
-        ir::Name(field->name, true))))));
+        PTR<ir::Value>(new ir::Field(HIDDEN_OBJECT, ir::Name(field->name,
+        true))))));
     *m_lastval = val;
   }
 
   void visit(ast::SubExpression* subexp) {
-    PTR<ir::Scope> scope(new ir::Scope(ir::Name("null", false)));
+    PTR<ir::Scope> scope(new ir::Scope(NULL_VALUE));
     ConversionVisitor subvisitor(&scope->expressions, &scope->lastval,
         m_varcount);
     subvisitor.visit(subexp->expressions);
@@ -160,7 +160,7 @@ public:
 
   void visit(ast::Dictionary* in_dict) {
     ir::Name out_dict(gensym());
-    PTR<ir::Call> constructor(new ir::Call(ir::Name("Dictionary", true)));
+    PTR<ir::Call> constructor(new ir::Call(DICT_CONSTRUCTOR));
     m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(out_dict,
         constructor)));
     for(unsigned int i = 0; i < in_dict->values.size(); ++i) {
@@ -170,7 +170,7 @@ public:
       ir::Name value(*m_lastval);
       PTR<ir::Call> update(new ir::Call(gensym()));
       m_ir->push_back(PTR<ir::Expression>(new ir::Definition(update->callable,
-          PTR<ir::Value>(new ir::Field(out_dict, ir::Name("~update", true))))));
+          PTR<ir::Value>(new ir::Field(out_dict, UPDATE_FIELD)))));
       update->right_positional_args.push_back(ir::PositionalOutArgument(key));
       update->right_positional_args.push_back(ir::PositionalOutArgument(value));
       m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(gensym(),
@@ -181,7 +181,7 @@ public:
 
   void visit(ast::Array* in_array) {
     ir::Name out_array(gensym());
-    PTR<ir::Call> constructor(new ir::Call(ir::Name("Array", true)));
+    PTR<ir::Call> constructor(new ir::Call(ARRAY_CONSTRUCTOR));
     m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(out_array,
         constructor)));
     constructor->right_positional_args.reserve(in_array->values.size());
@@ -197,7 +197,7 @@ public:
     ir::Name assignee(assignment->assignee);
 
     m_ir->push_back(PTR<ir::Expression>(new ir::Definition(
-        assignee, PTR<ir::Value>(new ir::Variable(ir::Name("null", false))))));
+        assignee, PTR<ir::Value>(new ir::Variable(NULL_VALUE)))));
     assignment->exp->accept(this);
 
     m_ir->push_back(PTR<ir::Expression>(new ir::VariableMutation(assignee,
@@ -240,7 +240,7 @@ public:
       ir::Name loc(*m_lastval);
       PTR<ir::Call> call(new ir::Call(gensym()));
       m_ir->push_back(PTR<ir::Expression>(new ir::Definition(call->callable,
-          PTR<ir::Value>(new ir::Field(array, ir::Name("~update", true))))));
+          PTR<ir::Value>(new ir::Field(array, UPDATE_FIELD)))));
       call->right_positional_args.push_back(ir::PositionalOutArgument(loc));
       call->right_positional_args.push_back(ir::PositionalOutArgument(rhs));
       m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(gensym(), call)));
@@ -253,7 +253,7 @@ public:
   }
 
   void visit(ast::Function* infunc) {
-    PTR<ir::Function> outfunc(new ir::Function(ir::Name("null", false)));
+    PTR<ir::Function> outfunc(new ir::Function(NULL_VALUE));
     outfunc->left_positional_args.reserve(infunc->left_required_args.size());
     for(unsigned int i = 0; i < infunc->left_required_args.size(); ++i) {
       outfunc->left_positional_args.push_back(ir::PositionalInArgument(
@@ -348,7 +348,7 @@ public:
 private:
   ir::Name gensym() {
     std::ostringstream os;
-    os << "ir" << ++(*m_varcount);
+    os << GENSYM_PREFIX << ++(*m_varcount);
     return ir::Name(os.str(), false);
   }
 
