@@ -1,5 +1,6 @@
 #include "common.h"
 #include "parser.h"
+#include "ir.h"
 #include <iostream>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/CompilerOutputter.h>
@@ -341,7 +342,54 @@ public:
 
 };
 
+class IRTest : public CPPUNIT_NS::TestFixture {
+  CPPUNIT_TEST_SUITE(IRTest);
+  CPPUNIT_TEST(testSimple);
+  CPPUNIT_TEST_SUITE_END();
+
+public:
+  void setUp() {}
+  void tearDown() {}
+  std::string ir_translate(const std::string& src) {
+    std::vector<PTR<cirth::ast::Expression> > ast;
+    CPPUNIT_ASSERT(cirth::parser::parse(src, ast));
+    std::vector<PTR<cirth::ir::Expression> > ir;
+    cirth::ir::Name lastval(NULL_VALUE);
+    cirth::ir::convert(ast, ir, lastval);
+    std::ostringstream out;
+    for(unsigned int i = 0; i < ir.size(); ++i)
+      out << ir[i]->format(0) << std::endl;
+    out << lastval.format();
+    return out.str();
+  }
+
+  void testSimple() {
+    CPPUNIT_ASSERT(ir_translate("x := { 3 }\nx.\n") ==
+        "Definition(u_x, Variable(c_null))\n"
+        "Definition(c_ir_2, Function(Left(), Right(), "
+            "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
+        "VariableMutation(u_x, c_ir_2)\n"
+        "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), Scoped()))\n"
+        "c_ir_3");
+    CPPUNIT_ASSERT(ir_translate("x := { 3 }\nx()\n") ==
+        "Definition(u_x, Variable(c_null))\n"
+        "Definition(c_ir_2, Function(Left(), Right(), "
+            "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
+        "VariableMutation(u_x, c_ir_2)\n"
+        "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), Scoped()))\n"
+        "c_ir_3");
+    CPPUNIT_ASSERT(ir_translate("x := { 3 }\nx.") ==
+        "Definition(u_x, Variable(c_null))\n"
+        "Definition(c_ir_2, Function(Left(), Right(), "
+            "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
+        "VariableMutation(u_x, c_ir_2)\n"
+        "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), Scoped()))\n"
+        "c_ir_3");
+  }
+};
+
 CPPUNIT_TEST_SUITE_REGISTRATION(ParserTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(IRTest);
 
 int main(int argc, char** argv) {
   CPPUNIT_NS::TextUi::TestRunner runner;

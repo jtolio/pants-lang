@@ -25,9 +25,12 @@ int main(int argc, char** argv) {
   }
 
   std::vector<PTR<ir::Expression> > ir;
-  ir::Name lastval("null", false);
+//  wrap::ir_prepend(ir);
+  ir::Name lastval(NULL_VALUE);
   ir::convert(ast, ir, lastval);
   ast.clear();
+  for(unsigned int i = 0; i < ir.size(); ++i)
+    std::cout << ir[i]->format(0) << std::endl;
   PTR<cps::Expression> cps;
   cps::transform(ir, lastval, cps);
   ir.clear();

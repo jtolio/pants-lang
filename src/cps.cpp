@@ -12,8 +12,8 @@ static std::string indent(unsigned int indent_level) {
 
 std::string cps::Call::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "Call(\n" << indent(indent_level) << callable->format(indent_level+1)
-     << ",\n" << indent(indent_level) << "Left(\n" << indent(indent_level+1);
+  os << "Call(\n" << indent(indent_level) << "Left(\n"
+     << indent(indent_level+1);
   bool comma_needed = false;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
     if(comma_needed) os << ",\n" << indent(indent_level+1);
@@ -63,7 +63,8 @@ std::string cps::Call::format(unsigned int indent_level) const {
   if(exception.get())
     os << ",\n" << indent(indent_level) << "Exc("
        << exception->format(indent_level+1) << ")";
-  os << ")";
+  os << ",\n" << indent(indent_level) << callable->format(indent_level+1)
+     << ")";
   return os.str();
 }
 
