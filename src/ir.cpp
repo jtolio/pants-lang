@@ -355,252 +355,266 @@ void ir::convert(const std::vector<PTR<ast::Expression> >& ast,
 
 std::string cirth::ir::Name::format(unsigned int) const {
   std::ostringstream os;
-  os << "Name(" << name;
-  if(user_provided) os << ", user_provided";
-  if(scoped) os << ", scoped";
-  os << ")";
+  os << (user_provided ? "u" : "c")
+     << (scoped ? "s" : "u")
+     << "_"
+     << name;
   return os.str();
 }
 
-std::string cirth::ir::ReturnValue::format() const {
+std::string cirth::ir::ReturnValue::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "ReturnValue(" << assignee.format() << ", " << term->format() << ")";
+  os << "ReturnValue(" << assignee.format(indent_level+1) << ", "
+     << term->format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::Definition::format() const {
+std::string cirth::ir::Definition::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "Definition(" << assignee.format() << ", " << value->format() << ")";
+  os << "Definition(" << assignee.format(indent_level+1) << ", "
+     << value->format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::VariableMutation::format() const {
+std::string cirth::ir::VariableMutation::format(unsigned int indent_level)
+    const {
   std::ostringstream os;
-  os << "VariableMutation(" << assignee.format() << ", " << value.format()
+  os << "VariableMutation(" << assignee.format(indent_level+1) << ", "
+     << value.format(indent_level+1) << ")";
+  return os.str();
+}
+
+std::string cirth::ir::ObjectMutation::format(unsigned int indent_level) const {
+  std::ostringstream os;
+  os << "ObjectMutation(" << object.format(indent_level+1) << ", "
+     << field.format(indent_level+1) << ", " << value.format(indent_level+1)
      << ")";
   return os.str();
 }
 
-std::string cirth::ir::ObjectMutation::format() const {
+std::string cirth::ir::Field::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "ObjectMutation(" << object.format() << ", " << field.format() << ", "
-     << value.format() << ")";
+  os << "Field(" << object.format(indent_level+1) << ", "
+     << field.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::Field::format() const {
+std::string cirth::ir::Variable::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "Field(" << object.format() << ", " << field.format() << ")";
+  os << "Variable(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::Variable::format() const {
-  std::ostringstream os;
-  os << "Variable(" << variable.format() << ")";
-  return os.str();
-}
-
-std::string cirth::ir::Integer::format() const {
+std::string cirth::ir::Integer::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Integer(" << value << ")";
   return os.str();
 }
 
-std::string cirth::ir::CharString::format() const {
+std::string cirth::ir::CharString::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "CharString(" << value << ")";
   return os.str();
 }
 
-std::string cirth::ir::ByteString::format() const {
+std::string cirth::ir::ByteString::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "ByteString(" << value << ")";
   return os.str();
 }
 
-std::string cirth::ir::Float::format() const {
+std::string cirth::ir::Float::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Float(" << value << ")";
   return os.str();
 }
 
-std::string cirth::ir::PositionalOutArgument::format() const {
+std::string cirth::ir::PositionalOutArgument::format(unsigned int indent_level)
+    const {
   std::ostringstream os;
-  os << "PositionalOutArgument(" << variable.format() << ")";
+  os << "PositionalOutArgument(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::OptionalOutArgument::format() const {
+std::string cirth::ir::OptionalOutArgument::format(unsigned int indent_level)
+    const {
   std::ostringstream os;
-  os << "OptionalOutArgument(" << key.format() << ", "
-     << variable.format() << ")";
+  os << "OptionalOutArgument(" << key.format(indent_level+1) << ", "
+     << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::ArbitraryOutArgument::format() const {
+std::string cirth::ir::ArbitraryOutArgument::format(unsigned int indent_level)
+    const {
   std::ostringstream os;
-  os << "ArbitraryOutArgument(" << variable.format() << ")";
+  os << "ArbitraryOutArgument(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::KeywordOutArgument::format() const {
+std::string cirth::ir::KeywordOutArgument::format(unsigned int indent_level)
+    const {
   std::ostringstream os;
-  os << "KeywordOutArgument(" << variable.format() << ")";
+  os << "KeywordOutArgument(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::DictDefinition::format() const {
+std::string cirth::ir::DictDefinition::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "DictDefinition(" << key.format() << ", " << value.format() << ")";
+  os << "DictDefinition(" << key.format(indent_level+1) << ", "
+     << value.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::Dictionary::format() const {
+std::string cirth::ir::Dictionary::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Dictionary(";
   for(unsigned int i = 0; i < definitions.size(); ++i) {
     if(i > 0) os << ", ";
-    os << definitions[i].format();
+    os << definitions[i].format(indent_level+1);
   }
   os << ")";
   return os.str();
 }
 
-std::string cirth::ir::Array::format() const {
+std::string cirth::ir::Array::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Array(";
   for(unsigned int i = 0; i < values.size(); ++i) {
     if(i > 0) os << ", ";
-    os << values[i].format();
+    os << values[i].format(indent_level+1);
   }
   os << ")";
   return os.str();
 }
 
-std::string cirth::ir::PositionalInArgument::format() const {
+std::string cirth::ir::PositionalInArgument::format(unsigned int indent_level)
+    const {
   std::ostringstream os;
-  os << "PositionalInArgument(" << variable.format() << ")";
+  os << "PositionalInArgument(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::OptionalInArgument::format() const {
+std::string cirth::ir::OptionalInArgument::format(unsigned int indent_level)
+    const {
   std::ostringstream os;
-  os << "OptionalInArgument(" << variable.format() << ", "
-     << defaultval.format() << ")";
+  os << "OptionalInArgument(" << variable.format(indent_level+1) << ", "
+     << defaultval.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::ArbitraryInArgument::format() const {
+std::string cirth::ir::ArbitraryInArgument::format(unsigned int indent_level)
+    const {
   std::ostringstream os;
-  os << "ArbitraryInArgument(" << variable.format() << ")";
+  os << "ArbitraryInArgument(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::KeywordInArgument::format() const {
+std::string cirth::ir::KeywordInArgument::format(unsigned int indent_level)
+    const {
   std::ostringstream os;
-  os << "KeywordInArgument(" << variable.format() << ")";
+  os << "KeywordInArgument(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::Call::format() const {
+std::string cirth::ir::Call::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "Call(" << callable.format() << ", Left(";
+  os << "Call(" << callable.format(indent_level+1) << ", Left(";
   bool comma_needed = false;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
     if(comma_needed) os << ", ";
-    os << left_positional_args[i].format();
+    os << left_positional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   if(!!left_arbitrary_arg) {
     if(comma_needed) os << ", ";
-    os << left_arbitrary_arg.get().format();
+    os << left_arbitrary_arg.get().format(indent_level+2);
   }
   comma_needed = false;
   os << "), Right(";
   for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
     if(comma_needed) os << ", ";
-    os << right_positional_args[i].format();
+    os << right_positional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
     if(comma_needed) os << ", ";
-    os << right_optional_args[i].format();
+    os << right_optional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   if(!!right_arbitrary_arg) {
     if(comma_needed) os << ", ";
-    os << right_arbitrary_arg.get().format();
+    os << right_arbitrary_arg.get().format(indent_level+2);
     comma_needed = true;
   }
   if(!!right_keyword_arg) {
     if(comma_needed) os << ", ";
-    os << right_keyword_arg.get().format();
+    os << right_keyword_arg.get().format(indent_level+2);
   }
   os << "), Scoped(";
   comma_needed = false;
   for(unsigned int i = 0; i < scoped_optional_args.size(); ++i) {
     if(comma_needed) os << ", ";
-    os << scoped_optional_args[i].format();
+    os << scoped_optional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   if(!!scoped_keyword_arg) {
     if(comma_needed) os << ", ";
-    os << scoped_keyword_arg.get().format();
+    os << scoped_keyword_arg.get().format(indent_level+2);
   }
   os << "))";
   return os.str();
 }
 
-std::string cirth::ir::Function::format() const {
+std::string cirth::ir::Function::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Function(Left(";
   bool comma_needed = false;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
     if(comma_needed) os << ", ";
-    os << left_positional_args[i].format();
+    os << left_positional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   if(!!left_arbitrary_arg) {
     if(comma_needed) os << ", ";
-    os << left_arbitrary_arg.get().format();
+    os << left_arbitrary_arg.get().format(indent_level+2);
   }
   os << "), Right(";
   comma_needed = false;
   for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
     if(comma_needed) os << ", ";
-    os << right_positional_args[i].format();
+    os << right_positional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
     if(comma_needed) os << ", ";
-    os << right_optional_args[i].format();
+    os << right_optional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   if(!!right_arbitrary_arg) {
     if(comma_needed) os << ", ";
-    os << right_arbitrary_arg.get().format();
+    os << right_arbitrary_arg.get().format(indent_level+2);
     comma_needed = true;
   }
   if(!!right_keyword_arg) {
     if(comma_needed) os << ", ";
-    os << right_keyword_arg.get().format();
+    os << right_keyword_arg.get().format(indent_level+2);
   }
   os << "), Expressions(";
   for(unsigned int i = 0; i < expressions.size(); ++i) {
     if(i > 0) os << ", ";
-    os << expressions[i]->format();
+    os << expressions[i]->format(indent_level+2);
   }
-  os << "), LastVal(" << lastval.format() << "))";
+  os << "), LastVal(" << lastval.format(indent_level+2) << "))";
   return os.str();
 }
 
-std::string cirth::ir::Scope::format() const {
+std::string cirth::ir::Scope::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Scope(Expressions(";
   for(unsigned int i = 0; i < expressions.size(); ++i) {
     if(i > 0) os << ", ";
-    os << expressions[i]->format();
+    os << expressions[i]->format(indent_level+2);
   }
-  os << "), LastVal(" << lastval.format() << "))";
+  os << "), LastVal(" << lastval.format(indent_level+2) << "))";
   return os.str();
 }

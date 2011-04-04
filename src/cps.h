@@ -8,6 +8,7 @@ namespace cirth {
 namespace cps {
 
   typedef cirth::ir::Name Name;
+  struct Callable;
 
   struct Value {
     virtual ~Value() {}
@@ -52,8 +53,8 @@ namespace cps {
     std::string format(unsigned int indent_level) const;
   };
 
-  struct DictDefinition {
-    DictDefinition(const Name& key_, const Name& value_)
+  struct Definition {
+    Definition(const Name& key_, const Name& value_)
       : key(key_), value(value_) {}
     Name key;
     Name value;
@@ -61,7 +62,7 @@ namespace cps {
   };
 
   struct Dictionary : public Value {
-    std::vector<DictDefinition> definitions;
+    std::vector<Definition> definitions;
     std::string format(unsigned int indent_level) const;
   };
 
@@ -73,46 +74,24 @@ namespace cps {
   struct Expression {
     virtual ~Expression() {}
     virtual std::string format(unsigned int indent_level) const = 0;
+    virtual void callables(std::vector<PTR<Callable> >& callables) = 0;
+    virtual void free_names(std::set<Name>& names) = 0;
     protected: Expression() {} };
-
-  struct PositionalOutArgument {
-    PositionalOutArgument(const PTR<Value>& variable_) : variable(variable_) {}
-    PTR<Value> variable;
-    std::string format(unsigned int indent_level) const;
-  };
-
-  struct OptionalOutArgument {
-    OptionalOutArgument(const Name& key_, const Name& variable_)
-      : key(key_), variable(variable_) {}
-    Name key;
-    Name variable;
-    std::string format(unsigned int indent_level) const;
-  };
-
-  struct ArbitraryOutArgument {
-    ArbitraryOutArgument(const Name& variable_) : variable(variable_) {}
-    Name variable;
-    std::string format(unsigned int indent_level) const;
-  };
-
-  struct KeywordOutArgument {
-    KeywordOutArgument(const Name& variable_) : variable(variable_) {}
-    Name variable;
-    std::string format(unsigned int indent_level) const;
-  };
 
   struct Call : public Expression {
     PTR<Value> callable;
-    std::vector<PositionalOutArgument> left_positional_args;
-    boost::optional<ArbitraryOutArgument> left_arbitrary_arg;
-    std::vector<PositionalOutArgument> right_positional_args;
-    std::vector<OptionalOutArgument> right_optional_args;
-    boost::optional<ArbitraryOutArgument> right_arbitrary_arg;
-    boost::optional<KeywordOutArgument> right_keyword_arg;
-    std::vector<OptionalOutArgument> scoped_optional_args;
-    boost::optional<KeywordOutArgument> scoped_keyword_arg;
+    std::vector<Name> left_positional_args;
+    boost::optional<Name> left_arbitrary_arg;
+    std::vector<PTR<Value> > right_positional_args;
+    std::vector<Definition> right_optional_args;
+    boost::optional<Name> right_arbitrary_arg;
+    boost::optional<Name> right_keyword_arg;
+    std::vector<Definition> scoped_optional_args;
+    boost::optional<Name> scoped_keyword_arg;
     PTR<Value> continuation;
     PTR<Value> exception;
+    void callables(std::vector<PTR<Callable> >& callables);
+    void free_names(std::set<Name>& names);
     std::string format(unsigned int indent_level) const;
   };
 
@@ -124,6 +103,13 @@ namespace cps {
     Name assignee;
     Name value;
     PTR<Expression> next_expression;
+    void callables(std::vector<PTR<Callable> >& callables)
+      { next_expression->callables(callables); }
+    void free_names(std::set<Name>& names) {
+      next_expression->free_names(names);
+      names.insert(assignee);
+      names.insert(value);
+    }
     std::string format(unsigned int indent_level) const;
   };
 
@@ -136,56 +122,71 @@ namespace cps {
     Name field;
     Name value;
     PTR<Expression> next_expression;
-    std::string format(unsigned int indent_level) const;
-  };
-
-  struct PositionalInArgument {
-    PositionalInArgument(const Name& variable_) : variable(variable_) {}
-    Name variable;
-    std::string format(unsigned int indent_level) const;
-  };
-
-  struct OptionalInArgument {
-    OptionalInArgument(const Name& variable_, const Name& defaultval_)
-      : variable(variable_), defaultval(defaultval_) {}
-    Name variable;
-    Name defaultval;
-    std::string format(unsigned int indent_level) const;
-  };
-
-  struct ArbitraryInArgument {
-    ArbitraryInArgument(const Name& variable_) : variable(variable_) {}
-    Name variable;
-    std::string format(unsigned int indent_level) const;
-  };
-
-  struct KeywordInArgument {
-    KeywordInArgument(const Name& variable_) : variable(variable_) {}
-    Name variable;
+    void callables(std::vector<PTR<Callable> >& callables)
+      { next_expression->callables(callables); }
+    void free_names(std::set<Name>& names) {
+      next_expression->free_names(names);
+      names.insert(object);
+      names.insert(value);
+    }
     std::string format(unsigned int indent_level) const;
   };
 
   struct Callable : public Value {
     PTR<Expression> expression;
+    virtual void free_names(std::set<Name>& names) = 0;
+    virtual void arg_names(std::set<Name>& names) = 0;
   };
 
   struct Function : public Callable {
-    std::vector<PositionalInArgument> left_positional_args;
-    boost::optional<ArbitraryInArgument> left_arbitrary_arg;
-    std::vector<PositionalInArgument> right_positional_args;
-    std::vector<OptionalInArgument> right_optional_args;
-    boost::optional<ArbitraryInArgument> right_arbitrary_arg;
-    boost::optional<KeywordInArgument> right_keyword_arg;
+    std::vector<Name> left_positional_args;
+    boost::optional<Name> left_arbitrary_arg;
+    std::vector<Name> right_positional_args;
+    std::vector<Definition> right_optional_args;
+    boost::optional<Name> right_arbitrary_arg;
+    boost::optional<Name> right_keyword_arg;
     std::string format(unsigned int indent_level) const;
+    void arg_names(std::set<Name>& names) {
+      for(unsigned int i = 0; i < left_positional_args.size(); ++i)
+        names.insert(left_positional_args[i]);
+      if(!!left_arbitrary_arg) names.insert(left_arbitrary_arg.get());
+      for(unsigned int i = 0; i < right_positional_args.size(); ++i)
+        names.insert(right_positional_args[i]);
+      for(unsigned int i = 0; i < right_optional_args.size(); ++i)
+        names.insert(right_optional_args[i].key);
+      if(!!right_arbitrary_arg) names.insert(right_arbitrary_arg.get());
+      if(!!right_keyword_arg) names.insert(right_keyword_arg.get());
+    }
+    void free_names(std::set<Name>& names) {
+      expression->free_names(names);
+      std::set<Name> args;
+      arg_names(args);
+      for(std::set<Name>::iterator it(args.begin()); it != args.end(); ++it)
+        names.erase(*it);
+      for(unsigned int i = 0; i < right_optional_args.size(); ++i)
+        names.insert(right_optional_args[i].value);
+    }
   };
 
   struct Continuation : public Callable {
-    std::vector<PositionalInArgument> vars;
+    std::vector<Name> vars;
     std::string format(unsigned int indent_level) const;
+    void arg_names(std::set<Name>& names) {
+      for(unsigned int i = 0; i < vars.size(); ++i)
+        names.insert(vars[i]);
+    }
+    void free_names(std::set<Name>& names) {
+      expression->free_names(names);
+      for(unsigned int i = 0; i < vars.size(); ++i)
+        names.erase(vars[i]);
+    }
   };
 
   struct Scope : public Callable {
     std::string format(unsigned int indent_level) const;
+    void arg_names(std::set<Name>& names) {}
+    void free_names(std::set<Name>& names)
+      { expression->free_names(names); }
   };
 
   void transform(const std::vector<PTR<cirth::ir::Expression> >& in_ir,

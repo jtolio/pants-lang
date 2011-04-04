@@ -4,7 +4,7 @@ using namespace cirth;
 
 static std::string indent(unsigned int indent_level) {
   std::ostringstream os;
-  for(unsigned int i = 0; i < indent_level; ++i) {
+  for(unsigned int i = 0; i <= indent_level; ++i) {
     os << "  ";
   }
   return os.str();
@@ -28,7 +28,7 @@ std::string cps::Call::format(unsigned int indent_level) const {
   comma_needed = false;
   for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
     if(comma_needed) os << ",\n" << indent(indent_level+1);
-    os << right_positional_args[i].format(indent_level+2);
+    os << right_positional_args[i]->format(indent_level+2);
     comma_needed = true;
   }
   for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
@@ -147,56 +147,6 @@ std::string cps::Scope::format(unsigned int indent_level) const {
   return os.str();
 }
 
-std::string cps::PositionalOutArgument::format(unsigned int indent_level) const{
-  std::ostringstream os;
-  os << "PositionalOutArgument(" << variable->format(indent_level+1) << ")";
-  return os.str();
-}
-
-std::string cps::OptionalOutArgument::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "OptionalOutArgument(" << key.format(indent_level+1) << ", "
-     << variable.format(indent_level+1) << ")";
-  return os.str();
-}
-
-std::string cps::ArbitraryOutArgument::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "ArbitraryOutArgument(" << variable.format(indent_level+1) << ")";
-  return os.str();
-}
-
-std::string cps::KeywordOutArgument::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "KeywordOutArgument(" << variable.format(indent_level+1) << ")";
-  return os.str();
-}
-
-std::string cps::PositionalInArgument::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "PositionalInArgument(" << variable.format(indent_level+1) << ")";
-  return os.str();
-}
-
-std::string cps::OptionalInArgument::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "OptionalInArgument(" << variable.format(indent_level+1) << ", "
-     << defaultval.format(indent_level+1) << ")";
-  return os.str();
-}
-
-std::string cps::ArbitraryInArgument::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "ArbitraryInArgument(" << variable.format(indent_level+1) << ")";
-  return os.str();
-}
-
-std::string cps::KeywordInArgument::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "KeywordInArgument(" << variable.format(indent_level+1) << ")";
-  return os.str();
-}
-
 std::string cps::Array::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Array(\n" << indent(indent_level);
@@ -213,8 +163,7 @@ std::string cps::Dictionary::format(unsigned int indent_level) const {
   os << "Dictionary(\n" << indent(indent_level);
   for(unsigned int i = 0; i < definitions.size(); ++i) {
     if(i > 0) os << ",\n" << indent(indent_level);
-    os << "Definition(" << definitions[i].key.format(indent_level+2) << ", "
-       << definitions[i].value.format(indent_level+2) << ")";
+    os << definitions[i].format(indent_level+1);
   }
   os << ")";
   return os.str();
@@ -251,6 +200,13 @@ std::string cps::Field::format(unsigned int indent_level) const {
   return os.str();
 }
 
+std::string cps::Definition::format(unsigned int indent_level) const {
+  std::ostringstream os;
+  os << "Definition(" << key.format(indent_level+1) << ", "
+     << value.format(indent_level+1) << ")";
+  return os.str();
+}
+
 class ValueTranslation : public ir::ValueVisitor {
 public:
   ValueTranslation(PTR<cps::Value>* rv_) : rv(rv_) {}
@@ -277,7 +233,7 @@ public:
     *rv = new_dict;
     new_dict->definitions.reserve(old_dict->definitions.size());
     for(unsigned int i = 0; i < old_dict->definitions.size(); ++i) {
-      new_dict->definitions.push_back(cps::DictDefinition(
+      new_dict->definitions.push_back(cps::Definition(
           old_dict->definitions[i].key, old_dict->definitions[i].value));
     }
   }
@@ -303,12 +259,10 @@ public:
         new_func->expression);
     // redefine return
     PTR<cps::Call> call(new cps::Call);
-    call->right_positional_args.push_back(cps::PositionalOutArgument(
-        PTR<cps::Value>(new cps::Variable(cps::Name("continuation", false,
-        false)))));
+    call->right_positional_args.push_back(PTR<cps::Value>(
+        new cps::Variable(cps::Name("continuation", false, false))));
     PTR<cps::Continuation> continuation(new cps::Continuation);
-    continuation->vars.push_back(cps::PositionalInArgument(cps::Name(
-        "return", true, false)));
+    continuation->vars.push_back(cps::Name("return", true, false));
     continuation->expression = new_func->expression;
     call->callable = continuation;
     new_func->expression = call;
@@ -316,33 +270,33 @@ public:
     new_func->left_positional_args.reserve(
         old_func->left_positional_args.size());
     for(unsigned int i = 0; i < old_func->left_positional_args.size(); ++i) {
-      new_func->left_positional_args.push_back(cps::PositionalInArgument(
-          old_func->left_positional_args[i].variable));
+      new_func->left_positional_args.push_back(
+          old_func->left_positional_args[i].variable);
     }
     if(!!old_func->left_arbitrary_arg) {
-      new_func->left_arbitrary_arg = cps::ArbitraryInArgument(
-          old_func->left_arbitrary_arg.get().variable);
+      new_func->left_arbitrary_arg =
+          old_func->left_arbitrary_arg.get().variable;
     }
     new_func->right_positional_args.reserve(
         old_func->right_positional_args.size());
     for(unsigned int i = 0; i < old_func->right_positional_args.size(); ++i) {
-      new_func->right_positional_args.push_back(cps::PositionalInArgument(
-          old_func->right_positional_args[i].variable));
+      new_func->right_positional_args.push_back(
+          old_func->right_positional_args[i].variable);
     }
     new_func->right_optional_args.reserve(
         old_func->right_optional_args.size());
     for(unsigned int i = 0; i < old_func->right_optional_args.size(); ++i) {
-      new_func->right_optional_args.push_back(cps::OptionalInArgument(
+      new_func->right_optional_args.push_back(cps::Definition(
           old_func->right_optional_args[i].variable,
           old_func->right_optional_args[i].defaultval));
     }
     if(!!old_func->right_arbitrary_arg) {
-      new_func->right_arbitrary_arg = cps::ArbitraryInArgument(
-          old_func->right_arbitrary_arg.get().variable);
+      new_func->right_arbitrary_arg =
+          old_func->right_arbitrary_arg.get().variable;
     }
     if(!!old_func->right_keyword_arg) {
-      new_func->right_keyword_arg = cps::KeywordInArgument(
-          old_func->right_keyword_arg.get().variable);
+      new_func->right_keyword_arg =
+          old_func->right_keyword_arg.get().variable;
     }
   }
 private:
@@ -361,11 +315,9 @@ public:
   ExpressionTranslation(PTR<cps::Expression>* out_ir_) : out_ir(out_ir_) {}
   void visit(ir::Definition* definition) {
     PTR<cps::Call> call(new cps::Call);
-    call->right_positional_args.push_back(cps::PositionalOutArgument(trans(
-        definition->value)));
+    call->right_positional_args.push_back(trans(definition->value));
     PTR<cps::Continuation> continuation(new cps::Continuation);
-    continuation->vars.push_back(cps::PositionalInArgument(
-        definition->assignee));
+    continuation->vars.push_back(definition->assignee);
     continuation->expression = *out_ir;
     call->callable = continuation;
     *out_ir = call;
@@ -383,47 +335,46 @@ public:
     call->callable = PTR<cps::Value>(new cps::Variable(rv->term->callable));
     call->left_positional_args.reserve(rv->term->left_positional_args.size());
     for(unsigned int i = 0; i < rv->term->left_positional_args.size(); ++i) {
-      call->left_positional_args.push_back(cps::PositionalOutArgument(
-          PTR<cps::Value>(new cps::Variable(
-          rv->term->left_positional_args[i].variable))));
+      call->left_positional_args.push_back(
+          rv->term->left_positional_args[i].variable);
     }
     if(!!rv->term->left_arbitrary_arg) {
-      call->left_arbitrary_arg = cps::ArbitraryOutArgument(
-          rv->term->left_arbitrary_arg.get().variable);
+      call->left_arbitrary_arg =
+          rv->term->left_arbitrary_arg.get().variable;
     }
     call->right_positional_args.reserve(
         rv->term->right_positional_args.size());
     for(unsigned int i = 0; i < rv->term->right_positional_args.size(); ++i) {
-      call->right_positional_args.push_back(cps::PositionalOutArgument(
+      call->right_positional_args.push_back(
           PTR<cps::Value>(new cps::Variable(
-          rv->term->right_positional_args[i].variable))));
+          rv->term->right_positional_args[i].variable)));
     }
     call->right_optional_args.reserve(rv->term->right_optional_args.size());
     for(unsigned int i = 0; i < rv->term->right_optional_args.size(); ++i) {
-      call->right_optional_args.push_back(cps::OptionalOutArgument(
+      call->right_optional_args.push_back(cps::Definition(
           rv->term->right_optional_args[i].key,
           rv->term->right_optional_args[i].variable));
     }
     if(!!rv->term->right_arbitrary_arg) {
-      call->right_arbitrary_arg = cps::ArbitraryOutArgument(
-          rv->term->right_arbitrary_arg.get().variable);
+      call->right_arbitrary_arg =
+          rv->term->right_arbitrary_arg.get().variable;
     }
     if(!!rv->term->right_keyword_arg) {
-      call->right_keyword_arg = cps::KeywordOutArgument(
-          rv->term->right_keyword_arg.get().variable);
+      call->right_keyword_arg =
+          rv->term->right_keyword_arg.get().variable;
     }
     call->scoped_optional_args.reserve(rv->term->scoped_optional_args.size());
     for(unsigned int i = 0; i < rv->term->scoped_optional_args.size(); ++i) {
-      call->scoped_optional_args.push_back(cps::OptionalOutArgument(
+      call->scoped_optional_args.push_back(cps::Definition(
           rv->term->scoped_optional_args[i].key,
           rv->term->scoped_optional_args[i].variable));
     }
     if(!!rv->term->scoped_keyword_arg) {
-      call->scoped_keyword_arg = cps::KeywordOutArgument(
-          rv->term->scoped_keyword_arg.get().variable);
+      call->scoped_keyword_arg =
+          rv->term->scoped_keyword_arg.get().variable;
     }
     PTR<cps::Continuation> continuation(new cps::Continuation);
-    continuation->vars.push_back(cps::PositionalInArgument(rv->assignee));
+    continuation->vars.push_back(rv->assignee);
     continuation->expression = *out_ir;
     call->continuation = continuation;
     *out_ir = call;
@@ -437,11 +388,56 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
   PTR<cps::Call> call(new cps::Call);
   call->callable = PTR<cps::Value>(new cps::Variable(cps::Name("continuation",
       false, false)));
-  call->right_positional_args.push_back(cps::PositionalOutArgument(
-      PTR<cps::Value>(new cps::Variable(in_lastval))));
+  call->right_positional_args.push_back(PTR<cps::Value>(new cps::Variable(
+      in_lastval)));
   out_ir = call;
   ExpressionTranslation visitor(&out_ir);
   for(unsigned int i = in_ir.size(); i > 0; --i) {
     in_ir[i-1]->accept(&visitor);
   }
+}
+
+static void callables_in_values(PTR<cps::Value> value,
+    std::vector<PTR<cps::Callable> >& callables) {
+  if(!value) return;
+  PTR<cps::Callable> callable =
+      boost::dynamic_pointer_cast<cps::Callable>(value);
+  if(!callable) return;
+  callables.push_back(callable);
+  callable->expression->callables(callables);
+}
+
+static void names_in_values(PTR<cps::Value> value,
+    std::vector<cps::Name>& names) {
+  if(!value) return;
+//  check for field, variable, callable, dictionary, array,
+}
+
+void cps::Call::callables(std::vector<PTR<cps::Callable> >& callables) {
+  callables_in_values(callable, callables);
+  for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
+    callables_in_values(right_positional_args[i], callables);
+  }
+  callables_in_values(continuation, callables);
+  callables_in_values(exception, callables);
+}
+
+void cps::Call::free_names(std::set<Name>& names) {
+  names_in_values(callable, names);
+  for(unsigned int i = 0; i < left_positional_args.size(); ++i)
+    names.erase(left_positional_args[i]);
+  if(!!left_arbitrary_arg) names.erase(left_arbitrary_arg.get());
+  for(unsigned int i = 0; i < right_positional_args.size(); ++i)
+    names.erase(right_positional_args[i]);
+  for(unsigned int i = 0; i < right_optional_args.size(); ++i)
+    names.erase(right_optional_args[i].key);
+  if(!!right_arbitrary_arg) names.erase(right_arbitrary_arg.get());
+  if(!!right_keyword_arg) names.erase(right_keyword_arg.get());
+//  for(unsigned int i = 0; i < scoped_optional_args.size(); ++i)
+//    names.erase(scoped_optional_args[i].key);
+//  if(!!scoped_keyword_arg) names.erase(scoped_keyword_arg.get());
+  for(unsigned int i = 0; i < right_optional_args.size(); ++i)
+    names.insert(right_optional_args[i].value);
+  names_in_values(continuation);
+  names_in_values(exception);
 }

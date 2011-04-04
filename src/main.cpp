@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
   PTR<cps::Expression> cps;
   cps::transform(ir, lastval, cps);
   ir.clear();
-  std::cout << cps->format(1) << std::endl;
+  std::cout << cps->format(0) << std::endl;
 
   return 0;
 }

@@ -1,3 +1,8 @@
+brain dump:
+ * ir::Name doesn't work in std::set yet
+ * scoped variables are not handled right with free variable resolution
+ * names_in_values
+
 parser
  * translate array index/update to object methods
  * finish cps translation

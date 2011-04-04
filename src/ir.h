@@ -36,13 +36,13 @@ namespace ir {
 
   struct Expression {
     virtual ~Expression() {}
-    virtual std::string format() const = 0;
+    virtual std::string format(unsigned int indent_level) const = 0;
     virtual void accept(ExpressionVisitor* visitor) = 0;
     protected: Expression() {} };
 
   struct Value {
     virtual ~Value() {}
-    virtual std::string format() const = 0;
+    virtual std::string format(unsigned int indent_level) const = 0;
     virtual void accept(ValueVisitor* visitor) = 0;
     protected: Value() {} };
 
@@ -62,7 +62,7 @@ namespace ir {
       : assignee(assignee_), value(value_) {}
     Name assignee;
     PTR<Value> value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
   };
 
@@ -71,7 +71,7 @@ namespace ir {
       : assignee(assignee_), value(value_) {}
     Name assignee;
     Name value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
   };
 
@@ -81,14 +81,14 @@ namespace ir {
     Name object;
     Name field;
     Name value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Field : public Value {
     Field(const Name& object_, const Name& field_)
       : object(object_), field(field_) {}
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     Name object;
     Name field;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
@@ -97,42 +97,42 @@ namespace ir {
   struct Variable : public Value {
     Variable(const Name& variable_) : variable(variable_) {}
     Name variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Integer : public Value {
     Integer(const long long& value_) : value(value_) {}
     long long value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct CharString : public Value {
     CharString(const std::string& value_) : value(value_) {}
     std::string value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct ByteString : public Value {
     ByteString(const std::string& value_) : value(value_) {}
     std::string value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Float : public Value {
     Float(const double& value_) : value(value_) {}
     double value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct PositionalOutArgument {
     PositionalOutArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct OptionalOutArgument {
@@ -140,19 +140,19 @@ namespace ir {
       : key(key_), variable(variable_) {}
     Name key;
     Name variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct ArbitraryOutArgument {
     ArbitraryOutArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct KeywordOutArgument {
     KeywordOutArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct Call {
@@ -166,7 +166,7 @@ namespace ir {
     boost::optional<KeywordOutArgument> right_keyword_arg;
     std::vector<OptionalOutArgument> scoped_optional_args;
     boost::optional<KeywordOutArgument> scoped_keyword_arg;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct ReturnValue : public Expression {
@@ -174,7 +174,7 @@ namespace ir {
       : assignee(assignee_), term(term_) {}
     Name assignee;
     PTR<Call> term;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
   };
 
@@ -183,25 +183,25 @@ namespace ir {
       : key(key_), value(value_) {}
     Name key;
     Name value;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct Dictionary : public Value {
     std::vector<DictDefinition> definitions;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Array : public Value {
     std::vector<Name> values;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct PositionalInArgument {
     PositionalInArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct OptionalInArgument {
@@ -209,19 +209,19 @@ namespace ir {
       : variable(variable_), defaultval(defaultval_) {}
     Name variable;
     Name defaultval;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct ArbitraryInArgument {
     ArbitraryInArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct KeywordInArgument {
     KeywordInArgument(const Name& variable_) : variable(variable_) {}
     Name variable;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
   };
 
   struct Callable : public Value {
@@ -238,13 +238,13 @@ namespace ir {
     std::vector<OptionalInArgument> right_optional_args;
     boost::optional<ArbitraryInArgument> right_arbitrary_arg;
     boost::optional<KeywordInArgument> right_keyword_arg;
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
   struct Scope : public Callable {
     Scope(const Name& lastval_) : Callable(lastval_) {}
-    std::string format() const;
+    std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
