@@ -12,8 +12,7 @@ int main(int argc, char** argv) {
   std::string str;
   std::ostringstream os;
   while(getline(std::cin, str)) {
-    if(str.empty()) break;
-    os << str;
+    os << str << '\n';
   }
   str = os.str();
 
