@@ -144,9 +144,12 @@ namespace cps {
   };
 
   struct Callable : public Value {
+    Callable() : varid(m_varcount++) {}
     PTR<Expression> expression;
     virtual void free_names(std::set<Name>& names) = 0;
     virtual void arg_names(std::set<Name>& names) = 0;
+    unsigned int varid;    
+    private: static unsigned int m_varcount;
   };
 
   struct Function : public Callable {

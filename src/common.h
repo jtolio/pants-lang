@@ -6,6 +6,7 @@
 #include <utility>
 #include <sstream>
 #include <set>
+#include <map>
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 #include <stdexcept>

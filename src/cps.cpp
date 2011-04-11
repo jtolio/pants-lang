@@ -2,6 +2,8 @@
 
 using namespace cirth;
 
+unsigned int cps::Callable::m_varcount = 0;
+
 static std::string indent(unsigned int indent_level) {
   std::ostringstream os;
   for(unsigned int i = 0; i <= indent_level; ++i) {

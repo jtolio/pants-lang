@@ -2,6 +2,9 @@
 
 using namespace cirth;
 
+std::map<std::pair<std::string, bool>, unsigned int> ir::Name::m_varids = \
+    std::map<std::pair<std::string, bool>, unsigned int>();
+
 class ConversionVisitor : public ast::AstVisitor {
 public:
   ConversionVisitor(std::vector<PTR<ir::Expression> >* ir,
@@ -372,6 +375,17 @@ std::string cirth::ir::Name::format(unsigned int) const {
      << "_"
      << name;
   return os.str();
+}
+
+void cirth::ir::Name::generate_varid() {
+  std::pair<std::string, bool> key(name, user_provided);
+  std::map<std::pair<std::string, bool>, unsigned int>::iterator it(
+      m_varids.find(key));
+  if(it != m_varids.end()) {
+    varid = it->second;
+  } else {
+    m_varids[key] = varid = m_varids.size();
+  }
 }
 
 std::string cirth::ir::ReturnValue::format(unsigned int indent_level) const {

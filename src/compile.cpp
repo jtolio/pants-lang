@@ -1,5 +1,6 @@
 #include "compile.h"
 #include "constants.h"
+#include "wrap.h"
 
 using namespace cirth::cps;
 
@@ -9,14 +10,13 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
   std::set<cps::Name> free_names;
   cps->callables(callables);
   cps->free_names(free_names);
+  cirth::wrap::remove_provided_names(free_names);
 
-  for(std::set<cps::Name>::const_iterator it(free_names.begin());
-      it != free_names.end(); ++it) {
-    if((*it).user_provided) throw expectation_failure("unbound variable!");
-  }
+  if(free_names.size() > 0)
+    throw expectation_failure("unbound variable!");
   
   os << HEADER;
-  
+/*  
   for(unsigned int i = 0; i < callables.size(); ++i) {
     os << "struct env_" << functionname << " {\n";
     for arg in args + freevars
@@ -38,5 +38,5 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
   os << STARTMAIN;
   
   os << "\t 
-  
+  */
 }
