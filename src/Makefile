@@ -12,7 +12,10 @@ parser.o: parser.cpp parser.h common.h ast.h
 wrap.o: wrap.cpp wrap.h common.h ir.h
 	$(CPP) $(CFLAGS) -c wrap.cpp
 
-main.o: main.cpp common.h parser.h ast.h wrap.h ir.h cps.h
+compile.o: compile.cpp common.h cps.h constants.h ir.h ast.h
+	$(CPP) $(CFLAGS) -c compile.cpp
+
+main.o: main.cpp common.h parser.h ast.h wrap.h ir.h cps.h constants.h compile.o
 	$(CPP) $(CFLAGS) -c main.cpp
 
 ir.o: ir.cpp ir.h ast.h common.h
@@ -21,14 +24,14 @@ ir.o: ir.cpp ir.h ast.h common.h
 cps.o: cps.cpp cps.h common.h ir.h
 	$(CPP) $(CFLAGS) -c cps.cpp
 
-run_tests.o: run_tests.cpp common.h parser.h ast.h wrap.h ir.h cps.h
+run_tests.o: run_tests.cpp common.h parser.h ast.h wrap.h ir.h cps.h compile.o
 	$(CPP) $(CFLAGS) -c run_tests.cpp
 
 cirth: main.o parser.o ast.o wrap.o ir.o cps.o
-	$(CPP) $(CFLAGS) -o cirth main.o ast.o parser.o wrap.o ir.o cps.o
+	$(CPP) $(CFLAGS) -o cirth main.o ast.o parser.o wrap.o ir.o cps.o compile.o
 
 test: run_tests.o parser.o ast.o wrap.o ir.o cps.o
-	$(CPP) $(CFLAGS) -o run_tests run_tests.o ast.o parser.o wrap.o ir.o cps.o -lcppunit -ldl
+	$(CPP) $(CFLAGS) -o run_tests run_tests.o ast.o parser.o wrap.o ir.o cps.o compile.o -lcppunit -ldl
 	./run_tests
 
 clean:
