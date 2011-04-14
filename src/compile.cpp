@@ -4,6 +4,10 @@
 
 using namespace cirth::cps;
 
+static void write_expression(PTR<Expression> cps, std::ostream& os) {
+
+}
+
 void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
 
   std::vector<PTR<cps::Callable> > callables;
@@ -51,5 +55,14 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
   }
 
   os << STARTMAIN;
+  // os << GRANDCENTRAL;
+  write_expression(cps, os);
 
+  for(unsigned int i = 0; i < callables.size(); ++i) {
+    os << callables[i]->c_name() << ":\n";
+    write_expression(callables[i]->expression, os);
+    // os << CALLFUNC;
+  }
+
+  // os << ENDMAIN;
 }
