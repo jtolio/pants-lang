@@ -59,12 +59,13 @@ namespace ir {
     Name(const std::string& name_, bool user_provided_)
       : name(name_), user_provided(user_provided_) { generate_varid(); }
     Name(const cirth::ast::Variable& var)
-      : name(var.name), user_provided(var.user_provided) 
+      : name(var.name), user_provided(var.user_provided)
     {
       if(!name.size()) throw expectation_failure("expected variable name");
       generate_varid();
     }
     std::string format(unsigned int indent_level = 0) const;
+    std::string c_name() const;
     std::string name;
     bool user_provided;
     unsigned int varid;
@@ -72,7 +73,7 @@ namespace ir {
     bool operator==(const Name& rhs) const { return varid == rhs.varid; }
     void generate_varid();
     private:
-      static std::map<std::pair<std::string, bool>, unsigned int> m_varids;
+      static std::map<std::string, unsigned int> m_varids;
   };
 
   struct Definition : public Expression {

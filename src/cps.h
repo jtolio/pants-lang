@@ -148,7 +148,7 @@ namespace cps {
     PTR<Expression> expression;
     virtual void free_names(std::set<Name>& names) = 0;
     virtual void arg_names(std::set<Name>& names) = 0;
-    unsigned int varid;    
+    unsigned int varid;
     private: static unsigned int m_varcount;
   };
 
