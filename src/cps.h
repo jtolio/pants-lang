@@ -148,6 +148,11 @@ namespace cps {
     PTR<Expression> expression;
     virtual void free_names(std::set<Name>& names) = 0;
     virtual void arg_names(std::set<Name>& names) = 0;
+    std::string c_name() const {
+      std::ostringstream os;
+      os << "f_" << varid;
+      return os.str();
+    }
     unsigned int varid;
     private: static unsigned int m_varcount;
   };

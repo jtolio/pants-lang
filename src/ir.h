@@ -69,8 +69,13 @@ namespace ir {
     std::string name;
     bool user_provided;
     unsigned int varid;
-    bool operator<(const Name& rhs) const { return varid < rhs.varid; }
-    bool operator==(const Name& rhs) const { return varid == rhs.varid; }
+    bool operator<(const Name& rhs) const {
+      if (name < rhs.name) return true;
+      if (rhs.name < name) return false;
+      return user_provided < rhs.user_provided;
+    }
+    bool operator==(const Name& rhs) const
+      { return name == rhs.name && user_provided == rhs.user_provided; }
     void generate_varid();
     private:
       static std::map<std::string, unsigned int> m_varids;
