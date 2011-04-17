@@ -9,19 +9,24 @@ namespace cps {
 
   typedef cirth::ir::Name Name;
   struct Callable; struct Field; struct Variable; struct Integer;
-  struct CharString; struct ByteString; struct Float; struct Function;
-  struct Continuation; struct Scope;
+  struct String; struct Float; struct Function; struct Continuation;
+  struct Scope; struct Call; struct VariableMutation; struct ObjectMutation;
 
   struct ValueVisitor {
     virtual void visit(Field*) = 0;
     virtual void visit(Variable*) = 0;
     virtual void visit(Integer*) = 0;
-    virtual void visit(CharString*) = 0;
-    virtual void visit(ByteString*) = 0;
+    virtual void visit(String*) = 0;
     virtual void visit(Float*) = 0;
     virtual void visit(Function*) = 0;
     virtual void visit(Continuation*) = 0;
     virtual void visit(Scope*) = 0;
+  };
+
+  struct ExpressionVisitor {
+    virtual void visit(Call*) = 0;
+    virtual void visit(VariableMutation*) = 0;
+    virtual void visit(ObjectMutation*) = 0;
   };
 
   struct Value {
@@ -53,16 +58,11 @@ namespace cps {
     void accept(ValueVisitor* v) { v->visit(this); }
   };
 
-  struct CharString : public Value {
-    CharString(const std::string& value_) : value(value_) {}
+  struct String : public Value {
+    String(const std::string& value_, bool byte_oriented_)
+      : value(value_), byte_oriented(byte_oriented_) {}
     std::string value;
-    std::string format(unsigned int indent_level) const;
-    void accept(ValueVisitor* v) { v->visit(this); }
-  };
-
-  struct ByteString : public Value {
-    ByteString(const std::string& value_) : value(value_) {}
-    std::string value;
+    bool byte_oriented;
     std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* v) { v->visit(this); }
   };
@@ -87,6 +87,7 @@ namespace cps {
     virtual std::string format(unsigned int indent_level) const = 0;
     virtual void callables(std::vector<PTR<Callable> >& callables) = 0;
     virtual void free_names(std::set<Name>& names) = 0;
+    virtual void accept(ExpressionVisitor*) = 0;
     protected: Expression() {} };
 
   struct Call : public Expression {
@@ -104,6 +105,7 @@ namespace cps {
     void callables(std::vector<PTR<Callable> >& callables);
     void free_names(std::set<Name>& names);
     std::string format(unsigned int indent_level) const;
+    void accept(ExpressionVisitor* v) { v->visit(this); }
   };
 
   struct VariableMutation : public Expression {
@@ -122,6 +124,7 @@ namespace cps {
       names.insert(value);
     }
     std::string format(unsigned int indent_level) const;
+    void accept(ExpressionVisitor* v) { v->visit(this); }
   };
 
   struct ObjectMutation : public Expression {
@@ -141,6 +144,7 @@ namespace cps {
       names.insert(value);
     }
     std::string format(unsigned int indent_level) const;
+    void accept(ExpressionVisitor* v) { v->visit(this); }
   };
 
   struct Callable : public Value {

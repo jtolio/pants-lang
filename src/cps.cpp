@@ -156,15 +156,10 @@ std::string cps::Float::format(unsigned int indent_level) const {
   return os.str();
 }
 
-std::string cps::ByteString::format(unsigned int indent_level) const {
+std::string cps::String::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "ByteString(" << value << ")";
-  return os.str();
-}
-
-std::string cps::CharString::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "CharString(" << value << ")";
+  os << "String(" << value << (byte_oriented ?
+      ", byte_oriented)" : ", char_oriented)");
   return os.str();
 }
 
@@ -198,10 +193,10 @@ public:
     *rv = PTR<cps::Value>(new cps::Integer(val->value));
   }
   void visit(ir::CharString* val) {
-    *rv = PTR<cps::Value>(new cps::CharString(val->value));
+    *rv = PTR<cps::Value>(new cps::String(val->value, false));
   }
   void visit(ir::ByteString* val) {
-    *rv = PTR<cps::Value>(new cps::ByteString(val->value));
+    *rv = PTR<cps::Value>(new cps::String(val->value, true));
   }
   void visit(ir::Float* val) {
     *rv = PTR<cps::Value>(new cps::Float(val->value));
@@ -374,8 +369,7 @@ class FreeNameSearchVisitor : public cps::ValueVisitor {
 public:
   FreeNameSearchVisitor(std::set<cps::Name>* names) : m_names(names) {}
   void visit(cps::Integer* val) {}
-  void visit(cps::CharString* val) {}
-  void visit(cps::ByteString* val) {}
+  void visit(cps::String* val) {}
   void visit(cps::Float* val) {}
 
   void visit(cps::Field* val) { m_names->insert(val->object); }
@@ -418,20 +412,30 @@ void cps::Call::free_names(std::set<Name>& names) {
   free_names_in_values(exception, names);
 }
 
+static inline void add_unique_name(std::set<cps::Name>& names,
+    const cps::Name& name) {
+  if(names.find(name) != names.end())
+    throw expectation_failure("non-unique arg name");
+  names.insert(name);
+}
+
 void cps::Function::arg_names(std::set<cps::Name>& names) {
+  std::set<cps::Name> args;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i)
-    names.insert(left_positional_args[i]);
-  if(!!left_arbitrary_arg) names.insert(left_arbitrary_arg.get());
+    add_unique_name(args, left_positional_args[i]);
+  if(!!left_arbitrary_arg) add_unique_name(args, left_arbitrary_arg.get());
   for(unsigned int i = 0; i < right_positional_args.size(); ++i)
-    names.insert(right_positional_args[i]);
+    add_unique_name(args, right_positional_args[i]);
   for(unsigned int i = 0; i < right_optional_args.size(); ++i)
-    names.insert(right_optional_args[i].key);
-  if(!!right_arbitrary_arg) names.insert(right_arbitrary_arg.get());
-  if(!!right_keyword_arg) names.insert(right_keyword_arg.get());
-  names.insert(HIDDEN_OBJECT);
-  names.insert(RETURN);
-  names.insert(CONTINUATION);
-  names.insert(EXCEPTION);
+    add_unique_name(args, right_optional_args[i].key);
+  if(!!right_arbitrary_arg) add_unique_name(args, right_arbitrary_arg.get());
+  if(!!right_keyword_arg) add_unique_name(args, right_keyword_arg.get());
+  add_unique_name(args, HIDDEN_OBJECT);
+  add_unique_name(args, RETURN);
+  add_unique_name(args, CONTINUATION);
+  add_unique_name(args, EXCEPTION);
+  for(std::set<Name>::iterator it(args.begin()); it != args.end(); ++it)
+    names.insert(*it);
 }
 
 void cps::Function::free_names(std::set<cps::Name>& names) {
@@ -449,8 +453,11 @@ void cps::Function::free_names(std::set<cps::Name>& names) {
 }
 
 void cps::Continuation::arg_names(std::set<Name>& names) {
+  std::set<cps::Name> args;
   for(unsigned int i = 0; i < vars.size(); ++i)
-    names.insert(vars[i]);
+    add_unique_name(args, vars[i]);
+  for(std::set<Name>::iterator it(args.begin()); it != args.end(); ++it)
+    names.insert(*it);
 }
 
 void cps::Continuation::free_names(std::set<Name>& names) {

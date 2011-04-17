@@ -13,14 +13,12 @@ void compile(const std::string& src) {
 }
 
 int main(int argc, char** argv) {
-  std::cout << "started" << std::endl;
-
   std::string str;
   std::ostringstream os;
   while(getline(std::cin, str)) {
     os << str << '\n';
   }
-  
+
   try {
     std::vector<PTR<ast::Expression> > ast;
     bool r = parser::parse(os.str(), ast);
@@ -35,7 +33,7 @@ int main(int argc, char** argv) {
     PTR<cps::Expression> cps;
     cps::transform(ir, lastval, cps);
     ir.clear();
-    
+
     compile::compile(cps, std::cout);
   } catch (const std::exception& e) {
     std::cerr << "failure: " << e.what() << std::endl;
