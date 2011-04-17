@@ -14,14 +14,14 @@
 #define false 0
 
 enum Tag {
-    INTEGER,
-    FLOAT,
-    STRING,
-    OBJECT,
-    BOOLEAN,
-    NIL,
-    CLOSURE
-  };
+  INTEGER,
+  FLOAT,
+  STRING,
+  OBJECT,
+  BOOLEAN,
+  NIL,
+  CLOSURE
+};
 
 union Value;
 
