@@ -64,10 +64,9 @@ class ExpressionWriter : public ExpressionVisitor {
             << call->right_positional_args.size() << ";\n";
       if(call->continuation.get()) {
         call->continuation->accept(&writer);
-        *m_os << "\tcontinuation = dest;\n"
-                 "\thas_continuation = true;\n";
+        *m_os << "\tcontinuation = dest;\n";
       } else {
-        *m_os << "\thas_continuation = false;\n";
+        *m_os << "\tcontinuation.t = NIL;\n";
       }
       call->callable->accept(&writer);
       *m_os << "\tif(dest.t != CLOSURE) {\n"
@@ -126,7 +125,7 @@ class CallableWriter : public ValueVisitor {
               << func->right_positional_args[i].c_name()
               << " = right_positional_args[" << i << "];\n";
       }
-      *m_os << "\tif(!has_continuation) {\n"
+      *m_os << "\tif(continuation.t != CLOSURE) {\n"
             "\t\tprintf(\"function requires continuation, none given.\\n\");\n"
             "\t\texit(1);\n"
             "\t}\n"
@@ -151,7 +150,7 @@ class CallableWriter : public ValueVisitor {
     }
     void visit(Scope* func) {
       prelim(func);
-      *m_os << "\tif(!has_continuation) {\n"
+      *m_os << "\tif(continuation.t != CLOSURE) {\n"
             "\t\tprintf(\"function requires continuation, none given.\\n\");\n"
             "\t\texit(1);\n"
             "\t}\n"

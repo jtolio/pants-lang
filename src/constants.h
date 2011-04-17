@@ -21,8 +21,8 @@
   "\n" \
   "\tunion Value* right_positional_args = NULL;\n" \
   "\tunsigned int right_positional_args_size = 0;\n" \
-  "\tbool has_continuation = false;\n" \
   "\tunion Value continuation;\n" \
+  "\tcontinuation.t = NIL;\n" \
   "\n" \
   "\tgoto start;\n" \
   "\n" \
