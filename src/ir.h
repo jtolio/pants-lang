@@ -77,8 +77,11 @@ namespace ir {
     bool operator==(const Name& rhs) const
       { return name == rhs.name && user_provided == rhs.user_provided; }
     void generate_varid();
+    void set_mutated();
+    bool is_mutated() const;
     private:
       static std::map<std::string, unsigned int> m_varids;
+      static std::map<std::pair<std::string, bool>, bool> m_mutation;
   };
 
   struct Definition : public Expression {

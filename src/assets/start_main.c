@@ -21,6 +21,8 @@ int main(int argc, char **argv) {
 
   void* env = &main;
   union Value dest;
+  dest.t = NIL;
+
   GC_INIT();
 
   union Value* right_positional_args = NULL;
@@ -39,6 +41,7 @@ int main(int argc, char **argv) {
 #define REQUIRED_FUNCTION(func) \
   if(func.t != CLOSURE) { \
     printf("cannot call a non-function!\n"); \
+    dump_value(func); \
     exit(1); \
   }
 #define CALL_FUNC(callable) \
@@ -78,7 +81,7 @@ c_print:
 c_if:
   REQUIRED_RIGHT_ARGS(2)
   REQUIRED_FUNCTION(continuation)
-  if(isTrue(&(right_positional_args[0]))) {
+  if(is_true(right_positional_args[0])) {
     REQUIRED_FUNCTION(right_positional_args[1])
     right_positional_args_size = 0;
     CALL_FUNC(right_positional_args[1])

@@ -4,6 +4,15 @@
 
 using namespace cirth::cps;
 
+static std::string var_access(const std::string& env, const Name& name) {
+  std::ostringstream os;
+  if(name.is_mutated())
+    os << "(*" << env << "->" << name.c_name() << ".cell.addr)";
+  else
+    os << env << "->" << name.c_name();
+  return os.str();
+}
+
 class ValueWriter : public ValueVisitor {
   public:
     ValueWriter(std::ostream* os, const std::string& env)
@@ -13,7 +22,7 @@ class ValueWriter : public ValueVisitor {
                "  exit(1);\n";
     }
     void visit(Variable* var) {
-      *m_os << "  dest = " << m_env << "->" << var->variable.c_name() << ";\n";
+      *m_os << "  dest = " << var_access(m_env, var->variable) << ";\n";
     }
     void visit(Integer* integer) {
       *m_os << "  dest.t = INTEGER;\n"
@@ -73,8 +82,8 @@ class ExpressionWriter : public ExpressionVisitor {
                "  CALL_FUNC(dest)\n";
     }
     void visit(VariableMutation* mut) {
-      *m_os << "  " << m_env << "->" << mut->assignee.c_name() << " = " << m_env
-            << "->" << mut->value.c_name() << ";\n";
+      *m_os << "  (*" << m_env << "->" << mut->assignee.c_name()
+            << ".cell.addr) = " << var_access(m_env, mut->value) << ";\n";
       mut->next_expression->accept(this);
     }
     void visit(ObjectMutation* mut) {
@@ -112,9 +121,13 @@ class CallableWriter : public ValueVisitor {
       *m_os << "  REQUIRED_RIGHT_ARGS(" << func->right_positional_args.size()
             << ")\n";
       for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
+        bool is_mutated(func->right_positional_args[i].is_mutated());
         *m_os << "  " << scope_to_env(func->c_name()) << "->"
-              << func->right_positional_args[i].c_name()
-              << " = right_positional_args[" << i << "];\n";
+              << func->right_positional_args[i].c_name() << " = ";
+        if(is_mutated) *m_os << "make_cell(";
+        *m_os << "right_positional_args[" << i << "]";
+        if(is_mutated) *m_os << ")";
+        *m_os << ";\n";
       }
       *m_os << "  REQUIRED_FUNCTION(continuation)\n"
             "  " << scope_to_env(func->c_name()) << "->"
@@ -125,9 +138,13 @@ class CallableWriter : public ValueVisitor {
       prelim(func);
       *m_os << "  REQUIRED_RIGHT_ARGS(" << func->vars.size() << ")\n";
       for(unsigned int i = 0; i < func->vars.size(); ++i) {
+        bool is_mutated(func->vars[i].is_mutated());
         *m_os << "  " << scope_to_env(func->c_name()) << "->"
-              << func->vars[i].c_name()
-              << " = right_positional_args[" << i << "];\n";
+              << func->vars[i].c_name() << " = ";
+        if(is_mutated) *m_os << "make_cell(";
+        *m_os << "right_positional_args[" << i << "]";
+        if(is_mutated) *m_os << ")";
+        *m_os << ";\n";
       }
       wrapup(func);
     }
@@ -181,7 +198,7 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
     }
     os << "};\n\n";
 
-    os << "struct env_" << callables[i]->c_name() << "* alloc_env_"
+    os << "static struct env_" << callables[i]->c_name() << "* alloc_env_"
        << callables[i]->c_name() << "(";
     for(std::set<Name>::iterator it(free_names.begin()); it != free_names.end();
         ++it) {
@@ -198,13 +215,13 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
     os << "  return env;\n}\n\n";
   }
 
-  os << cirth::assets::START_MAIN_C << "\n";
+  os << cirth::assets::START_MAIN_C;
   write_expression(cps, os, "main");
 
   CallableWriter writer(&os);
   for(unsigned int i = 0; i < callables.size(); ++i)
     callables[i]->accept(&writer);
 
-  os << cirth::assets::END_MAIN_C << "\n";
+  os << cirth::assets::END_MAIN_C;
 
 }

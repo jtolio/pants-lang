@@ -4,6 +4,8 @@ using namespace cirth;
 
 std::map<std::string, unsigned int> ir::Name::m_varids =
     std::map<std::string, unsigned int>();
+std::map<std::pair<std::string, bool>, bool> ir::Name::m_mutation =
+    std::map<std::pair<std::string, bool>, bool>();
 
 class ConversionVisitor : public ast::AstVisitor {
 public:
@@ -385,6 +387,15 @@ void cirth::ir::Name::generate_varid() {
   } else {
     m_varids[name] = varid = m_varids.size();
   }
+}
+
+void cirth::ir::Name::set_mutated() {
+  m_mutation[std::pair<std::string, bool>(name, user_provided)] = true;
+}
+
+bool cirth::ir::Name::is_mutated() const {
+  return m_mutation.find(std::pair<std::string, bool>(name, user_provided)) !=
+      m_mutation.end();
 }
 
 std::string cirth::ir::Name::c_name() const {

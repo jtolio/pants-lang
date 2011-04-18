@@ -1,13 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-
-#ifdef DO_GC
 #include <gc/gc.h>
-#else
-#define GC_MALLOC(size) malloc(size)
-#define GC_MALLOC_ATOMIC(size) malloc(size)
-#define GC_INIT() {}
-#endif
 
 #define bool char
 #define true 1
@@ -20,7 +13,8 @@ enum Tag {
   OBJECT,
   BOOLEAN,
   NIL,
-  CLOSURE
+  CLOSURE,
+  CELL
 };
 
 union Value;
@@ -64,6 +58,11 @@ struct Closure {
   void* env;
 };
 
+struct Cell {
+  enum Tag t;
+  union Value* addr;
+};
+
 union Value {
   enum Tag t;
   struct Integer integer;
@@ -72,6 +71,7 @@ union Value {
   struct Object object;
   struct Boolean boolean;
   struct Closure closure;
+  struct Cell cell;
 };
 
 struct env_main {
@@ -83,16 +83,58 @@ struct env_main {
   union Value c_false;
 };
 
-bool isTrue(union Value* val) {
-  switch(val->t) {
+static inline bool is_true(union Value val) {
+  switch(val.t) {
     case INTEGER:
     case FLOAT:
-      return val->integer.value != 0;
+      return val.integer.value != 0;
     case BOOLEAN:
-      return val->boolean.value;
+      return val.boolean.value;
     case NIL:
       return false;
     default:
       return true;
+  }
+}
+
+static inline union Value make_cell(union Value val) {
+  union Value v;
+  v.t = CELL;
+  v.cell.addr = GC_MALLOC(sizeof(union Value));
+  *(v.cell.addr) = val;
+  return v;
+}
+
+// for testing
+static inline void dump_value(union Value val) {
+  switch(val.t) {
+    case INTEGER:
+      printf("integer: %lld\n", val.integer.value);
+      break;
+    case FLOAT:
+      printf("float: %f\n", val.floating.value);
+      break;
+    case STRING:
+      printf("string\n");
+      break;
+    case OBJECT:
+      printf("object\n");
+      break;
+    case BOOLEAN:
+      printf(val.boolean.value ? "boolean: true\n" : "boolean: false\n");
+      break;
+    case NIL:
+      printf("nil\n");
+      break;
+    case CLOSURE:
+      printf("closure\n");
+      break;
+    case CELL:
+      printf("cell:\n");
+      dump_value(*val.cell.addr);
+      break;
+    default:
+      printf("unknown value!\n");
+      break;
   }
 }

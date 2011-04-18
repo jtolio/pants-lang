@@ -112,7 +112,8 @@ namespace cps {
     VariableMutation(const Name& assignee_, Name value_,
         PTR<Expression> next_expression_)
       : assignee(assignee_), value(value_),
-        next_expression(next_expression_) {}
+        next_expression(next_expression_)
+    { assignee.set_mutated(); }
     Name assignee;
     Name value;
     PTR<Expression> next_expression;
