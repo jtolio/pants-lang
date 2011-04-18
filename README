@@ -1,5 +1,8 @@
 i'm trying to develop a programming language
 
+THIS IS DEFINITELY NOT ANYWHERE NEAR READY FOR PRIME TIME.
+at this stage this is at very best a toy. BE WARNED
+
 cirth is a simple, stackless, dynamic, compiled, multiparadigm,
 garbage-collected, continuation-based language
 
@@ -8,7 +11,7 @@ sample:
     func := { |x|
      k := return
      if (< x 10) {
-       print x
+       print(x)
        func (+ x 1)
      } {
        f := { |x|
@@ -21,7 +24,8 @@ sample:
        print 80
      }
     }
-    print (func 1)
+    { print func(1) } @if true
+    { print func(5) } @if false
 
 this generates a c program that outputs
 
