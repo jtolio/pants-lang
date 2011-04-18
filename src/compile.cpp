@@ -131,10 +131,13 @@ class CallableWriter : public ValueVisitor {
     void visit(Float*) {}
     void visit(Function* func) {
       prelim(func);
-      *m_os << "  REQUIRED_RIGHT_ARGS(" << func->right_positional_args.size()
-            << ")\n";
-      *m_os << "  REQUIRED_LEFT_ARGS(" << func->left_positional_args.size()
-            << ")\n";
+      *m_os << "  MIN_RIGHT_ARGS(" << func->right_positional_args.size()
+            << ")\n"
+               "  MIN_LEFT_ARGS(" << func->left_positional_args.size()
+            << ")\n"
+               "  REQUIRED_FUNCTION(continuation)\n"
+               "  " << scope_to_env(func->c_name()) << "->"
+            << CONTINUATION.c_name() << " = continuation;\n";
       for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
         bool is_mutated(func->right_positional_args[i].is_mutated());
         *m_os << "  " << scope_to_env(func->c_name()) << "->"
@@ -153,14 +156,13 @@ class CallableWriter : public ValueVisitor {
         if(is_mutated) *m_os << ")";
         *m_os << ";\n";
       }
-      *m_os << "  REQUIRED_FUNCTION(continuation)\n"
-            "  " << scope_to_env(func->c_name()) << "->"
-            << CONTINUATION.c_name() << " = continuation;\n";
       wrapup(func);
     }
     void visit(Continuation* func) {
       prelim(func);
-      *m_os << "  REQUIRED_RIGHT_ARGS(" << func->vars.size() << ")\n";
+      *m_os << "  MIN_RIGHT_ARGS(" << func->vars.size() << ")\n"
+               "  MAX_RIGHT_ARGS(" << func->vars.size() << ")\n"
+               "  MAX_LEFT_ARGS(0)\n";
       for(unsigned int i = 0; i < func->vars.size(); ++i) {
         bool is_mutated(func->vars[i].is_mutated());
         *m_os << "  " << scope_to_env(func->c_name()) << "->"
@@ -174,8 +176,10 @@ class CallableWriter : public ValueVisitor {
     }
     void visit(Scope* func) {
       prelim(func);
-      *m_os << "  REQUIRED_FUNCTION(continuation)\n"
-            "  " << scope_to_env(func->c_name()) << "->"
+      *m_os << "  MAX_RIGHT_ARGS(0)\n"
+               "  MAX_LEFT_ARGS(0)\n"
+               "  REQUIRED_FUNCTION(continuation)\n"
+               "  " << scope_to_env(func->c_name()) << "->"
             << CONTINUATION.c_name() << " = continuation;\n";
       wrapup(func);
     }

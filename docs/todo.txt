@@ -1,4 +1,5 @@
 todo
+ * parser broken for floating point numbers and equality
  * more primitives
  * objects
  * arrays

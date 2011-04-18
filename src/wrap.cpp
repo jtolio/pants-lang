@@ -26,13 +26,13 @@ void cirth::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
   BIND_NAME("false");
 //  BIND_NAME("assert");
 //  BIND_NAME("in");
-//  BIND_SYMBOL("==", "equals");
-//  BIND_SYMBOL("<", "lessthan");
+  BIND_SYMBOL("==", "equals");
+  BIND_SYMBOL("<", "lessthan");
 //  BIND_SYMBOL("<=", "lessthanequals");
 //  BIND_SYMBOL(">", "greaterthan");
 //  BIND_SYMBOL(">=", "greaterthanequals");
 //  BIND_SYMBOL("!=", "notequals");
-//  BIND_SYMBOL("+", "add");
+  BIND_SYMBOL("+", "add");
 //  BIND_SYMBOL("-", "subtract");
 //  BIND_SYMBOL("/", "divide");
 //  BIND_SYMBOL("*", "multiply");
@@ -58,7 +58,7 @@ void cirth::wrap::remove_provided_names(std::set<Name>& names) {
   REMOVE_NAME("print");
 //  REMOVE_NAME("construct");
 //  REMOVE_NAME("import");
-//  REMOVE_NAME("add");
+  REMOVE_NAME("add");
 //  REMOVE_NAME("subtract");
 //  REMOVE_NAME("divide");
 //  REMOVE_NAME("multiply");
@@ -69,8 +69,8 @@ void cirth::wrap::remove_provided_names(std::set<Name>& names) {
   REMOVE_NAME("false");
 //  REMOVE_NAME("assert");
 //  REMOVE_NAME("in");
-//  REMOVE_NAME("equals");
-//  REMOVE_NAME("lessthan");
+  REMOVE_NAME("equals");
+  REMOVE_NAME("lessthan");
 //  REMOVE_NAME("lessthanequals");
 //  REMOVE_NAME("greaterthan");
 //  REMOVE_NAME("greaterthanequals");
