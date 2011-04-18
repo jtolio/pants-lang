@@ -64,6 +64,14 @@ class ExpressionWriter : public ExpressionVisitor {
       : m_os(os), m_env(env) {}
     void visit(Call* call) {
       ValueWriter writer(m_os, m_env);
+
+      if(call->continuation.get()) {
+        call->continuation->accept(&writer);
+        *m_os << "  continuation = dest;\n";
+      } else {
+        *m_os << "  continuation.t = NIL;\n";
+      }
+
       *m_os << "  right_positional_args = GC_MALLOC(sizeof(union Value) * "
             << (call->right_positional_args.size()) << ");\n";
       for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
@@ -72,12 +80,16 @@ class ExpressionWriter : public ExpressionVisitor {
       }
       *m_os << "  right_positional_args_size = "
             << call->right_positional_args.size() << ";\n";
-      if(call->continuation.get()) {
-        call->continuation->accept(&writer);
-        *m_os << "  continuation = dest;\n";
-      } else {
-        *m_os << "  continuation.t = NIL;\n";
+
+      *m_os << "  left_positional_args = GC_MALLOC(sizeof(union Value) * "
+            << (call->left_positional_args.size()) << ");\n";
+      for(unsigned int i = 0; i < call->left_positional_args.size(); ++i) {
+        *m_os << "  left_positional_args[" << i << "] = "
+              << var_access(m_env, call->left_positional_args[i]) << ";\n";
       }
+      *m_os << "  left_positional_args_size = "
+            << call->left_positional_args.size() << ";\n";
+
       call->callable->accept(&writer);
       *m_os << "  REQUIRED_FUNCTION(dest)\n"
                "  CALL_FUNC(dest)\n";
@@ -121,12 +133,23 @@ class CallableWriter : public ValueVisitor {
       prelim(func);
       *m_os << "  REQUIRED_RIGHT_ARGS(" << func->right_positional_args.size()
             << ")\n";
+      *m_os << "  REQUIRED_LEFT_ARGS(" << func->left_positional_args.size()
+            << ")\n";
       for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
         bool is_mutated(func->right_positional_args[i].is_mutated());
         *m_os << "  " << scope_to_env(func->c_name()) << "->"
               << func->right_positional_args[i].c_name() << " = ";
         if(is_mutated) *m_os << "make_cell(";
         *m_os << "right_positional_args[" << i << "]";
+        if(is_mutated) *m_os << ")";
+        *m_os << ";\n";
+      }
+      for(unsigned int i = 0; i < func->left_positional_args.size(); ++i) {
+        bool is_mutated(func->left_positional_args[i].is_mutated());
+        *m_os << "  " << scope_to_env(func->c_name()) << "->"
+              << func->left_positional_args[i].c_name() << " = ";
+        if(is_mutated) *m_os << "make_cell(";
+        *m_os << "left_positional_args[" << i << "]";
         if(is_mutated) *m_os << ")";
         *m_os << ";\n";
       }

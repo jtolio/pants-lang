@@ -27,6 +27,8 @@ int main(int argc, char **argv) {
 
   union Value* right_positional_args = NULL;
   unsigned int right_positional_args_size = 0;
+  union Value* left_positional_args = NULL;
+  unsigned int left_positional_args_size = 0;
   union Value continuation;
   continuation.t = NIL;
 
@@ -34,8 +36,14 @@ int main(int argc, char **argv) {
 
 #define REQUIRED_RIGHT_ARGS(count) \
   if(right_positional_args_size < count) { \
-    printf("function takes " #count " arguments, %d given.\n", \
+    printf("function takes " #count " right arguments, %d given.\n", \
         right_positional_args_size); \
+    exit(1); \
+  }
+#define REQUIRED_LEFT_ARGS(count) \
+  if(left_positional_args_size < count) { \
+    printf("function takes " #count " left arguments, %d given.\n", \
+        left_positional_args_size); \
     exit(1); \
   }
 #define REQUIRED_FUNCTION(func) \

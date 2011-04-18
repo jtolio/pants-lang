@@ -1,5 +1,4 @@
 todo
- * positional argument passing
  * more primitives
  * objects
  * arrays
