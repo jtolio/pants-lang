@@ -7,6 +7,9 @@ int main(int argc, char **argv) {
   main.c_print.t = CLOSURE;
   main.c_print.closure.func = &&c_print;
   main.c_print.closure.env = NULL;
+  main.c_if.t = CLOSURE;
+  main.c_if.closure.func = &&c_if;
+  main.c_if.closure.env = NULL;
 
   void* env = &main;
   union Value dest;
@@ -19,15 +22,24 @@ int main(int argc, char **argv) {
 
   goto start;
 
+#define REQUIRED_RIGHT_ARGS(count) \
+  if(right_positional_args_size < count) { \
+    printf("function takes " #count " arguments, %d given.\n", \
+        right_positional_args_size); \
+    exit(1); \
+  }
+#define REQUIRED_FUNCTION(func) \
+  if(func.t != CLOSURE) { \
+    printf("cannot call a non-function!\n"); \
+    exit(1); \
+  }
+#define CALL_FUNC(callable) \
+  env = callable.closure.env; \
+  goto *callable.closure.func;
+
 c_print:
-  if(right_positional_args_size < 1) {
-    printf("function takes 1 arguments, %d given.\n", right_positional_args_size);
-    exit(1);
-  }
-  if(continuation.t != CLOSURE) {
-    printf("function requires continuation, none given.\n");
-    exit(1);
-  }
+  REQUIRED_RIGHT_ARGS(1)
+  REQUIRED_FUNCTION(continuation)
   switch(right_positional_args[0].t) {
     case INTEGER:
       printf("%lld\n", right_positional_args[0].integer.value);
@@ -53,7 +65,19 @@ c_print:
       printf("TODO: unimplemented\n");
       break;
   }
-  env = continuation.closure.env;
-  goto *continuation.closure.func;
+  CALL_FUNC(continuation)
+
+c_if:
+  REQUIRED_RIGHT_ARGS(2)
+  REQUIRED_FUNCTION(continuation)
+  if(isTrue(&(right_positional_args[0]))) {
+    REQUIRED_FUNCTION(right_positional_args[1])
+    right_positional_args_size = 0;
+    CALL_FUNC(right_positional_args[1])
+  } else {
+    right_positional_args[0].t = NIL;
+    right_positional_args_size = 1;
+    CALL_FUNC(continuation)
+  }
 
 start:

@@ -78,4 +78,19 @@ struct env_main {
   union Value c_continuation;
   union Value c_null;
   union Value c_print;
+  union Value c_if;
 };
+
+bool isTrue(union Value* val) {
+  switch(val->t) {
+    case INTEGER:
+    case FLOAT:
+      return val->integer.value != 0;
+    case BOOLEAN:
+      return val->boolean.value;
+    case NIL:
+      return false;
+    default:
+      return true;
+  }
+}

@@ -69,12 +69,8 @@ class ExpressionWriter : public ExpressionVisitor {
         *m_os << "  continuation.t = NIL;\n";
       }
       call->callable->accept(&writer);
-      *m_os << "  if(dest.t != CLOSURE) {\n"
-               "    printf(\"cannot call a non-function!\\n\");\n"
-               "    exit(1);\n"
-               "  }\n"
-               "  env = dest.closure.env;\n"
-               "  goto *dest.closure.func;\n";
+      *m_os << "  REQUIRED_FUNCTION(dest)\n"
+               "  CALL_FUNC(dest)\n";
     }
     void visit(VariableMutation* mut) {
       *m_os << "  " << m_env << "->" << mut->assignee.c_name() << " = " << m_env
@@ -113,34 +109,21 @@ class CallableWriter : public ValueVisitor {
     void visit(Float*) {}
     void visit(Function* func) {
       prelim(func);
-      *m_os << "  if(right_positional_args_size < "
-            << func->right_positional_args.size() << ") {\n"
-            "    printf(\"function takes "
-            << func->right_positional_args.size()
-            << " arguments, %d given.\\n\", right_positional_args_size);\n"
-            "    exit(1);\n"
-            "  }\n";
+      *m_os << "  REQUIRED_RIGHT_ARGS(" << func->right_positional_args.size()
+            << ")\n";
       for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
         *m_os << "  " << scope_to_env(func->c_name()) << "->"
               << func->right_positional_args[i].c_name()
               << " = right_positional_args[" << i << "];\n";
       }
-      *m_os << "  if(continuation.t != CLOSURE) {\n"
-            "    printf(\"function requires continuation, none given.\\n\");\n"
-            "    exit(1);\n"
-            "  }\n"
+      *m_os << "  REQUIRED_FUNCTION(continuation)\n"
             "  " << scope_to_env(func->c_name()) << "->"
             << CONTINUATION.c_name() << " = continuation;\n";
       wrapup(func);
     }
     void visit(Continuation* func) {
       prelim(func);
-      *m_os << "  if(right_positional_args_size < "
-            << func->vars.size() << ") {\n"
-            "    printf(\"function takes " << func->vars.size()
-            << " arguments, %d given.\\n\", right_positional_args_size);\n"
-            "    exit(1);\n"
-            "  }\n";
+      *m_os << "  REQUIRED_RIGHT_ARGS(" << func->vars.size() << ")\n";
       for(unsigned int i = 0; i < func->vars.size(); ++i) {
         *m_os << "  " << scope_to_env(func->c_name()) << "->"
               << func->vars[i].c_name()
@@ -150,10 +133,7 @@ class CallableWriter : public ValueVisitor {
     }
     void visit(Scope* func) {
       prelim(func);
-      *m_os << "  if(continuation.t != CLOSURE) {\n"
-            "    printf(\"function requires continuation, none given.\\n\");\n"
-            "    exit(1);\n"
-            "  }\n"
+      *m_os << "  REQUIRED_FUNCTION(continuation)\n"
             "  " << scope_to_env(func->c_name()) << "->"
             << CONTINUATION.c_name() << " = continuation;\n";
       wrapup(func);
@@ -225,8 +205,6 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
   for(unsigned int i = 0; i < callables.size(); ++i)
     callables[i]->accept(&writer);
 
-  os << "halt:\n";
-  os << "  return 0;\n";
-  os << "}\n";
+  os << cirth::assets::END_MAIN_C << "\n";
 
 }
