@@ -41,16 +41,17 @@ class ValueWriter : public ValueVisitor {
     void visit(Scope* func) { visit_callable(func); }
     void visit_callable(Callable* func) {
       *m_os << "  dest.t = CLOSURE;\n"
-               "  dest.closure.func = &&" << func->c_name() << ";\n"
-               "  dest.closure.env = alloc_env_" << func->c_name() << "(";
+               "  dest.closure.func = &&" << func->c_name() << ";\n";
       std::set<Name> free_names;
       func->free_names(free_names);
+      *m_os << "  dest.closure.env = GC_MALLOC(sizeof(struct env_"
+            << func->c_name() << "));\n";
       for(std::set<Name>::const_iterator it(free_names.begin());
           it != free_names.end(); ++it) {
-        if(it != free_names.begin()) *m_os << ", ";
-        *m_os << m_env << "->" << it->c_name();
+        *m_os << "  ((struct env_" << func->c_name() << "*)dest.closure.env)->"
+              << it->c_name() << " = " << m_env << "->" << it->c_name()
+              << ";\n";
       }
-      *m_os << ");\n";
     }
   private:
     std::ostream* m_os;
@@ -197,22 +198,6 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
       os << "  union Value " << it->c_name() << ";\n";
     }
     os << "};\n\n";
-
-    os << "static struct env_" << callables[i]->c_name() << "* alloc_env_"
-       << callables[i]->c_name() << "(";
-    for(std::set<Name>::iterator it(free_names.begin()); it != free_names.end();
-        ++it) {
-      if(it != free_names.begin()) os << ", ";
-      os << "union Value " << it->c_name();
-    }
-    os << ") {\n  struct env_" << callables[i]->c_name()
-       << "* env = GC_MALLOC(sizeof(struct env_" << callables[i]->c_name()
-       << "));\n";
-    for(std::set<Name>::iterator it(free_names.begin()); it != free_names.end();
-        ++it) {
-      os << "  env->" << it->c_name() << " = " << it->c_name() << ";\n";
-    }
-    os << "  return env;\n}\n\n";
   }
 
   os << cirth::assets::START_MAIN_C;
