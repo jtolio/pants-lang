@@ -1,12 +1,20 @@
 int main(int argc, char **argv) {
   struct env_main main;
+
   main.c_continuation.t = CLOSURE;
   main.c_continuation.closure.func = &&halt;
   main.c_continuation.closure.env = NULL;
+
   main.c_null.t = NIL;
+  main.c_true.t = BOOLEAN;
+  main.c_true.boolean.value = true;
+  main.c_false.t = BOOLEAN;
+  main.c_false.boolean.value = false;
+
   main.c_print.t = CLOSURE;
   main.c_print.closure.func = &&c_print;
   main.c_print.closure.env = NULL;
+
   main.c_if.t = CLOSURE;
   main.c_if.closure.func = &&c_if;
   main.c_if.closure.env = NULL;
@@ -74,10 +82,14 @@ c_if:
     REQUIRED_FUNCTION(right_positional_args[1])
     right_positional_args_size = 0;
     CALL_FUNC(right_positional_args[1])
-  } else {
-    right_positional_args[0].t = NIL;
-    right_positional_args_size = 1;
-    CALL_FUNC(continuation)
   }
+  if(right_positional_args_size >= 3) {
+    REQUIRED_FUNCTION(right_positional_args[2])
+    right_positional_args_size = 0;
+    CALL_FUNC(right_positional_args[2])
+  }
+  right_positional_args[0].t = NIL;
+  right_positional_args_size = 1;
+  CALL_FUNC(continuation)
 
 start:

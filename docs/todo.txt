@@ -1,13 +1,15 @@
+todo
+ * assignment
+ * positional argument passing
+ * more primitives
+ * objects
+ * arrays
+ * all argument passing
+ * primitives
+
 parser
  * make in_arg and out_arg order more picky in the parser
  * strings
  * comments
  * more unit tests
  * named open-call args
-
-rest
- * wrap
- * rename
- * output c
-  * scopes
-  * labels

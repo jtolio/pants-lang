@@ -79,6 +79,8 @@ struct env_main {
   union Value c_null;
   union Value c_print;
   union Value c_if;
+  union Value c_true;
+  union Value c_false;
 };
 
 bool isTrue(union Value* val) {
