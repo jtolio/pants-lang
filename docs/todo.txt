@@ -1,14 +1,18 @@
 todo
  * parser broken for floating point numbers and equality
- * more primitives
+ * wiki pages and docs
+ * c primitives
+ * cirth primitives
  * objects
- * arrays
- * all argument passing
- * primitives
+ * arrays/dictionaries
+ * all argument styles passing
+ * rip out existing exception stuff
+ * kappa environments
+ * exceptions using kappa environments
+ * all other primitives
 
 parser
  * make in_arg and out_arg order more picky in the parser
  * strings
  * comments
  * more unit tests
- * named open-call args
