@@ -1,0 +1,6 @@
+while := { |test, body|
+  if test() {
+    body.
+    while test body
+  }
+}

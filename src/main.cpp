@@ -5,6 +5,7 @@
 #include "cps.h"
 #include "compile.h"
 #include <iostream>
+#include "assets.h"
 
 using namespace cirth;
 
@@ -15,6 +16,8 @@ void compile(const std::string& src) {
 int main(int argc, char** argv) {
   std::string str;
   std::ostringstream os;
+  os << assets::PRELUDE_CTH << "\n";
+
   while(getline(std::cin, str)) {
     os << str << '\n';
   }
