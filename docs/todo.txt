@@ -1,5 +1,4 @@
 todo
- * parser broken for floating point numbers and equality
  * wiki pages and docs
  * c primitives
  * cirth primitives

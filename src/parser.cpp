@@ -16,6 +16,7 @@ namespace parser {
     qi::rule<Iterator, std::vector<PTR<Expression> >()> explist;
     qi::rule<Iterator, std::vector<PTR<Expression> >()> nl_explist;
     qi::rule<Iterator> nl_explistsep;
+    qi::rule<Iterator> mutationsep;
     qi::rule<Iterator, PTR<Expression>()> expression;
     qi::rule<Iterator, PTR<Expression>()> mutation;
     qi::rule<Iterator, PTR<Expression>()> definition;
@@ -72,6 +73,9 @@ namespace parser {
 #define S(exp) qi::skip(skipper.alias())[exp]
 #define NLS(exp) qi::skip(nl_skipper.alias())[exp]
 
+      char const* exclude = " \n\r\t;,()[]{}|'\".?:@";
+      char const* digits = "0123456789";
+
       nl_skipper = qi::char_(" \t\r");
       skipper = nl_skipper | '\n';
 
@@ -107,12 +111,14 @@ namespace parser {
           phx::new_<Application>(qi::_1))];
       nl_application.name("newline-significant application");
 
-      mutation = (S(assignee) >> S("=" >> expression))[
+      mutationsep = qi::lit("=") >> !(qi::char_ - qi::char_(exclude));
+
+      mutation = (S(assignee) >> S(mutationsep >> expression))[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Mutation>(
           qi::_1, qi::_2))];
       mutation.name("newline-indifferent mutation");
 
-      nl_mutation = (NLS(assignee) >> NLS("=" >> nl_expression))[
+      nl_mutation = (NLS(assignee) >> NLS(mutationsep >> nl_expression))[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Mutation>(
           qi::_1, qi::_2))];
       nl_mutation.name("newline-significant mutation");
@@ -144,14 +150,12 @@ namespace parser {
           phx::new_<OpenCall>())];
       header.name("open call header");
 
-      char const* exclude = " \n\r\t;,()[]{}|'\".?:=@";
-      char const* digits = "0123456789";
       identifier = ((qi::char_ - qi::char_(exclude)) - qi::char_(digits)) >>
           *(qi::char_ - qi::char_(exclude));
       identifier.name("identifier");
 
-      rightopencall = (qi::char_("'?.") >> !(
-          (qi::char_ - qi::char_(exclude)) - qi::char_(digits)))[
+      rightopencall = (qi::char_("?.") >> !(
+          qi::char_ - qi::char_(exclude)))[
           qi::_val = phx::construct<PTR<ValueModifier> >(
           phx::new_<OpenCall>())];
       rightopencall.name("open call trailer");
@@ -233,8 +237,8 @@ namespace parser {
           phx::new_<HiddenObjectField>(qi::_1))];
       hiddenobjectfield.name("scoped variable value");
 
-      integer = qi::long_long[qi::_val = phx::construct<PTR<Value> >(
-          phx::new_<Integer>(qi::_1))];
+      integer = (qi::long_long >> !( qi::lit(".") >> qi::char_(digits)))[
+          qi::_val = phx::construct<PTR<Value> >(phx::new_<Integer>(qi::_1))];
       integer.name("integer");
 
       floating = qi::double_[qi::_val = phx::construct<PTR<Value> >(
