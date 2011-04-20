@@ -1,0 +1,23 @@
+function := { |func|
+  kappa-apply(return-cont:cont, {
+    { |*(leftargs) ; *(rightargs), **(kwargs)|
+        func(*(leftargs); *(rightargs), **(kwargs) | **(hiddenobj))
+    }
+  })
+}
+return := { ||return-cont|| |var| return-cont var }
+
+while := { |test, body|
+  { while test body } if? (test() and. {
+      kappa-apply(loop-cont:cont, { body(); true })}())
+}
+break := { ||loop-cont|| loop-cont false }
+continue := { ||loop-cont|| loop-cont true }
+
+try := { |body, handler|
+  kappa-apply(try-cont:cont, try-handler:handler, {
+    body()
+  }
+}
+throw := { ||try-cont, try-handler|| |e| try-cont (try-handler e) }
+
