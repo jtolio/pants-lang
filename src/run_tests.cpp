@@ -19,6 +19,8 @@ class ParserTest : public CPPUNIT_NS::TestFixture {
   CPPUNIT_TEST(testClosedCall);
   CPPUNIT_TEST(testFunctions);
   CPPUNIT_TEST(testNewlines);
+  CPPUNIT_TEST(testFloatingPoint);
+  CPPUNIT_TEST(testEquality);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -338,6 +340,28 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("(f;f)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(SubExpression(Application(Term(Value(Variable(f, user_provided)), Trailers())), Application(Term(Value(Variable(f, user_provided)), Trailers())))), Trailers()))");
+  }
+  
+  void testFloatingPoint() {
+    std::vector<PTR<cirth::ast::Expression> > exps;
+    CPPUNIT_ASSERT(cirth::parser::parse("x := 3\n", exps));  
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0]->format() == "Definition(Variable(x, user_provided), Application(Term(Value(Integer(3)), Trailers())))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("x := 3.0\n", exps));  
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0]->format() == "Definition(Variable(x, user_provided), Application(Term(Value(Float(3.0)), Trailers())))");
+  }
+  
+  void testEquality() {
+    std::vector<PTR<cirth::ast::Expression> > exps;
+    CPPUNIT_ASSERT(cirth::parser::parse("x <. 3\n", exps));    
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(x, user_provided)), Trailers()), Term(Value(Variable(<, user_provided)), Trailers(OpenCall())), Term(Value(Integer(3)), Trailers()))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("x ==. 3\n", exps));    
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(x, user_provided)), Trailers()), Term(Value(Variable(==, user_provided)), Trailers(OpenCall())), Term(Value(Integer(3)), Trailers()))");
   }
 
 };
