@@ -34,9 +34,6 @@ int main(int argc, char **argv) {
   DEFINE_BUILTIN(lessthan)
   DEFINE_BUILTIN(equals)
   DEFINE_BUILTIN(add)
-  DEFINE_BUILTIN(and)
-  DEFINE_BUILTIN(or)
-  DEFINE_BUILTIN(not)
 
 #undef DEFINE_BUILTIN
 
@@ -191,54 +188,6 @@ c_add:
   right_positional_args_size = 1;
   right_positional_args = GC_MALLOC(sizeof(union Value));
   right_positional_args[0] = dest;
-  dest = continuation;
-  continuation.t = NIL;
-  CALL_FUNC(dest)
-  
-c_and:
-  REQUIRED_FUNCTION(continuation)
-  if(left_positional_args_size == 1 && right_positional_args_size == 1) {
-    right_positional_args[0] = builtin_and(left_positional_args[0],
-        right_positional_args[0]);
-  } else {
-    MAX_LEFT_ARGS(0)
-    dest.t = BOOLEAN;
-    dest.boolean.value = true;
-    for(i = 0; i < right_positional_args_size && is_true(dest); ++i)
-      dest = builtin_and(dest, right_positional_args[i]);
-  }
-  right_positional_args[0] = dest;
-  left_positional_args_size = 0;
-  right_positional_args_size = 1;
-  dest = continuation;
-  continuation.t = NIL;
-  CALL_FUNC(dest)
-
-c_or:
-  REQUIRED_FUNCTION(continuation)
-  if(left_positional_args_size == 1 && right_positional_args_size == 1) {
-    right_positional_args[0] = builtin_or(left_positional_args[0],
-        right_positional_args[0]);
-  } else {
-    MAX_LEFT_ARGS(0)
-    dest.t = BOOLEAN;
-    dest.boolean.value = false;
-    for(i = 0; i < right_positional_args_size && !is_true(dest); ++i)
-      dest = builtin_or(dest, right_positional_args[i]);
-  }
-  right_positional_args[0] = dest;
-  left_positional_args_size = 0;
-  right_positional_args_size = 1;
-  dest = continuation;
-  continuation.t = NIL;
-  CALL_FUNC(dest)
-
-c_not:
-  REQUIRED_FUNCTION(continuation)
-  MAX_LEFT_ARGS(0)
-  MAX_RIGHT_ARGS(1)
-  MIN_RIGHT_ARGS(1)
-  right_positional_args[0] = builtin_not(right_positional_args[0]);
   dest = continuation;
   continuation.t = NIL;
   CALL_FUNC(dest)

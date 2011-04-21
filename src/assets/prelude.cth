@@ -4,3 +4,7 @@ while := { |test, body|
     while test body
   }
 }
+
+and := { |left, right| if left { right } { left } }
+or := { |left, right| if left { left } { right } }
+not := { |val| if val { false } { true } }

@@ -17,9 +17,6 @@ void cirth::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
   BIND_NAME("print");
 //  BIND_NAME("construct");
 //  BIND_NAME("import");
-  BIND_NAME("and");
-  BIND_NAME("or");
-  BIND_NAME("not");
   BIND_NAME("true");
   BIND_NAME("false");
   BIND_SYMBOL("==", "equals");
@@ -45,7 +42,6 @@ void cirth::wrap::remove_provided_names(std::set<Name>& names) {
 //  REMOVE_NAME("Dictionary");
 //  REMOVE_NAME("Array");
   REMOVE_NAME("if");
-//  REMOVE_NAME("for");
   REMOVE_NAME("print");
 //  REMOVE_NAME("construct");
 //  REMOVE_NAME("import");
@@ -53,9 +49,6 @@ void cirth::wrap::remove_provided_names(std::set<Name>& names) {
 //  REMOVE_NAME("subtract");
 //  REMOVE_NAME("divide");
 //  REMOVE_NAME("multiply");
-  REMOVE_NAME("and");
-  REMOVE_NAME("or");
-  REMOVE_NAME("not");
   REMOVE_NAME("true");
   REMOVE_NAME("false");
   REMOVE_NAME("equals");

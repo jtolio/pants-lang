@@ -84,9 +84,6 @@ struct env_main {
   union Value c_lessthan;
   union Value c_equals;
   union Value c_add;
-  union Value c_and;
-  union Value c_or;
-  union Value c_not;
 };
 
 static inline bool is_true(union Value val) {
@@ -142,21 +139,6 @@ static inline void print_value(union Value val) {
       printf("<TODO: unimplemented>");
       break;
   }
-}
-
-static inline union Value builtin_and(union Value val1, union Value val2) {
-  return is_true(val1) ? val2 : val1;
-}
-
-static inline union Value builtin_or(union Value val1, union Value val2) {
-  return is_true(val1) ? val1 : val2;
-}
-
-static inline union Value builtin_not(union Value val) {
-  union Value v;
-  v.t = BOOLEAN;
-  v.boolean.value = !is_true(val);
-  return v;
 }
 
 static inline bool builtin_less_than(union Value val1, union Value val2) {
