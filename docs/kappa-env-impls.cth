@@ -9,15 +9,20 @@ return := { ||return-cont|| |var| return-cont var }
 
 while := { |test, body|
   { while test body } if? (test() and. {
-      kappa-apply(loop-cont:cont, { body(); true })}())
+      kappa-apply(loop-cont:cont, { body(); true })})
 }
 break := { ||loop-cont|| loop-cont false }
 continue := { ||loop-cont|| loop-cont true }
 
-try := { |body, handler|
-  kappa-apply(try-cont:cont, try-handler:handler, {
+try := { ||try-cont, try-handler|| |body, handler|
+  kappa-apply(try-cont:cont, try-handler:handler, old-try-cont:try-cont,
+      old-try-handler:try-handler {
     body()
   }
 }
-throw := { ||try-cont, try-handler|| |e| try-cont (try-handler e) }
+throw := { ||try-cont, try-handler, old-try-cont, old-try-handler|| |e|
+  try-cont kappa-apply(try-cont:old-try-cont, try-handler:old-try-handler, {
+    try-handler e
+  })
+}
 
