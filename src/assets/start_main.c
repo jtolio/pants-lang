@@ -77,7 +77,7 @@ c_print:
   REQUIRED_FUNCTION(continuation)
   MAX_LEFT_ARGS(0)
   for(i = 0; i < right_positional_args_size; ++i) {
-    print_value(right_positional_args[i]);
+    builtin_print(right_positional_args[i]);
     printf(" ");
   }
   printf("\n");
@@ -96,7 +96,7 @@ c_print:
 c_if:
   REQUIRED_FUNCTION(continuation)
   if(left_positional_args_size == 1 && right_positional_args_size == 1) {
-    if(is_true(right_positional_args[0])) {
+    if(builtin_istrue(right_positional_args[0])) {
       REQUIRED_FUNCTION(left_positional_args[0])
       right_positional_args_size = 0;
       left_positional_args_size = 0;
@@ -111,7 +111,7 @@ c_if:
   MAX_LEFT_ARGS(0)
   MIN_RIGHT_ARGS(2)
   MAX_RIGHT_ARGS(3)
-  if(is_true(right_positional_args[0])) {
+  if(builtin_istrue(right_positional_args[0])) {
     REQUIRED_FUNCTION(right_positional_args[1])
     right_positional_args_size = 0;
     CALL_FUNC(right_positional_args[1])

@@ -209,6 +209,8 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
   }
 
   os << cirth::assets::HEADER_C << "\n";
+  os << cirth::assets::BUILTINS_C << "\n";
+  os << cirth::assets::DATA_STRUCTURES_C << "\n";
 
   for(unsigned int i = 0; i < callables.size(); ++i) {
     os << "struct env_" << callables[i]->c_name() << " {\n";
