@@ -3,8 +3,9 @@ i'm trying to develop a programming language
 THIS IS DEFINITELY NOT ANYWHERE NEAR READY FOR PRIME TIME.
 at this stage this is at very best a toy. BE WARNED
 
-cirth is a simple, stackless, dynamic, compiled, multiparadigm,
-garbage-collected, continuation-based language
+cirth is a simple, stackless, dynamically typed, compiled, multiparadigm,
+statically but optionally dynamically scoped, garbage-collected,
+continuation-based language
 
 sample:
 
