@@ -34,6 +34,8 @@ int main(int argc, char **argv) {
   DEFINE_BUILTIN(lessthan)
   DEFINE_BUILTIN(equals)
   DEFINE_BUILTIN(add)
+  DEFINE_BUILTIN(new_object)
+  DEFINE_BUILTIN(seal_object)
 
 #undef DEFINE_BUILTIN
 
@@ -191,5 +193,32 @@ c_add:
   dest = continuation;
   continuation.t = NIL;
   CALL_FUNC(dest)
+
+c_new_object:
+  REQUIRED_FUNCTION(continuation)
+  MAX_LEFT_ARGS(0)
+  MAX_RIGHT_ARGS(0)
+  right_positional_args_size = 1;
+  right_positional_args = GC_MALLOC(sizeof(union Value));
+  right_positional_args[0] = make_object();
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest);
+
+c_seal_object:
+  REQUIRED_FUNCTION(continuation)
+  MAX_LEFT_ARGS(0)
+  MIN_RIGHT_ARGS(1)
+  MAX_RIGHT_ARGS(1)
+  switch(right_positional_args[0].t) {
+    default:
+      printf("cannot seal non-object!\n");
+      exit(1);
+    case OBJECT:
+      seal_object(right_positional_args[0].object.data);
+  }
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest);
 
 start:

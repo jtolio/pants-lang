@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <gc/gc.h>
 
 #define bool char
@@ -84,6 +85,8 @@ struct env_main {
   union Value c_lessthan;
   union Value c_equals;
   union Value c_add;
+  union Value c_new_object;
+  union Value c_seal_object;
 };
 
 static inline union Value make_cell(union Value val) {

@@ -18,7 +18,7 @@ static inline void builtin_print(union Value val) {
       break;
     case STRING:
       printf("%s", val.string.value);
-      breakl
+      break;
 
     case CLOSURE:
     case OBJECT:
@@ -243,7 +243,7 @@ static inline union Value builtin_add(union Value val1, union Value val2) {
               val2.string.value_size;
           rv.string.value = GC_MALLOC(sizeof(char) * rv.string.value_size);
           memcpy(rv.string.value, val1.string.value, val1.string.value_size);
-          memcpy(rv.string.value + val1.string.value, val2.string.value,
+          memcpy(rv.string.value + val1.string.value_size, val2.string.value,
               val2.string.value_size);
           return rv;
         case OBJECT:

@@ -13,13 +13,34 @@ static std::string var_access(const std::string& env, const Name& name) {
   return os.str();
 }
 
+static std::string to_bytestring(const std::string& data) {
+  std::ostringstream os;
+  os << "\"" << std::hex;
+  for(unsigned int i = 0; i < data.size(); ++i) os << "\\x" << (int)data[i];
+  os << "\\x00\"";
+  return os.str();
+}
+
 class ValueWriter : public ValueVisitor {
   public:
     ValueWriter(std::ostream* os, const std::string& env)
       : m_os(os), m_env(env) {}
     void visit(Field* field) {
-      *m_os << "  printf(\"TODO: fields\\n\");\n"
-               "  exit(1);\n";
+      *m_os << "  dest = " << var_access(m_env, field->object) << ";\n"
+               "  switch(dest.t) {\n"
+               "    default:\n"
+               "      printf(\"TODO: fields\\n\");\n"
+               "      exit(1);\n"
+               "    case OBJECT:\n"
+               "      if(!get_field(dest.object.data, "
+            << to_bytestring(field->field.c_name()) << ", "
+            << field->field.c_name().size() << ", &dest)) {\n"
+               "        printf(\"field %s not found!\\n\", "
+            << to_bytestring(field->field.c_name()) << ");\n"
+               "        exit(1);\n"
+               "      }\n"
+               "      break;\n"
+               "  }\n";
     }
     void visit(Variable* var) {
       *m_os << "  dest = " << var_access(m_env, var->variable) << ";\n";
@@ -28,9 +49,12 @@ class ValueWriter : public ValueVisitor {
       *m_os << "  dest.t = INTEGER;\n"
                "  dest.integer.value = " << integer->value << ";\n";
     }
-    void visit(String*) {
-      *m_os << "  printf(\"TODO: strings\\n\");\n"
-               "  exit(1);\n";
+    void visit(String* str) {
+      *m_os << "  dest.t = STRING;\n"
+               "  dest.string.byte_oriented = "
+            << (str->byte_oriented ? "true" : "false") << ";\n"
+               "  dest.string.value = " << to_bytestring(str->value) << ";\n"
+               "  dest.string.value_size = " << str->value.size() << ";\n";
     }
     void visit(Float* floating) {
       *m_os << "  dest.t = FLOAT;\n"
@@ -100,8 +124,22 @@ class ExpressionWriter : public ExpressionVisitor {
       mut->next_expression->accept(this);
     }
     void visit(ObjectMutation* mut) {
-      *m_os << "  printf(\"TODO: objects\\n\");\n"
-               "  exit(1);\n";
+      *m_os << "  dest = " << var_access(m_env, mut->object) << ";\n"
+               "  switch(dest.t) {\n"
+               "    default:\n"
+               "      printf(\"not an object!\\n\");\n"
+               "      exit(1);\n"
+               "    case OBJECT:\n"
+               "      if(!set_field(dest.object.data, "
+            << to_bytestring(mut->field.c_name()) << ", "
+            << mut->field.c_name().size() << ", &"
+            << var_access(m_env, mut->value) << ")) {\n"
+               "        printf(\"object %s sealed!\\n\", "
+            << to_bytestring(mut->object.c_name()) << ");\n"
+               "        exit(1);\n"
+               "      }\n"
+               "      break;\n"
+               "  }\n";
       mut->next_expression->accept(this);
     }
   private:
@@ -209,8 +247,8 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
   }
 
   os << cirth::assets::HEADER_C << "\n";
-  os << cirth::assets::BUILTINS_C << "\n";
   os << cirth::assets::DATA_STRUCTURES_C << "\n";
+  os << cirth::assets::BUILTINS_C << "\n";
 
   for(unsigned int i = 0; i < callables.size(); ++i) {
     os << "struct env_" << callables[i]->c_name() << " {\n";

@@ -13,6 +13,8 @@ void cirth::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
 
 //  BIND_NAME_VAL(DICT_CONSTRUCTOR, Name("Dictionary", false));
 //  BIND_NAME_VAL(ARRAY_CONSTRUCTOR, Name("Array", false));
+  BIND_NAME("new_object");
+  BIND_NAME("seal_object");
   BIND_NAME("if");
   BIND_NAME("print");
 //  BIND_NAME("construct");
@@ -41,6 +43,8 @@ void cirth::wrap::remove_provided_names(std::set<Name>& names) {
 
 //  REMOVE_NAME("Dictionary");
 //  REMOVE_NAME("Array");
+  REMOVE_NAME("new_object");
+  REMOVE_NAME("seal_object");
   REMOVE_NAME("if");
   REMOVE_NAME("print");
 //  REMOVE_NAME("construct");
