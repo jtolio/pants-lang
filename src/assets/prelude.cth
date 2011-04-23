@@ -8,3 +8,11 @@ while := { |test, body|
 and := { |left, right| if left { right } { left } }
 or := { |left, right| if left { left } { right } }
 not := { |val| if val { false } { true } }
+
+construct := { |func|
+  obj := new_object.
+  rv := func obj
+  seal_object obj
+}
+new_object := null
+seal_object := null
