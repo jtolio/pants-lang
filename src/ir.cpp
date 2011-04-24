@@ -399,13 +399,8 @@ bool cirth::ir::Name::is_mutated() const {
 
 static std::string sanitize(const std::string& str) {
   std::ostringstream os;
-  for(unsigned int i = 0; i < str.size(); ++i) {
-    if(isalnum(str[i])) {
-      os << str[i];
-    } else {
-      os << "_";
-    }
-  }
+  for(unsigned int i = 0; i < str.size(); ++i)
+    os << (isalnum(str[i]) ? str[i] : '_');
   return os.str();
 }
 
