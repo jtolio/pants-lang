@@ -89,7 +89,7 @@ c_print:
   REQUIRED_FUNCTION(continuation)
   MAX_LEFT_ARGS(0)
   for(i = 0; i < right_positional_args_size; ++i) {
-    builtin_print(right_positional_args[i]);
+    builtin_print(&right_positional_args[i]);
     printf(" ");
   }
   printf("\n");
@@ -111,7 +111,7 @@ c_print:
 c_if:
   REQUIRED_FUNCTION(continuation)
   if(left_positional_args_size == 1 && right_positional_args_size == 1) {
-    if(builtin_istrue(right_positional_args[0])) {
+    if(builtin_istrue(&right_positional_args[0])) {
       REQUIRED_FUNCTION(left_positional_args[0])
       right_positional_args_size = 0;
       left_positional_args_size = 0;
@@ -126,7 +126,7 @@ c_if:
   MAX_LEFT_ARGS(0)
   MIN_RIGHT_ARGS(2)
   MAX_RIGHT_ARGS(3)
-  if(builtin_istrue(right_positional_args[0])) {
+  if(builtin_istrue(&right_positional_args[0])) {
     REQUIRED_FUNCTION(right_positional_args[1])
     right_positional_args_size = 0;
     CALL_FUNC(right_positional_args[1])
@@ -146,13 +146,13 @@ c_lessthan:
   REQUIRED_FUNCTION(continuation)
   if(left_positional_args_size == 1 && right_positional_args_size == 1) {
     right_positional_args[0].boolean.value = builtin_less_than(
-        left_positional_args[0], right_positional_args[0]);
+        &left_positional_args[0], &right_positional_args[0]);
   } else {
     MAX_LEFT_ARGS(0)
     MIN_RIGHT_ARGS(2)
     MAX_RIGHT_ARGS(2)
     right_positional_args[0].boolean.value = builtin_less_than(
-        right_positional_args[0], right_positional_args[1]);
+        &right_positional_args[0], &right_positional_args[1]);
   }
   right_positional_args[0].t = BOOLEAN;
   left_positional_args_size = 0;
@@ -165,16 +165,16 @@ c_equals:
   REQUIRED_FUNCTION(continuation)
   if(left_positional_args_size == 1 && right_positional_args_size == 1) {
     right_positional_args[0].boolean.value = builtin_equals(
-        left_positional_args[0], right_positional_args[0]);
+        &left_positional_args[0], &right_positional_args[0]);
   } else {
     MAX_LEFT_ARGS(0)
     MIN_RIGHT_ARGS(2)
     right_positional_args[0].boolean.value = builtin_equals(
-        right_positional_args[0], right_positional_args[1]);
+        &right_positional_args[0], &right_positional_args[1]);
     for(i = 2; i < right_positional_args_size &&
         right_positional_args[0].boolean.value; ++i)
       right_positional_args[0].boolean.value = builtin_equals(
-          right_positional_args[1], right_positional_args[i]);
+          &right_positional_args[1], &right_positional_args[i]);
   }
   right_positional_args[0].t = BOOLEAN;
   left_positional_args_size = 0;
@@ -191,13 +191,13 @@ c_add:
   if(left_positional_args_size > 0) {
     dest = left_positional_args[0];
     for(i = 1; i < left_positional_args_size; ++i)
-      dest = builtin_add(dest, left_positional_args[i]);
+      builtin_add(&dest, &left_positional_args[i], &dest);
     for(i = 0; i < right_positional_args_size; ++i)
-      dest = builtin_add(dest, right_positional_args[i]);
+      builtin_add(&dest, &right_positional_args[i], &dest);
   } else {
     dest = right_positional_args[0];
     for(i = 1; i < right_positional_args_size; ++i)
-      dest = builtin_add(dest, right_positional_args[i]);
+      builtin_add(&dest, &right_positional_args[i], &dest);
   }
   left_positional_args_size = 0;
   if(right_positional_args_highwater < 1) {
