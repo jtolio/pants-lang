@@ -2,10 +2,12 @@
 
 __author__ = "JT Olds <hello@jtolds.com>"
 
-import os, re, subprocess, tempfile
+import os, re, subprocess, tempfile, sys
 
 TEST_EXT = re.compile(r'\.cth$')
 COMPILER_PATH = "../src/cirth"
+C_COMPILER = "gcc"
+C_LIBRARIES = ["-lgc"]
 
 class Error_(Exception): pass
 class TestError(Error_): pass
@@ -19,7 +21,7 @@ def find_tests():
 
 def translate(source_path):
   in_file = file(source_path)
-  fd, path = tempfile.mkstemp(suffix=".c")
+  fd, path = tempfile.mkstemp(suffix=".c", prefix="test-")
   out_file = os.fdopen(fd, "w")
   compiler = subprocess.Popen([COMPILER_PATH], stdin=in_file, stdout=out_file)
   in_file.close()
@@ -38,27 +40,31 @@ def run_tests():
   for source, output in find_tests():
     try:
       c_source = translate(source)
-      subprocess.check_call(["gcc", "-o", c_source[:-2], c_source, "-lgc"])
-      binary = subprocess.Popen([c_source[:-2]], stdout=subprocess.PIPE)
-      binary_output = clean_up(binary.communicate()[0])
-      if binary.returncode != 0:
-        raise TestError, "Failed running binary %s" % source
-      expected_output = clean_up(file(output).read())
-      if binary_output != expected_output:
-        print "test %s" % source
-        print "============== Expected:"
-        print expected_output
-        print "============== Received:"
-        print binary_output
-        print
-        raise TestError, "output mismatch for test %s" % source
+      try:
+        subprocess.check_call([C_COMPILER, "-o", c_source[:-2], c_source] +
+            C_LIBRARIES)
+        binary = subprocess.Popen([c_source[:-2]], stdout=subprocess.PIPE)
+        binary_output = clean_up(binary.communicate()[0])
+        if binary.returncode != 0:
+          raise TestError, "Failed running binary %s" % source
+        expected_output = clean_up(file(output).read())
+        if binary_output != expected_output:
+          sys.stdout.write("test %s\n============== Expected:\n" % source)
+          sys.stdout.write(expected_output)
+          sys.stdout.write("\n============== Received:")
+          sys.stdout.write(binary_output)
+          sys.stdout.write("\n")
+          raise TestError, "output mismatch for test %s" % source
+      finally:
+        subprocess.call(["rm", "-f", c_source[:-2], c_source])
     except Exception, e:
-      print "FAILURE: %s" % e
+      sys.stdout.write("FAILURE: %s\n" % e)
       failed_tests += 1
     total_tests += 1
+    sys.stdout.write(".")
+    sys.stdout.flush()
 
-  print
-  print "Total tests: %d, Successes: %d, Failures: %d" % (total_tests,
-      (total_tests - failed_tests), failed_tests)
+  sys.stdout.write("\nTotal tests: %d, Successes: %d, Failures: %d\n" % (
+      total_tests, (total_tests - failed_tests), failed_tests))
 
 if __name__ == "__main__": run_tests()
