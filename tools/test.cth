@@ -1,0 +1,7 @@
+#!./script_wrapper.sh ../src/cirth
+
+hello := { |target|
+  print "Hello" (+ target "!")
+}
+
+hello "world"
