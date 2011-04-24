@@ -44,14 +44,13 @@ def run_tests():
         subprocess.check_call([C_COMPILER, "-o", c_source[:-2], c_source] +
             C_LIBRARIES)
         binary = subprocess.Popen([c_source[:-2]], stdout=subprocess.PIPE)
-        binary_output = clean_up(binary.communicate()[0])
-        if binary.returncode != 0:
-          raise TestError, "Failed running binary %s" % source
+        binary_output = clean_up(binary.communicate()[0] +
+            ("\n%d" % binary.returncode))
         expected_output = clean_up(file(output).read())
         if binary_output != expected_output:
           sys.stdout.write("test %s\n============== Expected:\n" % source)
           sys.stdout.write(expected_output)
-          sys.stdout.write("\n============== Received:")
+          sys.stdout.write("\n============== Received:\n")
           sys.stdout.write(binary_output)
           sys.stdout.write("\n")
           raise TestError, "output mismatch for test %s" % source
