@@ -1,5 +1,5 @@
 func := { |x|
- k := return
+ k := cont
  if (< x 10) {
    print(x)
    func (+ x 1)

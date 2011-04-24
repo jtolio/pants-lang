@@ -1,0 +1,8 @@
+x 1
+return 2
+
+x 10
+y
+return y
+
+return code: 0

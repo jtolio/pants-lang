@@ -2,13 +2,18 @@
 #
 while := { |test, body|
   if test() {
-    if { {body(); true}(|loop-cont:return) }() {
+    if { {body(); true}(|loop-cont:cont) }() {
       while test body
     }
   }
 }
 break := { .loop-cont false }
 continue := { .loop-cont true }
+
+# See tests/return.cth for an example of how to define functions with working
+# return statements
+function := { |func| func(|return-cont:cont) }
+return := { |var| .return-cont var }
 
 # == Testing
 # TODO: 'and' and 'or' currently do not support short circuiting.

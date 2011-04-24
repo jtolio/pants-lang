@@ -11,7 +11,7 @@
 #define NULL_VALUE        ::cirth::ir::Name("null", false)
 #define HIDDEN_OBJECT     ::cirth::ir::Name("hidden_object", false)
 #define CONTINUATION      ::cirth::ir::Name("continuation", false)
-#define RETURN            ::cirth::ir::Name("return", true)
+#define RETURN            ::cirth::ir::Name("cont", true)
 #define THROW             ::cirth::ir::Name("throw", true)
 #define GENSYM_PREFIX     "ir_"
 
