@@ -96,6 +96,8 @@ class ExpressionWriter : public ExpressionVisitor {
         *m_os << "  continuation.t = NIL;\n";
       }
 
+      *m_os << "  hidden_object = " << var_access(m_env, HIDDEN_OBJECT) <<";\n";
+
       *m_os << "  right_positional_args = GC_MALLOC(sizeof(union Value) * "
             << (call->right_positional_args.size()) << ");\n";
       for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
@@ -175,7 +177,9 @@ class CallableWriter : public ValueVisitor {
             << ")\n"
                "  REQUIRED_FUNCTION(continuation)\n"
                "  " << scope_to_env(func->c_name()) << "->"
-            << CONTINUATION.c_name() << " = continuation;\n";
+            << CONTINUATION.c_name() << " = continuation;\n"
+               "  " << scope_to_env(func->c_name()) << "->"
+            << HIDDEN_OBJECT.c_name() << " = hidden_object;\n";
       for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
         bool is_mutated(func->right_positional_args[i].is_mutated());
         *m_os << "  " << scope_to_env(func->c_name()) << "->"
@@ -218,7 +222,9 @@ class CallableWriter : public ValueVisitor {
                "  MAX_LEFT_ARGS(0)\n"
                "  REQUIRED_FUNCTION(continuation)\n"
                "  " << scope_to_env(func->c_name()) << "->"
-            << CONTINUATION.c_name() << " = continuation;\n";
+            << CONTINUATION.c_name() << " = continuation;\n"
+               "  " << scope_to_env(func->c_name()) << "->"
+            << HIDDEN_OBJECT.c_name() << " = hidden_object;\n";
       wrapup(func);
     }
   private:

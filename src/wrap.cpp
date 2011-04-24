@@ -62,4 +62,5 @@ void cirth::wrap::remove_provided_names(std::set<Name>& names) {
 
   names.erase(NULL_VALUE);
   names.erase(CONTINUATION);
+  names.erase(HIDDEN_OBJECT);
 }

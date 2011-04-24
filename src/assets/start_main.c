@@ -8,11 +8,14 @@ int main(int argc, char **argv) {
   union Value* left_positional_args = NULL;
   unsigned int left_positional_args_size = 0;
   union Value continuation;
+  union Value hidden_object;
+  struct ObjectData hidden_object_data;
 
   GC_INIT();
 
   dest.t = NIL;
   continuation.t = NIL;
+  hidden_object.t = NIL;
 
   main.c_continuation.t = CLOSURE;
   main.c_continuation.closure.func = &&halt;
@@ -23,6 +26,11 @@ int main(int argc, char **argv) {
   main.c_true.boolean.value = true;
   main.c_false.t = BOOLEAN;
   main.c_false.boolean.value = false;
+
+  main.c_hidden_object.t = OBJECT;
+  main.c_hidden_object.object.data = &hidden_object_data;
+  hidden_object_data.sealed = false;
+  hidden_object_data.tree = NULL;
 
 #define DEFINE_BUILTIN(name) \
   main.c_##name.t = CLOSURE; \

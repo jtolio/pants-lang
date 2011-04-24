@@ -10,7 +10,7 @@ Assignee
 Term
  - Index(Variable, Variable)
  - Field(Variable, Variable)
- - Call(Variable, Left(Arg*), Right(Arg*), Scoped(Arg*))
+ - Call(Variable, Left(Arg*), Right(Arg*), HiddenObject(Arg*))
  - Variable
  - Integer(number)
  - CharString(data)

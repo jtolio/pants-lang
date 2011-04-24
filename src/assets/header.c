@@ -77,6 +77,7 @@ union Value {
 
 struct env_main {
   union Value c_continuation;
+  union Value c_hidden_object;
   union Value c_null;
   union Value c_print;
   union Value c_if;

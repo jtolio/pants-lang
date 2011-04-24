@@ -238,7 +238,7 @@ namespace parser {
       hiddenobjectfield = qi::lit(".") >> identifier[
           qi::_val = phx::construct<PTR<Value> >(
           phx::new_<HiddenObjectField>(qi::_1))];
-      hiddenobjectfield.name("scoped variable value");
+      hiddenobjectfield.name("hidden object variable value");
 
       integer = (qi::long_long >> !( qi::lit(".") >> qi::char_(digits)))[
           qi::_val = phx::construct<PTR<Value> >(phx::new_<Integer>(qi::_1))];

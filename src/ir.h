@@ -190,8 +190,7 @@ namespace ir {
     std::vector<OptionalOutArgument> right_optional_args;
     boost::optional<ArbitraryOutArgument> right_arbitrary_arg;
     boost::optional<KeywordOutArgument> right_keyword_arg;
-    std::vector<OptionalOutArgument> scoped_optional_args;
-    boost::optional<KeywordOutArgument> scoped_keyword_arg;
+    std::vector<OptionalOutArgument> hidden_object_optional_args;
     std::string format(unsigned int indent_level) const;
   };
 

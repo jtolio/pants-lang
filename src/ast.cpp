@@ -269,7 +269,8 @@ cirth::ast::Function::Function(const boost::optional<InArgList>& args_,
       right_arbitrary_arg = *((ArbitraryInArgument*)right_args[i].get());
     } else if(dynamic_cast<KeywordInArgument*>(right_args[i].get())) {
       if(!!right_keyword_arg)
-        throw cirth::expectation_failure("only one right keyword argument expected");
+        throw cirth::expectation_failure("only one right keyword argument "
+            "expected");
       right_keyword_arg = *((KeywordInArgument*)right_args[i].get());
     } else if(dynamic_cast<OptionalInArgument*>(right_args[i].get())) {
       right_optional_args.push_back(
@@ -349,7 +350,8 @@ std::string cirth::ast::Index::format() const {
 cirth::ast::ClosedCall::ClosedCall(
     const boost::optional<std::vector<PTR<OutArgument> > >& left_args_,
     const std::vector<PTR<OutArgument> >& right_args_,
-    const boost::optional<std::vector<PTR<OutArgument> > >& scoped_args_) {
+    const boost::optional<std::vector<PTR<OutArgument> > >&
+        hidden_object_args_) {
   if(!!left_args_) {
     left_required_args.reserve(left_args_.get().size());
     for(unsigned int i = 0; i < left_args_.get().size(); ++i) {
@@ -400,29 +402,26 @@ cirth::ast::ClosedCall::ClosedCall(
     }
   }
 
-  if(!!scoped_args_) {
-    scoped_optional_args.reserve(scoped_args_.get().size());
-    for(unsigned int i = 0; i < scoped_args_.get().size(); ++i) {
-      if(!scoped_args_.get()[i].get()) continue;
+  if(!!hidden_object_args_) {
+    hidden_object_optional_args.reserve(hidden_object_args_.get().size());
+    for(unsigned int i = 0; i < hidden_object_args_.get().size(); ++i) {
+      if(!hidden_object_args_.get()[i].get()) continue;
       if(dynamic_cast<OptionalOutArgument*>(
-          scoped_args_.get()[i].get())) {
-        scoped_optional_args.push_back(
-            *((OptionalOutArgument*)scoped_args_.get()[i].get()));
+          hidden_object_args_.get()[i].get())) {
+        hidden_object_optional_args.push_back(
+            *((OptionalOutArgument*)hidden_object_args_.get()[i].get()));
       } else if(dynamic_cast<KeywordOutArgument*>(
-          scoped_args_.get()[i].get())) {
-        if(!!scoped_keyword_arg)
-          throw cirth::expectation_failure("only one scoped keyword argument "
-              "expected");
-        scoped_keyword_arg = *(
-            (KeywordOutArgument*)scoped_args_.get()[i].get());
+          hidden_object_args_.get()[i].get())) {
+        throw cirth::expectation_failure("hidden object keyword argument not "
+            "supported");
       } else if(dynamic_cast<ArbitraryOutArgument*>(
-          scoped_args_.get()[i].get())) {
-        throw cirth::expectation_failure("scoped arbitrary argument not "
+          hidden_object_args_.get()[i].get())) {
+        throw cirth::expectation_failure("hidden object arbitrary argument not "
             "supported");
       } else if(dynamic_cast<RequiredOutArgument*>(
-          scoped_args_.get()[i].get())) {
-        throw cirth::expectation_failure("scoped positional argument not "
-            "supported");
+          hidden_object_args_.get()[i].get())) {
+        throw cirth::expectation_failure("hidden object positional argument "
+            "not supported");
       } else {
         throw cirth::expectation_failure("unknown argument type");
       }
@@ -459,14 +458,10 @@ std::string cirth::ast::ClosedCall::format() const {
         !!right_arbitrary_arg) os << ", ";
     os << right_keyword_arg.get().format();
   }
-  os << "), Scoped(";
-  for(unsigned int i = 0; i < scoped_optional_args.size(); ++i) {
+  os << "), HiddenObject(";
+  for(unsigned int i = 0; i < hidden_object_optional_args.size(); ++i) {
     if(i > 0) os << ", ";
-    os << scoped_optional_args[i].format();
-  }
-  if(!!scoped_keyword_arg) {
-    if(scoped_optional_args.size() > 0) os << ", ";
-    os << scoped_keyword_arg.get().format();
+    os << hidden_object_optional_args[i].format();
   }
   os << "))";
   return os.str();

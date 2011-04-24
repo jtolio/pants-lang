@@ -223,6 +223,8 @@ public:
         *m_lastval = rhs;
         return;
       }
+      throw expectation_failure("left-hand side of an assignment must be a "
+          "variable, field, or index");
     }
 
     term->value->accept(this);
@@ -332,17 +334,14 @@ public:
       visit(&subexp);
       outcall->right_keyword_arg = ir::KeywordOutArgument(*m_lastval);
     }
-    outcall->scoped_optional_args.reserve(incall->scoped_optional_args.size());
-    for(unsigned int i = 0; i < incall->scoped_optional_args.size(); ++i) {
-      incall->scoped_optional_args[i].application->accept(this);
-      outcall->scoped_optional_args.push_back(
+    outcall->hidden_object_optional_args.reserve(
+        incall->hidden_object_optional_args.size());
+    for(unsigned int i = 0; i < incall->hidden_object_optional_args.size();
+        ++i) {
+      incall->hidden_object_optional_args[i].application->accept(this);
+      outcall->hidden_object_optional_args.push_back(
           ir::OptionalOutArgument(ir::Name(
-          incall->scoped_optional_args[i].name), *m_lastval));
-    }
-    if(!!incall->scoped_keyword_arg) {
-      ast::SubExpression subexp(incall->scoped_keyword_arg.get().object);
-      visit(&subexp);
-      outcall->scoped_keyword_arg = ir::KeywordOutArgument(*m_lastval);
+          incall->hidden_object_optional_args[i].name), *m_lastval));
     }
     ir::Name name(gensym());
     m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
@@ -567,16 +566,12 @@ std::string cirth::ir::Call::format(unsigned int indent_level) const {
     if(comma_needed) os << ", ";
     os << right_keyword_arg.get().format(indent_level+2);
   }
-  os << "), Scoped(";
+  os << "), HiddenObject(";
   comma_needed = false;
-  for(unsigned int i = 0; i < scoped_optional_args.size(); ++i) {
+  for(unsigned int i = 0; i < hidden_object_optional_args.size(); ++i) {
     if(comma_needed) os << ", ";
-    os << scoped_optional_args[i].format(indent_level+2);
+    os << hidden_object_optional_args[i].format(indent_level+2);
     comma_needed = true;
-  }
-  if(!!scoped_keyword_arg) {
-    if(comma_needed) os << ", ";
-    os << scoped_keyword_arg.get().format(indent_level+2);
   }
   os << "))";
   return os.str();

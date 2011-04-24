@@ -22,6 +22,7 @@ class ParserTest : public CPPUNIT_NS::TestFixture {
   CPPUNIT_TEST(testFloatingPoint);
   CPPUNIT_TEST(testEquality);
   CPPUNIT_TEST(testComments);
+  CPPUNIT_TEST(testHiddenObject);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -96,12 +97,12 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("f(arg)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(arg, user_provided)), Trailers())))), Scoped()))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(arg, user_provided)), Trailers())))), HiddenObject()))))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("f(arg1, arg2)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers()))), RequiredOutArgument(Application(Term(Value(Variable(arg2, user_provided)), Trailers())))), Scoped()))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers()))), RequiredOutArgument(Application(Term(Value(Variable(arg2, user_provided)), Trailers())))), HiddenObject()))))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("f (arg)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
@@ -111,7 +112,7 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("f?(arg)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(OpenCall(), ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(arg, user_provided)), Trailers())))), Scoped()))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(OpenCall(), ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(arg, user_provided)), Trailers())))), HiddenObject()))))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("f? (arg)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
@@ -121,22 +122,22 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("f(arg1;arg2)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers())))), Right(RequiredOutArgument(Application(Term(Value(Variable(arg2, user_provided)), Trailers())))), Scoped()))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers())))), Right(RequiredOutArgument(Application(Term(Value(Variable(arg2, user_provided)), Trailers())))), HiddenObject()))))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("f(arg1,arg2;arg3)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers()))), RequiredOutArgument(Application(Term(Value(Variable(arg2, user_provided)), Trailers())))), Right(RequiredOutArgument(Application(Term(Value(Variable(arg3, user_provided)), Trailers())))), Scoped()))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers()))), RequiredOutArgument(Application(Term(Value(Variable(arg2, user_provided)), Trailers())))), Right(RequiredOutArgument(Application(Term(Value(Variable(arg3, user_provided)), Trailers())))), HiddenObject()))))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("f(arg1,arg2,;arg3)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers()))), RequiredOutArgument(Application(Term(Value(Variable(arg2, user_provided)), Trailers())))), Right(RequiredOutArgument(Application(Term(Value(Variable(arg3, user_provided)), Trailers())))), Scoped()))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers()))), RequiredOutArgument(Application(Term(Value(Variable(arg2, user_provided)), Trailers())))), Right(RequiredOutArgument(Application(Term(Value(Variable(arg3, user_provided)), Trailers())))), HiddenObject()))))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("f(arg1;arg2|arg3:3)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers())))), Right(RequiredOutArgument(Application(Term(Value(Variable(arg2, user_provided)), Trailers())))), Scoped(OptionalOutArgument(Variable(arg3, user_provided), Application(Term(Value(Integer(3)), Trailers()))))))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers())))), Right(RequiredOutArgument(Application(Term(Value(Variable(arg2, user_provided)), Trailers())))), HiddenObject(OptionalOutArgument(Variable(arg3, user_provided), Application(Term(Value(Integer(3)), Trailers()))))))))");
   }
 
   void testSingleLists() {
@@ -154,7 +155,7 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("f(arg1,)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers())))), Scoped()))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers())))), HiddenObject()))))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("{|a,;| null}", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
@@ -194,7 +195,7 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("{|a| print(\"hi\"); null}", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Function(Left(Required()), Right(Required(RequiredInArgument(Variable(a, user_provided))), Optional()), Expressions(Application(Term(Value(Variable(print, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(CharString(hi)), Trailers())))), Scoped())))), Application(Term(Value(Variable(null, user_provided)), Trailers()))))), Trailers()))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Function(Left(Required()), Right(Required(RequiredInArgument(Variable(a, user_provided))), Optional()), Expressions(Application(Term(Value(Variable(print, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(CharString(hi)), Trailers())))), HiddenObject())))), Application(Term(Value(Variable(null, user_provided)), Trailers()))))), Trailers()))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("{|a,| null}", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
@@ -279,12 +280,12 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("f(thing, *(thing))", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(thing, user_provided)), Trailers()))), ArbitraryOutArgument(Application(Term(Value(Variable(thing, user_provided)), Trailers())))), Scoped()))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(thing, user_provided)), Trailers()))), ArbitraryOutArgument(Application(Term(Value(Variable(thing, user_provided)), Trailers())))), HiddenObject()))))");
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("f(*,(thing),thing)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
-    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(*, user_provided)), Trailers()))), RequiredOutArgument(Application(Term(Value(SubExpression(Application(Term(Value(Variable(thing, user_provided)), Trailers())))), Trailers()))), RequiredOutArgument(Application(Term(Value(Variable(thing, user_provided)), Trailers())))), Scoped()))))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(*, user_provided)), Trailers()))), RequiredOutArgument(Application(Term(Value(SubExpression(Application(Term(Value(Variable(thing, user_provided)), Trailers())))), Trailers()))), RequiredOutArgument(Application(Term(Value(Variable(thing, user_provided)), Trailers())))), HiddenObject()))))");
   }
 
   void testByteString() {
@@ -386,6 +387,13 @@ public:
     exps.clear();
   }
 
+  void testHiddenObject() {
+    std::vector<PTR<cirth::ast::Expression> > exps;
+    CPPUNIT_ASSERT(cirth::parser::parse(".x = 3", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0]->format() == "Mutation(Assignee(Term(Value(HiddenObjectField(x)), Trailers())), Application(Term(Value(Integer(3)), Trailers())))");
+  }
+
 };
 
 class IRTest : public CPPUNIT_NS::TestFixture {
@@ -415,22 +423,32 @@ public:
         "Definition(c_ir_2, Function(Left(), Right(), "
             "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
         "VariableMutation(u_x, c_ir_2)\n"
-        "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), Scoped()))\n"
+        "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), HiddenObject()))\n"
         "c_ir_3");
     CPPUNIT_ASSERT(ir_translate("x := { 3 }\nx()\n") ==
         "Definition(u_x, Variable(c_null))\n"
         "Definition(c_ir_2, Function(Left(), Right(), "
             "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
         "VariableMutation(u_x, c_ir_2)\n"
-        "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), Scoped()))\n"
+        "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), HiddenObject()))\n"
         "c_ir_3");
     CPPUNIT_ASSERT(ir_translate("x := { 3 }\nx.") ==
         "Definition(u_x, Variable(c_null))\n"
         "Definition(c_ir_2, Function(Left(), Right(), "
             "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
         "VariableMutation(u_x, c_ir_2)\n"
-        "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), Scoped()))\n"
+        "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), HiddenObject()))\n"
         "c_ir_3");
+    CPPUNIT_ASSERT(ir_translate("x.x = 3\n") ==
+        "Definition(c_ir_1, Integer(3))\n"
+        "ObjectMutation(u_x, u_x, c_ir_1)\n"
+        "c_ir_1");
+    CPPUNIT_ASSERT(ir_translate("print .x\n") ==
+        "Definition(c_ir_2, Field(c_hidden_object, u_x))\n"
+        "ReturnValue(c_ir_3, Call(u_print, Left(), "
+            "Right(PositionalOutArgument(c_ir_2)), HiddenObject()))\n"
+        "c_ir_3");
+    CPPUNIT_ASSERT_THROW(ir_translate(".x = 3\n"), cirth::expectation_failure);
   }
 };
 

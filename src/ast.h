@@ -260,7 +260,8 @@ namespace ast {
     ClosedCall(
         const boost::optional<std::vector<PTR<OutArgument> > >& left_args_,
         const std::vector<PTR<OutArgument> >& right_args_,
-        const boost::optional<std::vector<PTR<OutArgument> > >& scoped_args_);
+        const boost::optional<std::vector<PTR<OutArgument> > >&
+            hidden_object_args_);
 
     std::vector<RequiredOutArgument> left_required_args;
     boost::optional<ArbitraryOutArgument> left_arbitrary_arg;
@@ -268,8 +269,7 @@ namespace ast {
     std::vector<OptionalOutArgument> right_optional_args;
     boost::optional<ArbitraryOutArgument> right_arbitrary_arg;
     boost::optional<KeywordOutArgument> right_keyword_arg;
-    std::vector<OptionalOutArgument> scoped_optional_args;
-    boost::optional<KeywordOutArgument> scoped_keyword_arg;
+    std::vector<OptionalOutArgument> hidden_object_optional_args;
 
     std::string format() const;
     void accept(AstVisitor* visitor) { visitor->visit(this); }

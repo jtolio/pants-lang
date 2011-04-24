@@ -47,16 +47,13 @@ std::string cps::Call::format(unsigned int indent_level) const {
     if(comma_needed) os << ",\n" << indent(indent_level+1);
     os << right_keyword_arg.get().format(indent_level+2);
   }
-  os << "),\n" << indent(indent_level) << "Scoped(\n" << indent(indent_level+1);
+  os << "),\n" << indent(indent_level) << "HiddenObject(\n"
+     << indent(indent_level+1);
   comma_needed = false;
-  for(unsigned int i = 0; i < scoped_optional_args.size(); ++i) {
+  for(unsigned int i = 0; i < hidden_object_optional_args.size(); ++i) {
     if(comma_needed) os << ",\n" << indent(indent_level+1);
-    os << scoped_optional_args[i].format(indent_level+2);
+    os << hidden_object_optional_args[i].format(indent_level+2);
     comma_needed = true;
-  }
-  if(!!scoped_keyword_arg) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);
-    os << scoped_keyword_arg.get().format(indent_level+2);
   }
   os << ")";
   if(continuation.get())
@@ -319,15 +316,13 @@ public:
       call->right_keyword_arg =
           rv->term->right_keyword_arg.get().variable;
     }
-    call->scoped_optional_args.reserve(rv->term->scoped_optional_args.size());
-    for(unsigned int i = 0; i < rv->term->scoped_optional_args.size(); ++i) {
-      call->scoped_optional_args.push_back(cps::Definition(
-          rv->term->scoped_optional_args[i].key,
-          rv->term->scoped_optional_args[i].variable));
-    }
-    if(!!rv->term->scoped_keyword_arg) {
-      call->scoped_keyword_arg =
-          rv->term->scoped_keyword_arg.get().variable;
+    call->hidden_object_optional_args.reserve(
+        rv->term->hidden_object_optional_args.size());
+    for(unsigned int i = 0; i < rv->term->hidden_object_optional_args.size();
+        ++i) {
+      call->hidden_object_optional_args.push_back(cps::Definition(
+          rv->term->hidden_object_optional_args[i].key,
+          rv->term->hidden_object_optional_args[i].variable));
     }
     PTR<cps::Continuation> continuation(new cps::Continuation);
     continuation->vars.push_back(rv->assignee);
@@ -405,6 +400,7 @@ void cps::Call::free_names(std::set<Name>& names) {
   if(!!right_arbitrary_arg) names.insert(right_arbitrary_arg.get());
   if(!!right_keyword_arg) names.insert(right_keyword_arg.get());
   free_names_in_values(continuation, names);
+  names.insert(HIDDEN_OBJECT);
 }
 
 static inline void add_unique_name(std::set<cps::Name>& names,

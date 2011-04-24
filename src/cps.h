@@ -98,8 +98,7 @@ namespace cps {
     std::vector<Definition> right_optional_args;
     boost::optional<Name> right_arbitrary_arg;
     boost::optional<Name> right_keyword_arg;
-    std::vector<Definition> scoped_optional_args;
-    boost::optional<Name> scoped_keyword_arg;
+    std::vector<Definition> hidden_object_optional_args;
     PTR<Value> continuation;
     void callables(std::vector<PTR<Callable> >& callables);
     void free_names(std::set<Name>& names);
