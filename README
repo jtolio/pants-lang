@@ -43,7 +43,7 @@ this generates a c program that outputs
     1070
     100
 
-for more samples, check out the standard prelude in src/assets
+for more samples, check out tests/ or the standard prelude in src/assets/
 
 still to come: a bunch of stuff.
 
