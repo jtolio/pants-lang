@@ -1,12 +1,14 @@
 # == Control constructs
-# 'break' and 'return' don't exist yet
 #
 while := { |test, body|
   if test() {
-    body.
-    while test body
+    if { {body(); true}(|loop-cont:return) }() {
+      while test body
+    }
   }
 }
+break := { .loop-cont false }
+continue := { .loop-cont true }
 
 # == Testing
 # TODO: 'and' and 'or' currently do not support short circuiting.

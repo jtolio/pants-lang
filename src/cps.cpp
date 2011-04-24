@@ -397,6 +397,8 @@ void cps::Call::free_names(std::set<Name>& names) {
     free_names_in_values(right_positional_args[i], names);
   for(unsigned int i = 0; i < right_optional_args.size(); ++i)
     names.insert(right_optional_args[i].value);
+  for(unsigned int i = 0; i < hidden_object_optional_args.size(); ++i)
+    names.insert(hidden_object_optional_args[i].value);
   if(!!right_arbitrary_arg) names.insert(right_arbitrary_arg.get());
   if(!!right_keyword_arg) names.insert(right_keyword_arg.get());
   free_names_in_values(continuation, names);

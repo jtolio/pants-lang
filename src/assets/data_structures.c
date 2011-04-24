@@ -11,13 +11,11 @@ struct ObjectData {
   struct ObjectTree* tree;
 };
 
-static inline union Value make_object() {
-  union Value v;
-  v.t = OBJECT;
-  v.object.data = GC_MALLOC(sizeof(struct ObjectData));
-  v.object.data->sealed = false;
-  v.object.data->tree = NULL;
-  return v;
+static inline void make_object(union Value* v) {
+  v->t = OBJECT;
+  v->object.data = GC_MALLOC(sizeof(struct ObjectData));
+  v->object.data->sealed = false;
+  v->object.data->tree = NULL;
 }
 
 static inline struct ObjectTree* new_tree_node(char* key, unsigned int key_size,
@@ -41,9 +39,11 @@ static void _copy_object(struct ObjectTree* t1, struct ObjectTree** t2) {
   _copy_object(t1->right, &(*t2)->right);
 }
 
-static inline void copy_object(struct ObjectData* d1, struct ObjectData* d2) {
-  d2->sealed = false;
-  _copy_object(d1->tree, &d2->tree);
+static inline bool copy_object(union Value* o1, union Value* o2) {
+  if(o1->t != OBJECT) return false;
+  make_object(o2);
+  _copy_object(o1->object.data->tree, &o2->object.data->tree);
+  return true;
 }
 
 static inline void seal_object(struct ObjectData* data) {

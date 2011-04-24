@@ -397,12 +397,24 @@ bool cirth::ir::Name::is_mutated() const {
       m_mutation.end();
 }
 
+static std::string sanitize(const std::string& str) {
+  std::ostringstream os;
+  for(unsigned int i = 0; i < str.size(); ++i) {
+    if(isalnum(str[i])) {
+      os << str[i];
+    } else {
+      os << "_";
+    }
+  }
+  return os.str();
+}
+
 std::string cirth::ir::Name::c_name() const {
   std::ostringstream os;
   if(user_provided) {
-    os << "u_" << varid;
+    os << "u_" << sanitize(name) << "_" << varid;
   } else {
-    os << "c_" << name;
+    os << "c_" << sanitize(name);
   }
   return os.str();
 }

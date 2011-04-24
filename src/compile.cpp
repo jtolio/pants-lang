@@ -96,7 +96,28 @@ class ExpressionWriter : public ExpressionVisitor {
         *m_os << "  continuation.t = NIL;\n";
       }
 
-      *m_os << "  hidden_object = " << var_access(m_env, HIDDEN_OBJECT) <<";\n";
+      if(call->hidden_object_optional_args.size() > 0) {
+        *m_os << "  if(!copy_object(&" << var_access(m_env, HIDDEN_OBJECT)
+              << ", &hidden_object)) {\n"
+                 "    printf(\"object required\\n\");\n"
+                 "    exit(1);\n"
+                 "  }\n";
+        for(unsigned int i = 0; i < call->hidden_object_optional_args.size();
+            ++i) {
+          *m_os << "  set_field(hidden_object.object.data, "
+                << to_bytestring(
+                    call->hidden_object_optional_args[i].key.c_name())
+                << ", "
+                << call->hidden_object_optional_args[i].key.c_name().size()
+                << ", &"
+                << var_access(m_env, call->hidden_object_optional_args[i].value)
+                << ");\n";
+        }
+        *m_os << "  seal_object(hidden_object.object.data);\n";
+      } else {
+        *m_os << "  hidden_object = " << var_access(m_env, HIDDEN_OBJECT)
+              << ";\n";
+      }
 
       *m_os << "  if(" << call->right_positional_args.size()
             << " > right_positional_args_highwater) {\n"

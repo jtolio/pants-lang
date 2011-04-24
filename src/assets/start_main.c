@@ -219,7 +219,7 @@ c_new_object:
     right_positional_args_highwater = 1;
   }
   right_positional_args_size = 1;
-  right_positional_args[0] = make_object();
+  make_object(&right_positional_args[0]);
   dest = continuation;
   continuation.t = NIL;
   CALL_FUNC(dest);
