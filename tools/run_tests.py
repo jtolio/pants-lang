@@ -45,7 +45,7 @@ def run_tests():
             C_LIBRARIES)
         binary = subprocess.Popen([c_source[:-2]], stdout=subprocess.PIPE)
         binary_output = clean_up(binary.communicate()[0] +
-            ("\n%d" % binary.returncode))
+            ("\nreturn code: %d" % binary.returncode))
         expected_output = clean_up(file(output).read())
         if binary_output != expected_output:
           sys.stdout.write("test %s\n============== Expected:\n" % source)
