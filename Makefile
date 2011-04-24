@@ -3,7 +3,7 @@ all: cirth
 cirth:
 	cd src && make cirth
 
-test:
+test: cirth
 	cd src && make test
 	cd tests && ../tools/run_tests.py
 
