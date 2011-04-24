@@ -187,14 +187,14 @@ public:
   void visit(ast::Array* in_array) {
     ir::Name out_array(gensym());
     PTR<ir::Call> constructor(new ir::Call(ARRAY_CONSTRUCTOR));
-    m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(out_array,
-        constructor)));
     constructor->right_positional_args.reserve(in_array->values.size());
     for(unsigned int i = 0; i < in_array->values.size(); ++i) {
       in_array->values[i]->accept(this);
       constructor->right_positional_args.push_back(ir::PositionalOutArgument(
           *m_lastval));
     }
+    m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(out_array,
+        constructor)));
     *m_lastval = out_array;
   }
 
