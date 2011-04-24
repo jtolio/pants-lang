@@ -1,3 +1,6 @@
+# == Control constructs
+# 'break' and 'return' don't exist yet
+#
 while := { |test, body|
   if test() {
     body.
@@ -5,14 +8,31 @@ while := { |test, body|
   }
 }
 
+# == Testing
+# TODO: 'and' and 'or' currently do not support short circuiting.
+#
 and := { |left, right| if left { right } { left } }
 or := { |left, right| if left { left } { right } }
 not := { |val| if val { false } { true } }
 
+# == Object construction
+# sample usage (ignore how dumb getters and setters are)
+# Employee := { |first, last| construct { |obj|
+#   obj.get_first = { first }
+#   obj.get_last = { last }
+#   obj.set_first = { |new| first = new }
+#   obj.set_last = { |new| last = new }
+# }}
+# emp1 := Employee "JT" "Olds"
+# print emp1.get_first() emp1.get_last() # => JT Olds
+# emp1.set_first "Sam"
+# print emp1.get_first() emp1.get_last() # => Sam Olds
+#
 construct := { |func|
   obj := new_object.
   rv := func obj
   seal_object obj
 }
+# TODO: actually clear this out of the scope or something
 new_object := null
 seal_object := null

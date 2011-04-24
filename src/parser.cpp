@@ -68,15 +68,18 @@ namespace parser {
     qi::rule<Iterator, PTR<Assignee>()> assignee;
     qi::rule<Iterator> nl_skipper;
     qi::rule<Iterator> skipper;
+    qi::rule<Iterator> comment;
 
     grammar() : grammar::base_type(program) {
 #define S(exp) qi::skip(skipper.alias())[exp]
 #define NLS(exp) qi::skip(nl_skipper.alias())[exp]
 
-      char const* exclude = " \n\r\t;,()[]{}|'\".?:@";
+      char const* exclude = " \n\r\t;,()[]{}|'\".?:@#";
       char const* digits = "0123456789";
 
-      nl_skipper = qi::char_(" \t\r");
+      comment = qi::lit("#") >> *(qi::char_ - qi::char_("\n"));
+
+      nl_skipper = qi::char_(" \t\r") | comment;
       skipper = nl_skipper | '\n';
 
       program = -nl_explist >> *skipper;

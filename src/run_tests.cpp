@@ -21,6 +21,7 @@ class ParserTest : public CPPUNIT_NS::TestFixture {
   CPPUNIT_TEST(testNewlines);
   CPPUNIT_TEST(testFloatingPoint);
   CPPUNIT_TEST(testEquality);
+  CPPUNIT_TEST(testComments);
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -362,6 +363,27 @@ public:
     CPPUNIT_ASSERT(cirth::parser::parse("x ==. 3\n", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(x, user_provided)), Trailers()), Term(Value(Variable(==, user_provided)), Trailers(OpenCall())), Term(Value(Integer(3)), Trailers()))");
+  }
+
+  void testComments() {
+    std::vector<PTR<cirth::ast::Expression> > exps;
+    CPPUNIT_ASSERT(cirth::parser::parse("# ||||| this comment shouldn't fail { \n 1\n", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Integer(1)), Trailers()))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("# ||||| this comment shouldn't fail { \n # ||||| this comment shouldn't fail { \n 1\n", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Integer(1)), Trailers()))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("\n   1 # ||||| this comment shouldn't fail { \n # ||||| this comment shouldn't fail { \n \n", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Integer(1)), Trailers()))");
+    exps.clear();
+    CPPUNIT_ASSERT(cirth::parser::parse("\n   1 # ||||| this comment shouldn't fail { \n 2 # ||||| this comment shouldn't fail { \n \n", exps));
+    CPPUNIT_ASSERT(exps.size() == 2);
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Integer(1)), Trailers()))");
+    CPPUNIT_ASSERT(exps[1]->format() == "Application(Term(Value(Integer(2)), Trailers()))");
+    exps.clear();
   }
 
 };
