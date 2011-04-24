@@ -62,9 +62,6 @@ std::string cps::Call::format(unsigned int indent_level) const {
   if(continuation.get())
     os << ",\n" << indent(indent_level) << "Cont("
        << continuation->format(indent_level+1) << ")";
-  if(exception.get())
-    os << ",\n" << indent(indent_level) << "Exc("
-       << exception->format(indent_level+1) << ")";
   os << ",\n" << indent(indent_level) << callable->format(indent_level+1)
      << ")";
   return os.str();
@@ -394,7 +391,6 @@ void cps::Call::callables(std::vector<PTR<cps::Callable> >& callables) {
     callables_in_values(right_positional_args[i], callables);
   }
   callables_in_values(continuation, callables);
-  callables_in_values(exception, callables);
 }
 
 void cps::Call::free_names(std::set<Name>& names) {
@@ -409,7 +405,6 @@ void cps::Call::free_names(std::set<Name>& names) {
   if(!!right_arbitrary_arg) names.insert(right_arbitrary_arg.get());
   if(!!right_keyword_arg) names.insert(right_keyword_arg.get());
   free_names_in_values(continuation, names);
-  free_names_in_values(exception, names);
 }
 
 static inline void add_unique_name(std::set<cps::Name>& names,
@@ -433,7 +428,6 @@ void cps::Function::arg_names(std::set<cps::Name>& names) {
   add_unique_name(args, HIDDEN_OBJECT);
   add_unique_name(args, RETURN);
   add_unique_name(args, CONTINUATION);
-  add_unique_name(args, EXCEPTION);
   for(std::set<Name>::iterator it(args.begin()); it != args.end(); ++it)
     names.insert(*it);
 }
@@ -473,7 +467,6 @@ void cps::Continuation::free_names(std::set<Name>& names) {
 void cps::Scope::arg_names(std::set<Name>& names) {
   names.insert(HIDDEN_OBJECT);
   names.insert(CONTINUATION);
-  names.insert(EXCEPTION);
 }
 
 void cps::Scope::free_names(std::set<Name>& names) {

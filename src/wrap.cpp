@@ -61,6 +61,5 @@ void cirth::wrap::remove_provided_names(std::set<Name>& names) {
 #undef REMOVE_NAME
 
   names.erase(NULL_VALUE);
-//  names.erase(EXCEPTION);
   names.erase(CONTINUATION);
 }

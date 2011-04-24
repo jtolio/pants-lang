@@ -101,7 +101,6 @@ namespace cps {
     std::vector<Definition> scoped_optional_args;
     boost::optional<Name> scoped_keyword_arg;
     PTR<Value> continuation;
-    PTR<Value> exception;
     void callables(std::vector<PTR<Callable> >& callables);
     void free_names(std::set<Name>& names);
     std::string format(unsigned int indent_level) const;
