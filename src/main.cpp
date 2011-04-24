@@ -9,10 +9,6 @@
 
 using namespace cirth;
 
-void compile(const std::string& src) {
-
-}
-
 int main(int argc, char** argv) {
   std::string str;
   std::ostringstream os;
