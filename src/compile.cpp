@@ -98,23 +98,35 @@ class ExpressionWriter : public ExpressionVisitor {
 
       *m_os << "  hidden_object = " << var_access(m_env, HIDDEN_OBJECT) <<";\n";
 
-      *m_os << "  right_positional_args = GC_MALLOC(sizeof(union Value) * "
-            << (call->right_positional_args.size()) << ");\n";
+      *m_os << "  if(" << call->right_positional_args.size()
+            << " > right_positional_args_highwater) {\n"
+               "    right_positional_args_highwater = "
+            << call->right_positional_args.size() << ";\n"
+               "    right_positional_args = GC_MALLOC(sizeof(union Value) * "
+            << call->right_positional_args.size() << ");\n"
+               "  }\n"
+               "  right_positional_args_size = "
+            << call->right_positional_args.size() << ";\n";
+
       for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
         call->right_positional_args[i]->accept(&writer);
         *m_os << "  right_positional_args[" << i << "] = dest;\n";
       }
-      *m_os << "  right_positional_args_size = "
-            << call->right_positional_args.size() << ";\n";
 
-      *m_os << "  left_positional_args = GC_MALLOC(sizeof(union Value) * "
-            << (call->left_positional_args.size()) << ");\n";
+      *m_os << "  if(" << call->left_positional_args.size()
+            << " > left_positional_args_highwater) {\n"
+               "    left_positional_args_highwater = "
+            << call->left_positional_args.size() << ";\n"
+               "    left_positional_args = GC_MALLOC(sizeof(union Value) * "
+            << call->left_positional_args.size() << ");\n"
+               "  }\n"
+               "  left_positional_args_size = "
+            << call->left_positional_args.size() << ";\n";
+
       for(unsigned int i = 0; i < call->left_positional_args.size(); ++i) {
         *m_os << "  left_positional_args[" << i << "] = "
               << var_access(m_env, call->left_positional_args[i]) << ";\n";
       }
-      *m_os << "  left_positional_args_size = "
-            << call->left_positional_args.size() << ";\n";
 
       call->callable->accept(&writer);
       *m_os << "  REQUIRED_FUNCTION(dest)\n"

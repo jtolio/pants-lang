@@ -5,8 +5,10 @@ int main(int argc, char **argv) {
   unsigned int i;
   union Value* right_positional_args = NULL;
   unsigned int right_positional_args_size = 0;
+  unsigned int right_positional_args_highwater = 0;
   union Value* left_positional_args = NULL;
   unsigned int left_positional_args_size = 0;
+  unsigned int left_positional_args_highwater = 0;
   union Value continuation;
   union Value hidden_object;
   struct ObjectData hidden_object_data;
@@ -96,8 +98,11 @@ c_print:
   } else {
     dest.t = NIL;
   }
+  if(right_positional_args_highwater < 1) {
+    right_positional_args = GC_MALLOC(sizeof(union Value));
+    right_positional_args_highwater = 1;
+  }
   right_positional_args_size = 1;
-  right_positional_args = GC_MALLOC(sizeof(union Value));
   right_positional_args[0] = dest;
   dest = continuation;
   continuation.t = NIL;
@@ -195,8 +200,11 @@ c_add:
       dest = builtin_add(dest, right_positional_args[i]);
   }
   left_positional_args_size = 0;
+  if(right_positional_args_highwater < 1) {
+    right_positional_args = GC_MALLOC(sizeof(union Value));
+    right_positional_args_highwater = 1;
+  }
   right_positional_args_size = 1;
-  right_positional_args = GC_MALLOC(sizeof(union Value));
   right_positional_args[0] = dest;
   dest = continuation;
   continuation.t = NIL;
@@ -206,8 +214,11 @@ c_new_object:
   REQUIRED_FUNCTION(continuation)
   MAX_LEFT_ARGS(0)
   MAX_RIGHT_ARGS(0)
+  if(right_positional_args_highwater < 1) {
+    right_positional_args = GC_MALLOC(sizeof(union Value));
+    right_positional_args_highwater = 1;
+  }
   right_positional_args_size = 1;
-  right_positional_args = GC_MALLOC(sizeof(union Value));
   right_positional_args[0] = make_object();
   dest = continuation;
   continuation.t = NIL;
