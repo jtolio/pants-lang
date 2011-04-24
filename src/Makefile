@@ -38,8 +38,10 @@ run_tests.o: run_tests.cpp common.h parser.h ast.h wrap.h ir.h cps.h compile.h
 cirth: main.o parser.o ast.o wrap.o ir.o cps.o compile.o assets.o
 	$(CPP) $(CFLAGS) -o cirth main.o ast.o parser.o wrap.o ir.o cps.o compile.o assets.o
 
-test: run_tests.o parser.o ast.o wrap.o ir.o cps.o compile.o assets.o
+run_tests: run_tests.o parser.o ast.o wrap.o ir.o cps.o compile.o assets.o
 	$(CPP) $(CFLAGS) -o run_tests run_tests.o ast.o parser.o wrap.o ir.o cps.o compile.o assets.o -lcppunit -ldl
+
+test: run_tests
 	./run_tests
 
 clean:

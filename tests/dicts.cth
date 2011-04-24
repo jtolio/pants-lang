@@ -1,0 +1,15 @@
+Dictionary := { construct { |obj|
+  obj.~index = { |key|
+    print "index" key
+    (+ "index value " key)
+  }
+  obj.~update = { |key, value|
+    print "update" key value
+    (+ "update value " key " " value)
+  }
+}}
+
+x := {"hey": "there", "dictionaries": "are cool"}
+
+print x["groovy"]
+print (x["test1"] = "test2")
