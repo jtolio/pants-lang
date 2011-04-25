@@ -1,0 +1,34 @@
+try {
+  print "hello"
+  try {
+    print "there"
+    throw "ex1"
+    print "notreached"
+  } { |e|
+    print "inner-handler" e
+    throw (+ e "-2")
+  }
+  print "notreached"
+} { |e|
+  print "outer-handler" e
+}
+
+print (try {
+  3
+} { |e|
+  4
+})
+
+print (try {
+  3
+  throw 4
+} { |e|
+  e
+})
+
+print (try {
+  3
+  throw "error"
+} { |e|
+  5
+})

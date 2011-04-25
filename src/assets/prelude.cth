@@ -63,3 +63,9 @@ freeze := { |macro|
     k true
   }
 }
+
+
+try := { |body, handler|
+  { body() }(;;exception-cont:cont, exception-handler:freeze(handler))
+}
+throw := { |e| .exception-cont .exception-handler(e) }
