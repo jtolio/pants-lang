@@ -1,5 +1,3 @@
-# == Control constructs
-#
 while := { |test, body|
   if test() {
     if { {body(); true}(;;loop-cont:cont) }() {
@@ -10,17 +8,18 @@ while := { |test, body|
 break := { .loop-cont false }
 continue := { .loop-cont true }
 
+
 # See tests/return.cth for an example of how to define functions with working
 # return statements
 function := { |func| func(;;return-cont:cont) }
 return := { |var| .return-cont var }
 
-# == Testing
+
 # TODO: 'and' and 'or' currently do not support short circuiting.
-#
 and := { |left, right| if left { right } { left } }
 or := { |left, right| if left { left } { right } }
 not := { |val| if val { false } { true } }
+
 
 # == Object construction
 # sample usage (ignore how dumb getters and setters are)
@@ -43,3 +42,24 @@ construct := { |func|
 # TODO: actually clear this out of the scope or something
 new_object := null
 seal_object := null
+
+
+freeze := { |macro|
+  k := null
+  obj := construct { |o|
+    o.k = null
+    o.arg = null
+  }
+  rv := {
+    k = cont
+    false
+  }()
+  if (rv) {
+    obj.k macro(obj.arg)
+  }
+  { |arg|
+    obj.k = cont
+    obj.arg = arg
+    k true
+  }
+}
