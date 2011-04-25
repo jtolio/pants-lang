@@ -134,7 +134,7 @@ public:
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers()))), RequiredOutArgument(Application(Term(Value(Variable(arg2, user_provided)), Trailers())))), Right(RequiredOutArgument(Application(Term(Value(Variable(arg3, user_provided)), Trailers())))), HiddenObject()))))");
     exps.clear();
-    CPPUNIT_ASSERT(cirth::parser::parse("f(arg1;arg2|arg3:3)", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("f(arg1;arg2;arg3:3)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(RequiredOutArgument(Application(Term(Value(Variable(arg1, user_provided)), Trailers())))), Right(RequiredOutArgument(Application(Term(Value(Variable(arg2, user_provided)), Trailers())))), HiddenObject(OptionalOutArgument(Variable(arg3, user_provided), Application(Term(Value(Integer(3)), Trailers()))))))))");

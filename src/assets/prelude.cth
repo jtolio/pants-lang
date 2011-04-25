@@ -2,7 +2,7 @@
 #
 while := { |test, body|
   if test() {
-    if { {body(); true}(|loop-cont:cont) }() {
+    if { {body(); true}(;;loop-cont:cont) }() {
       while test body
     }
   }
@@ -12,7 +12,7 @@ continue := { .loop-cont true }
 
 # See tests/return.cth for an example of how to define functions with working
 # return statements
-function := { |func| func(|return-cont:cont) }
+function := { |func| func(;;return-cont:cont) }
 return := { |var| .return-cont var }
 
 # == Testing

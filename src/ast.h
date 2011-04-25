@@ -257,11 +257,16 @@ namespace ast {
 
   struct ClosedCall : public ValueModifier {
     ClosedCall() {}
-    ClosedCall(
-        const boost::optional<std::vector<PTR<OutArgument> > >& left_args_,
-        const std::vector<PTR<OutArgument> >& right_args_,
-        const boost::optional<std::vector<PTR<OutArgument> > >&
-            hidden_object_args_);
+    ClosedCall(const std::vector<PTR<OutArgument> >& right_args_)
+      { init(std::vector<PTR<OutArgument> >(), right_args_,
+          std::vector<PTR<OutArgument> >()); }
+    ClosedCall(const std::vector<PTR<OutArgument> >& left_args_,
+               const std::vector<PTR<OutArgument> >& right_args_)
+      { init(left_args_, right_args_, std::vector<PTR<OutArgument> >()); }
+    ClosedCall(const std::vector<PTR<OutArgument> >& left_args_,
+               const std::vector<PTR<OutArgument> >& right_args_,
+               const std::vector<PTR<OutArgument> >& hidden_object_args_)
+      { init(left_args_, right_args_, hidden_object_args_); }
 
     std::vector<RequiredOutArgument> left_required_args;
     boost::optional<ArbitraryOutArgument> left_arbitrary_arg;
@@ -273,6 +278,11 @@ namespace ast {
 
     std::string format() const;
     void accept(AstVisitor* visitor) { visitor->visit(this); }
+    private: void init(
+      const std::vector<PTR<OutArgument> >& left_args_,
+      const std::vector<PTR<OutArgument> >& right_args_,
+      const std::vector<PTR<OutArgument> >& hidden_object_args_);
+
   };
 
   struct Field : public ValueModifier {

@@ -347,33 +347,30 @@ std::string cirth::ast::Index::format() const {
   return os.str();
 }
 
-cirth::ast::ClosedCall::ClosedCall(
-    const boost::optional<std::vector<PTR<OutArgument> > >& left_args_,
+void cirth::ast::ClosedCall::init(
+    const std::vector<PTR<OutArgument> >& left_args_,
     const std::vector<PTR<OutArgument> >& right_args_,
-    const boost::optional<std::vector<PTR<OutArgument> > >&
-        hidden_object_args_) {
-  if(!!left_args_) {
-    left_required_args.reserve(left_args_.get().size());
-    for(unsigned int i = 0; i < left_args_.get().size(); ++i) {
-      if(!left_args_.get()[i].get()) continue;
-      if(dynamic_cast<RequiredOutArgument*>(left_args_.get()[i].get())) {
-        left_required_args.push_back(
-            *((RequiredOutArgument*)left_args_.get()[i].get()));
-      } else if(dynamic_cast<ArbitraryOutArgument*>(
-          left_args_.get()[i].get())) {
-        if(!!left_arbitrary_arg)
-          throw cirth::expectation_failure("only one left arbitrary argument "
-              "supported");
-        left_arbitrary_arg = *(
-            (ArbitraryOutArgument*)left_args_.get()[i].get());
-      } else if(dynamic_cast<KeywordOutArgument*>(left_args_.get()[i].get())) {
-        throw cirth::expectation_failure("left keyword argument not supported");
-      } else if(dynamic_cast<OptionalOutArgument*>(left_args_.get()[i].get())) {
-        throw cirth::expectation_failure("left optional argument not "
+    const std::vector<PTR<OutArgument> >& hidden_object_args_) {
+  left_required_args.reserve(left_args_.size());
+  for(unsigned int i = 0; i < left_args_.size(); ++i) {
+    if(!left_args_[i].get()) continue;
+    if(dynamic_cast<RequiredOutArgument*>(left_args_[i].get())) {
+      left_required_args.push_back(
+          *((RequiredOutArgument*)left_args_[i].get()));
+    } else if(dynamic_cast<ArbitraryOutArgument*>(
+        left_args_[i].get())) {
+      if(!!left_arbitrary_arg)
+        throw cirth::expectation_failure("only one left arbitrary argument "
             "supported");
-      } else {
-        throw cirth::expectation_failure("unknown argument type");
-      }
+      left_arbitrary_arg = *(
+          (ArbitraryOutArgument*)left_args_[i].get());
+    } else if(dynamic_cast<KeywordOutArgument*>(left_args_[i].get())) {
+      throw cirth::expectation_failure("left keyword argument not supported");
+    } else if(dynamic_cast<OptionalOutArgument*>(left_args_[i].get())) {
+      throw cirth::expectation_failure("left optional argument not "
+          "supported");
+    } else {
+      throw cirth::expectation_failure("unknown argument type");
     }
   }
 
@@ -402,29 +399,27 @@ cirth::ast::ClosedCall::ClosedCall(
     }
   }
 
-  if(!!hidden_object_args_) {
-    hidden_object_optional_args.reserve(hidden_object_args_.get().size());
-    for(unsigned int i = 0; i < hidden_object_args_.get().size(); ++i) {
-      if(!hidden_object_args_.get()[i].get()) continue;
-      if(dynamic_cast<OptionalOutArgument*>(
-          hidden_object_args_.get()[i].get())) {
-        hidden_object_optional_args.push_back(
-            *((OptionalOutArgument*)hidden_object_args_.get()[i].get()));
-      } else if(dynamic_cast<KeywordOutArgument*>(
-          hidden_object_args_.get()[i].get())) {
-        throw cirth::expectation_failure("hidden object keyword argument not "
-            "supported");
-      } else if(dynamic_cast<ArbitraryOutArgument*>(
-          hidden_object_args_.get()[i].get())) {
-        throw cirth::expectation_failure("hidden object arbitrary argument not "
-            "supported");
-      } else if(dynamic_cast<RequiredOutArgument*>(
-          hidden_object_args_.get()[i].get())) {
-        throw cirth::expectation_failure("hidden object positional argument "
-            "not supported");
-      } else {
-        throw cirth::expectation_failure("unknown argument type");
-      }
+  hidden_object_optional_args.reserve(hidden_object_args_.size());
+  for(unsigned int i = 0; i < hidden_object_args_.size(); ++i) {
+    if(!hidden_object_args_[i].get()) continue;
+    if(dynamic_cast<OptionalOutArgument*>(
+        hidden_object_args_[i].get())) {
+      hidden_object_optional_args.push_back(
+          *((OptionalOutArgument*)hidden_object_args_[i].get()));
+    } else if(dynamic_cast<KeywordOutArgument*>(
+        hidden_object_args_[i].get())) {
+      throw cirth::expectation_failure("hidden object keyword argument not "
+          "supported");
+    } else if(dynamic_cast<ArbitraryOutArgument*>(
+        hidden_object_args_[i].get())) {
+      throw cirth::expectation_failure("hidden object arbitrary argument not "
+          "supported");
+    } else if(dynamic_cast<RequiredOutArgument*>(
+        hidden_object_args_[i].get())) {
+      throw cirth::expectation_failure("hidden object positional argument "
+          "not supported");
+    } else {
+      throw cirth::expectation_failure("unknown argument type");
     }
   }
 }

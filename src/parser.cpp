@@ -31,7 +31,9 @@ namespace parser {
     qi::rule<Iterator, PTR<ValueModifier>()> header;
     qi::rule<Iterator, PTR<ValueModifier>()> trailer;
     qi::rule<Iterator, PTR<ValueModifier>()> rightopencall;
-    qi::rule<Iterator, PTR<ValueModifier>()> closedcall;
+    qi::rule<Iterator, PTR<ValueModifier>()> closedcall_right;
+    qi::rule<Iterator, PTR<ValueModifier>()> closedcall_left;
+    qi::rule<Iterator, PTR<ValueModifier>()> closedcall_hidden;
     qi::rule<Iterator, PTR<ValueModifier>()> index;
     qi::rule<Iterator, PTR<ValueModifier>()> field;
     qi::rule<Iterator, PTR<Value>()> value;
@@ -145,7 +147,8 @@ namespace parser {
           qi::_2, qi::_3))];
       term.name("term");
 
-      trailer = rightopencall | index | field | closedcall;
+      trailer = rightopencall | index | field | closedcall_right |
+          closedcall_left | closedcall_hidden;
       trailer.name("value trailer");
 
       header = qi::char_("@")[
@@ -192,14 +195,20 @@ namespace parser {
       out_arguments = S(*(out_argument >> qi::lit(',')) >> -out_argument);
       out_arguments.name("out argument list");
 
-      closedcall = (qi::lit("(") >> S(
-          -(out_arguments >> ';') >>
-          out_arguments >>
-          -(qi::lit('|') >> out_arguments) >>
-          ")"))[qi::_val =
+      closedcall_right = (qi::lit("(") >> S(out_arguments >> ")"))[qi::_val =
+          phx::construct<PTR<ValueModifier> >(phx::new_<ClosedCall>(qi::_1))];
+      closedcall_right.name("right args closed call trailer");
+
+      closedcall_left = (qi::lit("(") >> S(out_arguments >> ';' >>
+          out_arguments >> ")"))[qi::_val = phx::construct<PTR<ValueModifier> >(
+          phx::new_<ClosedCall>(qi::_1, qi::_2))];
+      closedcall_left.name("left and right args closed call trailer");
+
+      closedcall_hidden = (qi::lit("(") >> S(out_arguments >> ';' >>
+          out_arguments >> ';' >> out_arguments >> ")"))[qi::_val =
           phx::construct<PTR<ValueModifier> >(phx::new_<ClosedCall>(qi::_1,
           qi::_2, qi::_3))];
-      closedcall.name("closed call trailer");
+      closedcall_hidden.name("full closed call trailer");
 
       index = (qi::lit("[") >> S(explist >>
           qi::lit("]")))[qi::_val = phx::construct<PTR<ValueModifier> >(
