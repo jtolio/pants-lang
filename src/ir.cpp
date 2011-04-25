@@ -403,19 +403,26 @@ bool cirth::ir::Name::is_mutated() const {
       m_mutation.end();
 }
 
-static std::string sanitize(const std::string& str) {
-  std::ostringstream os;
-  for(unsigned int i = 0; i < str.size(); ++i)
-    os << (isalnum(str[i]) ? str[i] : '_');
-  return os.str();
-}
-
 std::string cirth::ir::Name::c_name() const {
+  std::ostringstream s_name;
+  bool sanitized = false;
+  for(unsigned int i = 0; i < name.size(); ++i) {
+    if(isalnum(name[i]) || name[i] == '_')
+      s_name << name[i];
+    else
+      sanitized = true;
+  }
   std::ostringstream os;
   if(user_provided) {
-    os << "u_" << sanitize(name) << "_" << varid;
+    if(sanitized)
+      os << "s_" << s_name.str() << "_" << varid;
+    else
+      os << "u_" << s_name.str();
   } else {
-    os << "c_" << sanitize(name);
+    if(sanitized)
+      throw expectation_failure("some compiler_provided variable got "
+          "sanitized!");
+    os << "c_" << s_name.str();
   }
   return os.str();
 }

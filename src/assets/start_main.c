@@ -15,10 +15,6 @@ int main(int argc, char **argv) {
 
   GC_INIT();
 
-  dest.t = NIL;
-  continuation.t = NIL;
-  hidden_object.t = NIL;
-
   main.c_continuation.t = CLOSURE;
   main.c_continuation.closure.func = &&halt;
   main.c_continuation.closure.env = NULL;
@@ -48,6 +44,15 @@ int main(int argc, char **argv) {
   DEFINE_BUILTIN(seal_object)
 
 #undef DEFINE_BUILTIN
+
+  dest.t = CLOSURE;
+  dest.closure.func = &&ho_throw;
+  dest.closure.env = NULL;
+  set_field(&hidden_object_data, "u_throw", 7, &dest);
+
+  dest.t = NIL;
+  continuation.t = NIL;
+  hidden_object.t = NIL;
 
   goto start;
 
@@ -239,5 +244,14 @@ c_seal_object:
   dest = continuation;
   continuation.t = NIL;
   CALL_FUNC(dest);
+
+ho_throw:
+  MAX_LEFT_ARGS(0)
+  MAX_RIGHT_ARGS(1)
+  MIN_RIGHT_ARGS(1)
+  printf("Exception thrown!\n => ");
+  builtin_print(&right_positional_args[0]);
+  printf("\n");
+  return 1;
 
 start:
