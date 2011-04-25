@@ -198,34 +198,40 @@ public:
     *m_lastval = out_array;
   }
 
-  void visit(ast::Definition* assignment) {
-    ir::Name assignee(assignment->assignee);
+  void visit(ast::Definition* assignment)
+    { visit_assignment(assignment, true); }
 
-    m_ir->push_back(PTR<ir::Expression>(new ir::Definition(
-        assignee, PTR<ir::Value>(new ir::Variable(NULL_VALUE)))));
-    assignment->exp->accept(this);
+  void visit(ast::Mutation* assignment)
+    { visit_assignment(assignment, false); }
 
-    m_ir->push_back(PTR<ir::Expression>(new ir::VariableMutation(assignee,
-        *m_lastval)));
-  }
-
-  void visit(ast::Mutation* assignment) {
+  void visit_assignment(ast::Assignment* assignment, bool definition) {
     PTR<ast::Term> term(assignment->assignee->term);
-
-    assignment->exp->accept(this);
-    ir::Name rhs(*m_lastval);
 
     if(term->trailers.size() == 0) {
       ast::Variable* var = dynamic_cast<ast::Variable*>(term->value.get());
       if(var) {
-        m_ir->push_back(PTR<ir::Expression>(new ir::VariableMutation(
-            ir::Name(*var), rhs)));
-        *m_lastval = rhs;
-        return;
+        if(definition) {
+          m_ir->push_back(PTR<ir::Expression>(new ir::Definition(
+              ir::Name(*var), PTR<ir::Value>(new ir::Variable(NULL_VALUE)))));
+
+          assignment->exp->accept(this);
+
+          m_ir->push_back(PTR<ir::Expression>(new ir::VariableMutation(
+              ir::Name(*var), *m_lastval)));
+          return;
+        } else {
+          assignment->exp->accept(this);
+          m_ir->push_back(PTR<ir::Expression>(new ir::VariableMutation(
+              ir::Name(*var), *m_lastval)));
+          return;
+        }
       }
       throw expectation_failure("left-hand side of an assignment must be a "
           "variable, field, or index");
     }
+
+    assignment->exp->accept(this);
+    ir::Name rhs(*m_lastval);
 
     term->value->accept(this);
     for(unsigned int i = 0; i < term->trailers.size() - 1; ++i)

@@ -19,7 +19,7 @@ std::string cirth::ast::Mutation::format() const {
 
 std::string cirth::ast::Definition::format() const {
   std::ostringstream os;
-  os << "Definition(" << assignee.format() << ", " << exp->format() << ")";
+  os << "Definition(" << assignee->format() << ", " << exp->format() << ")";
   return os.str();
 }
 

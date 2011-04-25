@@ -16,7 +16,7 @@ namespace parser {
     qi::rule<Iterator, std::vector<PTR<Expression> >()> explist;
     qi::rule<Iterator, std::vector<PTR<Expression> >()> nl_explist;
     qi::rule<Iterator> nl_explistsep;
-    qi::rule<Iterator> mutationsep;
+    qi::rule<Iterator> definitionsep;
     qi::rule<Iterator, PTR<Expression>()> expression;
     qi::rule<Iterator, PTR<Expression>()> mutation;
     qi::rule<Iterator, PTR<Expression>()> definition;
@@ -116,26 +116,26 @@ namespace parser {
           phx::new_<Application>(qi::_1))];
       nl_application.name("newline-significant application");
 
-      mutationsep = qi::lit("=") >> !(qi::char_ - qi::char_(exclude));
+      definitionsep = qi::lit("=") >> !(qi::char_ - qi::char_(exclude));
 
-      mutation = (S(assignee) >> S(mutationsep >> expression))[
+      mutation = (S(assignee) >> S(":=" >> expression))[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Mutation>(
           qi::_1, qi::_2))];
       mutation.name("newline-indifferent mutation");
 
-      nl_mutation = (NLS(assignee) >> NLS(mutationsep >> nl_expression))[
+      nl_mutation = (NLS(assignee) >> NLS(":=" >> nl_expression))[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Mutation>(
           qi::_1, qi::_2))];
       nl_mutation.name("newline-significant mutation");
 
-      definition = (S(identifier) >> S(":=" >> expression))[
+      definition = (S(assignee) >> S(definitionsep >> expression))[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Definition>(
-          phx::construct<Variable>(qi::_1), qi::_2))];
+          qi::_1, qi::_2))];
       definition.name("newline-indifferent definition");
 
-      nl_definition = (NLS(identifier) >> NLS(":=" >> nl_expression))[
+      nl_definition = (NLS(assignee) >> NLS(definitionsep >> nl_expression))[
           qi::_val = phx::construct<PTR<Expression> >(phx::new_<Definition>(
-          phx::construct<Variable>(qi::_1), qi::_2))];
+          qi::_1, qi::_2))];
       nl_definition.name("newline-significant definition");
 
       assignee = term[qi::_val = phx::construct<PTR<Assignee> >(

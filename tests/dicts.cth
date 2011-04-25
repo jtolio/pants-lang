@@ -1,4 +1,4 @@
-Dictionary := { construct { |obj|
+Dictionary = { construct { |obj|
   obj.~index = { |key|
     print "index" key
     (+ "index value " key)
@@ -9,7 +9,7 @@ Dictionary := { construct { |obj|
   }
 }}
 
-x := {"hey": "there", "dictionaries": "are cool"}
+x = {"hey": "there", "dictionaries": "are cool"}
 
 print x["groovy"]
 print (x["test1"] = "test2")

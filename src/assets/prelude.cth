@@ -1,57 +1,57 @@
-while := { |test, body|
+while = { |test, body|
   if test() {
     if { {body(); true}(;;loop-cont:cont) }() {
       while test body
     }
   }
 }
-break := { .loop-cont false }
-continue := { .loop-cont true }
+break = { .loop-cont false }
+continue = { .loop-cont true }
 
 
 # See tests/return.cth for an example of how to define functions with working
 # return statements
-function := { |func| func(;;return-cont:cont) }
-return := { |var| .return-cont var }
+function = { |func| func(;;return-cont:cont) }
+return = { |var| .return-cont var }
 
 
 # TODO: 'and' and 'or' currently do not support short circuiting.
-and := { |left, right| if left { right } { left } }
-or := { |left, right| if left { left } { right } }
-not := { |val| if val { false } { true } }
+and = { |left, right| if left { right } { left } }
+or = { |left, right| if left { left } { right } }
+not = { |val| if val { false } { true } }
 
 
 # == Object construction
 # sample usage (ignore how dumb getters and setters are)
-# Employee := { |first, last| construct { |obj|
+# Employee = { |first, last| construct { |obj|
 #   obj.get_first = { first }
 #   obj.get_last = { last }
-#   obj.set_first = { |new| first = new }
-#   obj.set_last = { |new| last = new }
+#   obj.set_first = { |new| first := new }
+#   obj.set_last = { |new| last := new }
 # }}
-# emp1 := Employee "JT" "Olds"
+# emp1 = Employee "JT" "Olds"
 # print emp1.get_first() emp1.get_last() # => JT Olds
 # emp1.set_first "Sam"
 # print emp1.get_first() emp1.get_last() # => Sam Olds
 #
-construct := { |func|
-  obj := new_object.
-  rv := func obj
+construct = { |func|
+  obj = new_object.
+  rv = func obj
   seal_object obj
 }
 # TODO: actually clear this out of the scope or something
-new_object := null
-seal_object := null
+new_object = null
+seal_object = null
 
 
-freeze := { |macro|
-  k := null
-  obj := construct { |o|
+freeze = { |macro|
+  k = null
+  obj = construct { |o|
     o.k = null
     o.arg = null
   }
-  rv := {
-    k = cont
+  rv = {
+    k := cont
     false
   }()
   if (rv) {
@@ -65,7 +65,7 @@ freeze := { |macro|
 }
 
 
-try := { |body, handler|
+try = { |body, handler|
   { body() }(;;exception-cont:cont, exception-handler:freeze(handler))
 }
-throw := { |e| .exception-cont .exception-handler(e) }
+throw = { |e| .exception-cont .exception-handler(e) }

@@ -1,4 +1,4 @@
-hello := { |target|
+hello = { |target|
   print "Hello" (+ target "!")
 }
 

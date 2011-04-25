@@ -1,4 +1,4 @@
-obj := construct { |o|
+obj = construct { |o|
   o.field1 = 3
   o.field2 = 4
 }

@@ -1,15 +1,15 @@
-func := { |x|
- k := cont
+func = { |x|
+ k = cont
  if (< x 10) {
    print(x)
    func (+ x 1)
  } {
-   f := { |x|
+   f = { |x|
      print (1000 +. x)
    }
    print 70
    f 70
-   f = k
+   f := k
    f 100
    print 80
  }

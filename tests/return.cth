@@ -1,4 +1,4 @@
-myfunc := { |x, y| function {
+myfunc = { |x, y| function {
   print "x" x
   if (< x 10) {
     return y

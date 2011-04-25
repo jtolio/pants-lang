@@ -303,13 +303,13 @@ public:
 
   void testParses() {
     std::vector<PTR<cirth::ast::Expression> > exps;
-    CPPUNIT_ASSERT(cirth::parser::parse("x = 1", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("x := 1", exps));
     exps.clear();
     CPPUNIT_ASSERT(cirth::parser::parse("(a b).thing", exps));
     exps.clear();
-    CPPUNIT_ASSERT(cirth::parser::parse("(a b).thing = 3", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("(a b).thing := 3", exps));
     exps.clear();
-    CPPUNIT_ASSERT(cirth::parser::parse("z.thing = 3; x[4] = 5", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("z.thing := 3; x[4] := 5", exps));
     exps.clear();
   }
 
@@ -346,13 +346,13 @@ public:
 
   void testFloatingPoint() {
     std::vector<PTR<cirth::ast::Expression> > exps;
-    CPPUNIT_ASSERT(cirth::parser::parse("x := 3\n", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("x = 3\n", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
-    CPPUNIT_ASSERT(exps[0]->format() == "Definition(Variable(x, user_provided), Application(Term(Value(Integer(3)), Trailers())))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Definition(Assignee(Term(Value(Variable(x, user_provided)), Trailers())), Application(Term(Value(Integer(3)), Trailers())))");
     exps.clear();
-    CPPUNIT_ASSERT(cirth::parser::parse("x := 3.0\n", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("x = 3.0\n", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
-    CPPUNIT_ASSERT(exps[0]->format() == "Definition(Variable(x, user_provided), Application(Term(Value(Float(3)), Trailers())))");
+    CPPUNIT_ASSERT(exps[0]->format() == "Definition(Assignee(Term(Value(Variable(x, user_provided)), Trailers())), Application(Term(Value(Float(3)), Trailers())))");
   }
 
   void testEquality() {
@@ -389,7 +389,7 @@ public:
 
   void testHiddenObject() {
     std::vector<PTR<cirth::ast::Expression> > exps;
-    CPPUNIT_ASSERT(cirth::parser::parse(".x = 3", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse(".x := 3", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0]->format() == "Mutation(Assignee(Term(Value(HiddenObjectField(x)), Trailers())), Application(Term(Value(Integer(3)), Trailers())))");
   }
@@ -418,28 +418,28 @@ public:
   }
 
   void testSimple() {
-    CPPUNIT_ASSERT(ir_translate("x := { 3 }\nx.\n") ==
+    CPPUNIT_ASSERT(ir_translate("x = { 3 }\nx.\n") ==
         "Definition(u_x, Variable(c_null))\n"
         "Definition(c_ir_2, Function(Left(), Right(), "
             "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
         "VariableMutation(u_x, c_ir_2)\n"
         "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), HiddenObject()))\n"
         "c_ir_3");
-    CPPUNIT_ASSERT(ir_translate("x := { 3 }\nx()\n") ==
+    CPPUNIT_ASSERT(ir_translate("x = { 3 }\nx()\n") ==
         "Definition(u_x, Variable(c_null))\n"
         "Definition(c_ir_2, Function(Left(), Right(), "
             "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
         "VariableMutation(u_x, c_ir_2)\n"
         "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), HiddenObject()))\n"
         "c_ir_3");
-    CPPUNIT_ASSERT(ir_translate("x := { 3 }\nx.") ==
+    CPPUNIT_ASSERT(ir_translate("x = { 3 }\nx.") ==
         "Definition(u_x, Variable(c_null))\n"
         "Definition(c_ir_2, Function(Left(), Right(), "
             "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
         "VariableMutation(u_x, c_ir_2)\n"
         "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), HiddenObject()))\n"
         "c_ir_3");
-    CPPUNIT_ASSERT(ir_translate("x.x = 3\n") ==
+    CPPUNIT_ASSERT(ir_translate("x.x := 3\n") ==
         "Definition(c_ir_1, Integer(3))\n"
         "ObjectMutation(u_x, u_x, c_ir_1)\n"
         "c_ir_1");
@@ -448,7 +448,7 @@ public:
         "ReturnValue(c_ir_3, Call(u_print, Left(), "
             "Right(PositionalOutArgument(c_ir_2)), HiddenObject()))\n"
         "c_ir_3");
-    CPPUNIT_ASSERT_THROW(ir_translate(".x = 3\n"), cirth::expectation_failure);
+    CPPUNIT_ASSERT_THROW(ir_translate(".x := 3\n"), cirth::expectation_failure);
   }
 };
 
