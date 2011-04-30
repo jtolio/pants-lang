@@ -9,8 +9,6 @@ break = { .loop-cont false }
 continue = { .loop-cont true }
 
 
-# See tests/return.cth for an example of how to define functions with working
-# return statements
 function = { |func| func(;;return-cont:cont) }
 return = { |var| .return-cont var }
 
@@ -21,19 +19,6 @@ or = { |left, right| if left { left } { right } }
 not = { |val| if val { false } { true } }
 
 
-# == Object construction
-# sample usage (ignore how dumb getters and setters are)
-# Employee = { |first, last| construct { |obj|
-#   obj.get_first = { first }
-#   obj.get_last = { last }
-#   obj.set_first = { |new| first := new }
-#   obj.set_last = { |new| last := new }
-# }}
-# emp1 = Employee "JT" "Olds"
-# print emp1.get_first() emp1.get_last() # => JT Olds
-# emp1.set_first "Sam"
-# print emp1.get_first() emp1.get_last() # => Sam Olds
-#
 construct = { |func|
   obj = new_object.
   rv = func obj
@@ -71,3 +56,77 @@ try = { |body, handler|
   { body() }(;;throw:{|e| exception-cont exception-handler(e)})
 }
 throw = { |e| .throw e }
+
+
+Dictionary = {
+
+  new_tree_node = {|k, v| construct {|o|
+    o.key = k
+    o.value = v
+    o.left = null
+    o.right = null
+  }}
+
+  tree_root = null
+
+  update = {|n, k, v| function {
+    if (== k n.key) {
+      n.value = v
+      return 0
+    }
+    if (< k n.key) {
+      if (== n.left null) {
+        n.left = new_tree_node k v
+        return 0
+      }
+      update n.left k v
+      return 0
+    }
+    if (== n.right null) {
+      n.right = new_tree_node k v
+      return 0
+    }
+    update n.right k v
+  }}
+
+  index = {|n, k| function {
+    if (== n null) { return null }
+    if (== k n.key) { return n.value }
+    if (< k n.key) { return (index n.left k) }
+    return (index n.right k)
+  }}
+
+  has_key? = {|n, k| function {
+    if (== n null) { return false }
+    if (== k n.key) { return true }
+    if (< k n.key) { return (has_key? n.left k) }
+    return (has_key? n.right k)
+  }}
+
+  each = {|n, f| function {
+    if (== n null) { return 0 }
+    each n.left f
+    f n.key n.value
+    each n.right f
+  }}
+
+  construct {|obj|
+    obj.~update = {|k,v|
+      if (tree_root ==. null) {
+        tree_root := new_tree_node k v
+      } {
+        update tree_root k v
+      }
+    }
+    obj.~index = {|i| index tree_root i }
+    obj.has_key? = {|i| has_key? tree_root i }
+    obj.each = {|f| each tree_root f }
+
+    # this is terrible. let's make lookups O(n)! :(
+    obj.copy = {
+      new_obj = {}
+      each tree_root { |k, v| new_obj[k] = v }
+      new_obj
+    }
+  }
+}

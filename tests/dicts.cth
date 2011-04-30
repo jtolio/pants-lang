@@ -1,15 +1,29 @@
-Dictionary = { construct { |obj|
-  obj.~index = { |key|
-    print "index" key
-    (+ "index value " key)
-  }
-  obj.~update = { |key, value|
-    print "update" key value
-    (+ "update value " key " " value)
-  }
-}}
+x = { 3: 1, "hey": "there"}
 
-x = {"hey": "there", "dictionaries": "are cool"}
+print x[3] x[2]
 
-print x["groovy"]
-print (x["test1"] = "test2")
+x[3] = 4
+x[2] = 5
+
+print x[3] x[2] x["hey"] x["no"]
+
+x[2] = 6
+
+print x[2]
+print x["hey"]
+
+print x.has_key?("hey")
+print x.has_key?("there")
+
+x.each {|k, v|
+  print "each:" k v
+}
+
+y = x.copy.
+
+y[10] = "new"
+
+print "=="
+x.each {|k, v| print "each:" k v }
+print "=="
+y.each {|k, v| print "each:" k v }

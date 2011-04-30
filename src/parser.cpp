@@ -76,7 +76,7 @@ namespace parser {
 #define S(exp) qi::skip(skipper.alias())[exp]
 #define NLS(exp) qi::skip(nl_skipper.alias())[exp]
 
-      char const* exclude = " \n\r\t;,()[]{}|'\".?:@#";
+      char const* exclude = " \n\r\t;,()[]{}|'\".:@#";
       char const* digits = "0123456789";
 
       comment = qi::lit("#") >> *(qi::char_ - qi::char_("\n"));
@@ -160,7 +160,7 @@ namespace parser {
           *(qi::char_ - qi::char_(exclude));
       identifier.name("identifier");
 
-      rightopencall = (qi::char_("?.") >> !(
+      rightopencall = (qi::char_(".") >> !(
           qi::char_ - qi::char_(exclude)))[
           qi::_val = phx::construct<PTR<ValueModifier> >(
           phx::new_<OpenCall>())];

@@ -30,7 +30,7 @@ public:
   void tearDown() {}
   void testSimpleParse() {
     std::vector<PTR<cirth::ast::Expression> > exps;
-    CPPUNIT_ASSERT(cirth::parser::parse("hey? there", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("hey. there", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(hey, user_provided)), Trailers(OpenCall())), Term(Value(Variable(there, user_provided)), Trailers()))");
@@ -38,12 +38,12 @@ public:
 
   void testArrayVsIndex() {
     std::vector<PTR<cirth::ast::Expression> > exps;
-    CPPUNIT_ASSERT(cirth::parser::parse("call? thing [value]", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("call. thing [value]", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(call, user_provided)), Trailers(OpenCall())), Term(Value(Variable(thing, user_provided)), Trailers()), Term(Value(Array(Application(Term(Value(Variable(value, user_provided)), Trailers())))), Trailers()))");
     exps.clear();
-    CPPUNIT_ASSERT(cirth::parser::parse("call? thing[key]", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("call. thing[key]", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(call, user_provided)), Trailers(OpenCall())), Term(Value(Variable(thing, user_provided)), Trailers(Index(Application(Term(Value(Variable(key, user_provided)), Trailers()))))))");
@@ -51,22 +51,22 @@ public:
 
   void testCallVsField() {
     std::vector<PTR<cirth::ast::Expression> > exps;
-    CPPUNIT_ASSERT(cirth::parser::parse("call? thing1? notafield", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("call. thing1. notafield", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(call, user_provided)), Trailers(OpenCall())), Term(Value(Variable(thing1, user_provided)), Trailers(OpenCall())), Term(Value(Variable(notafield, user_provided)), Trailers()))");
     exps.clear();
-    CPPUNIT_ASSERT(cirth::parser::parse("call? thing1.afield", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("call. thing1.afield", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(call, user_provided)), Trailers(OpenCall())), Term(Value(Variable(thing1, user_provided)), Trailers(Field(Variable(afield, user_provided)))))");
     exps.clear();
-    CPPUNIT_ASSERT(cirth::parser::parse("call? function?.afield", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("call. function..afield", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(call, user_provided)), Trailers(OpenCall())), Term(Value(Variable(function, user_provided)), Trailers(OpenCall(), Field(Variable(afield, user_provided)))))");
     exps.clear();
-    CPPUNIT_ASSERT(cirth::parser::parse("call? function?.afuncfield?", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("call. function..afuncfield.", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(call, user_provided)), Trailers(OpenCall())), Term(Value(Variable(function, user_provided)), Trailers(OpenCall(), Field(Variable(afuncfield, user_provided)), OpenCall())))");
@@ -109,12 +109,12 @@ public:
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers()), Term(Value(SubExpression(Application(Term(Value(Variable(arg, user_provided)), Trailers())))), Trailers()))");
     exps.clear();
-    CPPUNIT_ASSERT(cirth::parser::parse("f?(arg)", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("f.(arg)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(OpenCall(), ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(arg, user_provided)), Trailers())))), HiddenObject()))))");
     exps.clear();
-    CPPUNIT_ASSERT(cirth::parser::parse("f? (arg)", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("f. (arg)", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(OpenCall())), Term(Value(SubExpression(Application(Term(Value(Variable(arg, user_provided)), Trailers())))), Trailers()))");
@@ -290,12 +290,12 @@ public:
 
   void testByteString() {
     std::vector<PTR<cirth::ast::Expression> > exps;
-    CPPUNIT_ASSERT(cirth::parser::parse("f? b\"thing\"", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("f. b\"thing\"", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(OpenCall())), Term(Value(ByteString(thing)), Trailers()))");
     exps.clear();
-    CPPUNIT_ASSERT(cirth::parser::parse("f? b \"thing\"", exps));
+    CPPUNIT_ASSERT(cirth::parser::parse("f. b \"thing\"", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(OpenCall())), Term(Value(Variable(b, user_provided)), Trailers()), Term(Value(CharString(thing)), Trailers()))");

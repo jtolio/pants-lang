@@ -1,8 +1,20 @@
-update hey there
-update dictionaries are cool
-index groovy
-index value groovy
-update test1 test2
-test2
+1 null
+4 5 there null
+6
+there
+true
+false
+each: 2 6
+each: 3 4
+each: hey there
+==
+each: 2 6
+each: 3 4
+each: hey there
+==
+each: 2 6
+each: 3 4
+each: 10 new
+each: hey there
 
 return code: 0
