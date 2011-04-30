@@ -91,6 +91,7 @@ struct env_main {
   union Value c_add;
   union Value c_subtract;
   union Value c_multiply;
+  union Value c_modulo;
   union Value c_divide;
   union Value c_new_object;
   union Value c_seal_object;

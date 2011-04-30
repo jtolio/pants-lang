@@ -603,6 +603,11 @@ static inline void builtin_divide(union Value* val1, union Value* val2,
     case INTEGER:
       switch(val2->t) {
         case INTEGER:
+          if(val1->integer.value % val2->integer.value == 0) {
+            rv->integer.value = val1->integer.value / val2->integer.value;
+            rv->t = INTEGER;
+            return;
+          }
           rv->floating.value = ((double)val1->integer.value) /
               val2->integer.value;
           rv->t = FLOAT;
@@ -721,6 +726,125 @@ static inline void builtin_divide(union Value* val1, union Value* val2,
       }
     default:
       *exception = make_c_string("unsupported division!");
+      rv->t = NIL;
+      return;
+  }
+}
+
+static inline void builtin_modulo(union Value* val1, union Value* val2,
+    union Value* rv, union Value* exception) {
+  switch(val1->t) {
+    case INTEGER:
+      switch(val2->t) {
+        case INTEGER:
+          rv->integer.value = val1->integer.value % val2->integer.value;
+          rv->t = INTEGER;
+          return;
+        case OBJECT:
+          *exception = make_c_string("TODO: unimplemented");
+          rv->t = NIL;
+          return;
+        case FLOAT:
+        case STRING:
+        case BOOLEAN:
+        case NIL:
+        case CLOSURE:
+        default:
+          *exception = make_c_string("unsupported modulo!");
+          rv->t = NIL;
+          return;
+      }
+    case FLOAT:
+      switch(val2->t) {
+        case OBJECT:
+          *exception = make_c_string("TODO: unimplemented");
+          rv->t = NIL;
+          return;
+        case INTEGER:
+        case FLOAT:
+        case STRING:
+        case BOOLEAN:
+        case NIL:
+        case CLOSURE:
+        default:
+          *exception = make_c_string("unsupported modulo!");
+          rv->t = NIL;
+          return;
+      }
+    case STRING:
+      switch(val2->t) {
+        case OBJECT:
+          *exception = make_c_string("TODO: unimplemented");
+          rv->t = NIL;
+          return;
+        case INTEGER:
+        case STRING:
+        case FLOAT:
+        case BOOLEAN:
+        case NIL:
+        case CLOSURE:
+        default:
+          *exception = make_c_string("unsupported modulo!");
+          rv->t = NIL;
+          return;
+      }
+    case OBJECT:
+      *exception = make_c_string("TODO: unimplemented");
+      rv->t = NIL;
+      return;
+    case BOOLEAN:
+      switch(val2->t) {
+        case OBJECT:
+          *exception = make_c_string("TODO: unimplemented");
+          rv->t = NIL;
+          return;
+        case STRING:
+        case INTEGER:
+        case FLOAT:
+        case BOOLEAN:
+        case NIL:
+        case CLOSURE:
+        default:
+          *exception = make_c_string("unsupported modulo!");
+          rv->t = NIL;
+          return;
+      }
+    case NIL:
+      switch(val2->t) {
+        case OBJECT:
+          *exception = make_c_string("TODO: unimplemented");
+          rv->t = NIL;
+          return;
+        case STRING:
+        case INTEGER:
+        case FLOAT:
+        case BOOLEAN:
+        case NIL:
+        case CLOSURE:
+        default:
+          *exception = make_c_string("unsupported modulo!");
+          rv->t = NIL;
+          return;
+      }
+    case CLOSURE:
+      switch(val2->t) {
+        case OBJECT:
+          *exception = make_c_string("TODO: unimplemented");
+          rv->t = NIL;
+          return;
+        case STRING:
+        case INTEGER:
+        case FLOAT:
+        case BOOLEAN:
+        case NIL:
+        case CLOSURE:
+        default:
+          *exception = make_c_string("unsupported modulo!");
+          rv->t = NIL;
+          return;
+      }
+    default:
+      *exception = make_c_string("unsupported modulo!");
       rv->t = NIL;
       return;
   }

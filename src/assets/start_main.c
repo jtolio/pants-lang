@@ -45,6 +45,7 @@ int main(int argc, char **argv) {
   DEFINE_BUILTIN(subtract)
   DEFINE_BUILTIN(divide)
   DEFINE_BUILTIN(multiply)
+  DEFINE_BUILTIN(modulo)
   DEFINE_BUILTIN(new_object)
   DEFINE_BUILTIN(seal_object)
 
@@ -309,6 +310,26 @@ c_divide:
     MIN_RIGHT_ARGS(2)
     MAX_RIGHT_ARGS(2)
     builtin_divide(&right_positional_args[0], &right_positional_args[1],
+        &right_positional_args[0], &dest);
+  }
+  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+  left_positional_args_size = 0;
+  right_positional_args_size = 1;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest)
+
+c_modulo:
+  REQUIRED_FUNCTION(continuation)
+  dest.t = NIL;
+  if(left_positional_args_size == 1 && right_positional_args_size == 1) {
+    builtin_modulo(&left_positional_args[0], &right_positional_args[0],
+        &right_positional_args[0], &dest);
+  } else {
+    MAX_LEFT_ARGS(0)
+    MIN_RIGHT_ARGS(2)
+    MAX_RIGHT_ARGS(2)
+    builtin_modulo(&right_positional_args[0], &right_positional_args[1],
         &right_positional_args[0], &dest);
   }
   if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }

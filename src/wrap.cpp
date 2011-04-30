@@ -27,6 +27,7 @@ void cirth::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
   BIND_SYMBOL("-", "subtract");
   BIND_SYMBOL("/", "divide");
   BIND_SYMBOL("*", "multiply");
+  BIND_SYMBOL("%", "modulo");
   BIND_NAME_VAL(Name("null", true), NULL_VALUE);
   BIND_NAME_VAL(RETURN, CONTINUATION);
   BIND_NAME_VAL(Name("exit", true), CONTINUATION);
@@ -52,6 +53,7 @@ void cirth::wrap::remove_provided_names(std::set<Name>& names) {
   REMOVE_NAME("subtract");
   REMOVE_NAME("divide");
   REMOVE_NAME("multiply");
+  REMOVE_NAME("modulo");
   REMOVE_NAME("true");
   REMOVE_NAME("false");
   REMOVE_NAME("equals");
