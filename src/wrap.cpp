@@ -28,9 +28,8 @@ void cirth::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
 //  BIND_SYMBOL("/", "divide");
 //  BIND_SYMBOL("*", "multiply");
   BIND_NAME_VAL(Name("null", true), NULL_VALUE);
-//  BIND_NAME_VAL(THROW, EXCEPTION);
   BIND_NAME_VAL(RETURN, CONTINUATION);
-//  BIND_NAME_VAL(Name("exit", true), CONTINUATION);
+  BIND_NAME_VAL(Name("exit", true), CONTINUATION);
 
 #undef BIND_NAME
 #undef BIND_NAME_SYMBOL

@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   GC_INIT();
 
   main.c_continuation.t = CLOSURE;
-  main.c_continuation.closure.func = &&halt;
+  main.c_continuation.closure.func = &&c_halt;
   main.c_continuation.closure.env = NULL;
 
   main.c_null.t = NIL;
@@ -274,5 +274,22 @@ ho_throw:
   if(dest.t != NIL) { FATAL_ERROR("unable to print!", dest); }
   printf("\n");
   return 1;
+
+c_halt:
+  MAX_LEFT_ARGS(0)
+  MAX_RIGHT_ARGS(1)
+  MIN_RIGHT_ARGS(1)
+  switch(right_positional_args[0].t) {
+    case INTEGER:
+      return right_positional_args[0].integer.value;
+    case NIL:
+      return 0;
+    default:
+      dest.t = NIL;
+      if(builtin_istrue(&right_positional_args[0], &dest))
+        return 0;
+      if(dest.t != NIL) { FATAL_ERROR("failed exiting with value", dest); }
+      return 1;
+  }
 
 start:

@@ -1,11 +1,4 @@
 
-#undef MAX_RIGHT_ARGS
-#undef MIN_RIGHT_ARGS
-#undef MAX_LEFT_ARGS
-#undef MIN_LEFT_ARGS
-#undef REQUIRED_FUNCTION
-#undef CALL_FUNC
-
-halt:
-  return 0;
+  FATAL_ERROR("fell off the end of main?", main.c_null);
+  return 1;
 }

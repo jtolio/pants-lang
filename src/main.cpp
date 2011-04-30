@@ -27,6 +27,7 @@ int main(int argc, char** argv) {
     wrap::ir_prepend(ir);
     ir::Name lastval(NULL_VALUE);
     ir::convert(ast, ir, lastval);
+    lastval = NULL_VALUE;
     ast.clear();
 
     PTR<cps::Expression> cps;
