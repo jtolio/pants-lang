@@ -27,6 +27,7 @@ static inline struct ObjectTree* new_tree_node(char* key, unsigned int key_size,
   t->value = *value;
   t->left = NULL;
   t->right = NULL;
+  return t;
 }
 
 static void _copy_object(struct ObjectTree* t1, struct ObjectTree** t2) {
@@ -70,7 +71,7 @@ static bool _set_field(struct ObjectTree** tree, char* key,
 
 static inline bool set_field(struct ObjectData* data, char* key,
     unsigned int key_size, union Value* value) {
-  _set_field(&data->tree, key, key_size, value, data->sealed);
+  return _set_field(&data->tree, key, key_size, value, data->sealed);
 }
 
 static bool _get_field(struct ObjectTree* tree, char* key,

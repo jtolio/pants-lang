@@ -6,7 +6,7 @@ import os, re, subprocess, tempfile, sys
 
 TEST_EXT = re.compile(r'\.cth$')
 COMPILER_PATH = "../src/cirth"
-C_COMPILER = "gcc"
+C_COMPILER = "clang"
 C_LIBRARIES = ["-lgc"]
 
 class Error_(Exception): pass
