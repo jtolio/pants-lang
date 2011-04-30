@@ -7,14 +7,17 @@ false
 each: 2 6
 each: 3 4
 each: hey there
+3
 ==
 each: 2 6
 each: 3 4
 each: hey there
+3
 ==
 each: 2 6
 each: 3 4
 each: 10 new
 each: hey there
+4
 
 return code: 0

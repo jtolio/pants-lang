@@ -128,5 +128,12 @@ Dictionary = {
       each tree_root { |k, v| new_obj[k] = v }
       new_obj
     }
+
+    # this is also terrible. fold anyone? or even better, cached size?
+    obj.size = {
+      sum = 0
+      each tree_root { |k, v| sum := + sum 1 }
+      sum
+    }
   }
 }

@@ -15,9 +15,8 @@ print x["hey"]
 print x.has_key?("hey")
 print x.has_key?("there")
 
-x.each {|k, v|
-  print "each:" k v
-}
+x.each {|k, v| print "each:" k v }
+print x.size()
 
 y = x.copy.
 
@@ -25,5 +24,7 @@ y[10] = "new"
 
 print "=="
 x.each {|k, v| print "each:" k v }
+print x.size()
 print "=="
 y.each {|k, v| print "each:" k v }
+print y.size()
