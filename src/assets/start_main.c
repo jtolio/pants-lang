@@ -42,6 +42,9 @@ int main(int argc, char **argv) {
   DEFINE_BUILTIN(lessthan)
   DEFINE_BUILTIN(equals)
   DEFINE_BUILTIN(add)
+  DEFINE_BUILTIN(subtract)
+  DEFINE_BUILTIN(divide)
+  DEFINE_BUILTIN(multiply)
   DEFINE_BUILTIN(new_object)
   DEFINE_BUILTIN(seal_object)
 
@@ -233,6 +236,82 @@ c_add:
       if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
     }
   }
+  left_positional_args_size = 0;
+  right_positional_args_size = 1;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest)
+
+c_multiply:
+  REQUIRED_FUNCTION(continuation)
+  if(left_positional_args_size + right_positional_args_size == 0) {
+    MIN_RIGHT_ARGS(1)
+  }
+  dest.t = NIL;
+  if(left_positional_args_size > 0) {
+    for(i = 1; i < left_positional_args_size; ++i) {
+      builtin_multiply(&left_positional_args[0], &left_positional_args[i],
+          &left_positional_args[0], &dest);
+      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+    }
+    for(i = 0; i < right_positional_args_size; ++i) {
+      builtin_multiply(&left_positional_args[0], &right_positional_args[i],
+          &left_positional_args[0], &dest);
+      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+    }
+    right_positional_args[0] = left_positional_args[0];
+  } else {
+    for(i = 1; i < right_positional_args_size; ++i) {
+      builtin_multiply(&right_positional_args[0], &right_positional_args[i],
+          &right_positional_args[0], &dest);
+      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+    }
+  }
+  left_positional_args_size = 0;
+  right_positional_args_size = 1;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest)
+
+c_subtract:
+  REQUIRED_FUNCTION(continuation)
+  dest.t = NIL;
+  if(right_positional_args_size == 1) {
+    MAX_LEFT_ARGS(1)
+    if(left_positional_args_size == 0) {
+      left_positional_args[0].t = INTEGER;
+      left_positional_args[0].integer.value = 0;
+    }
+    builtin_subtract(&left_positional_args[0], &right_positional_args[0],
+        &right_positional_args[0], &dest);
+  } else {
+    MAX_LEFT_ARGS(0)
+    MIN_RIGHT_ARGS(2)
+    MAX_RIGHT_ARGS(2)
+    builtin_subtract(&right_positional_args[0], &right_positional_args[1],
+        &right_positional_args[0], &dest);
+  }
+  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+  left_positional_args_size = 0;
+  right_positional_args_size = 1;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest)
+
+c_divide:
+  REQUIRED_FUNCTION(continuation)
+  dest.t = NIL;
+  if(left_positional_args_size == 1 && right_positional_args_size == 1) {
+    builtin_divide(&left_positional_args[0], &right_positional_args[0],
+        &right_positional_args[0], &dest);
+  } else {
+    MAX_LEFT_ARGS(0)
+    MIN_RIGHT_ARGS(2)
+    MAX_RIGHT_ARGS(2)
+    builtin_divide(&right_positional_args[0], &right_positional_args[1],
+        &right_positional_args[0], &dest);
+  }
+  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
   left_positional_args_size = 0;
   right_positional_args_size = 1;
   dest = continuation;
