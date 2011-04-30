@@ -1,11 +1,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #include <gc/gc.h>
 
 #define bool char
 #define true 1
 #define false 0
+const unsigned int MAX_C_STRING_SIZE = 1024;
+const char C_STRING_TRUNCATED_MESSAGE[] = "...";
 
 enum ValueTag {
   INTEGER,
@@ -109,6 +112,30 @@ static inline int safe_strcmp(char* str1, unsigned int str1_size, char* str2,
   if(str1_size < str2_size) return -1;
   if(str1_size > str2_size) return 1;
   return 0;
+}
+
+static inline union Value make_c_string(char* format, ...) {
+  va_list args;
+  union Value str;
+  unsigned int i;
+  static unsigned int truncated_message_size = 0;
+  str.t = STRING;
+  str.string.byte_oriented = false;
+  str.string.value = GC_MALLOC(MAX_C_STRING_SIZE);
+  va_start(args, format);
+  str.string.value_size = vsnprintf(str.string.value, MAX_C_STRING_SIZE, format,
+      args);
+  va_end(args);
+  if(str.string.value_size >= MAX_C_STRING_SIZE) {
+    if(truncated_message_size == 0)
+      truncated_message_size = strlen(C_STRING_TRUNCATED_MESSAGE);
+    str.string.value_size = MAX_C_STRING_SIZE - 1;
+    for(i = 0; i < truncated_message_size; ++i) {
+      str.string.value[MAX_C_STRING_SIZE - truncated_message_size + i]
+          = C_STRING_TRUNCATED_MESSAGE[i];
+    }
+  }
+  return str;
 }
 
 // for testing

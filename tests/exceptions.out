@@ -5,6 +5,9 @@ outer-handler ex1-2
 3
 4
 5
+caught exception! it was: cannot call a non-function!
+tried adding 4 to null: unsupported addition!
+tried adding closure to float: unsupported addition!
 Exception thrown!
 => leave program
 

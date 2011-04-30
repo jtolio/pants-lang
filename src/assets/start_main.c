@@ -2,13 +2,15 @@ int main(int argc, char **argv) {
   struct env_main main;
   void* env = &main;
   union Value dest;
-  unsigned int i;
-  union Value* right_positional_args = NULL;
+  unsigned int i, a, b;
+  union Value initial_right_positional_args[10];
+  union Value* right_positional_args = initial_right_positional_args;
   unsigned int right_positional_args_size = 0;
-  unsigned int right_positional_args_highwater = 0;
-  union Value* left_positional_args = NULL;
+  unsigned int right_positional_args_highwater = 10;
+  union Value initial_left_positional_args[2];
+  union Value* left_positional_args = initial_left_positional_args;
   unsigned int left_positional_args_size = 0;
-  unsigned int left_positional_args_highwater = 0;
+  unsigned int left_positional_args_highwater = 2;
   union Value continuation;
   union Value hidden_object;
   struct ObjectData hidden_object_data;
@@ -50,51 +52,64 @@ int main(int argc, char **argv) {
   dest.closure.env = NULL;
   set_field(&hidden_object_data, "u_throw", 7, &dest);
 
+  seal_object(&hidden_object_data);
+
   dest.t = NIL;
   continuation.t = NIL;
   hidden_object.t = NIL;
 
   goto start;
 
-#define MIN_RIGHT_ARGS(count) \
-  if(right_positional_args_size < count) { \
-    printf("function takes at least " #count " right arguments, %d given.\n", \
-        right_positional_args_size); \
-    exit(1); \
-  }
-#define MAX_RIGHT_ARGS(count) \
-  if(right_positional_args_size > count) { \
-    printf("function takes at most " #count " right arguments, %d given.\n", \
-        right_positional_args_size); \
-    exit(1); \
-  }
-#define MIN_LEFT_ARGS(count) \
-  if(left_positional_args_size < count) { \
-    printf("function takes at least " #count " left arguments, %d given.\n", \
-        left_positional_args_size); \
-    exit(1); \
-  }
-#define MAX_LEFT_ARGS(count) \
-  if(left_positional_args_size > count) { \
-    printf("function takes at most " #count " left arguments, %d given.\n", \
-        left_positional_args_size); \
-    exit(1); \
-  }
-#define REQUIRED_FUNCTION(func) \
-  if(func.t != CLOSURE) { \
-    printf("cannot call a non-function!\n"); \
-    dump_value(func); \
-    exit(1); \
-  }
+#define FATAL_ERROR(msg, val) \
+  printf("fatal error: %s\n", msg); \
+  dump_value(val); \
+  return 1;
 #define CALL_FUNC(callable) \
   env = callable.closure.env; \
   goto *callable.closure.func;
+#define THROW_ERROR(current_hidden_object, val) \
+  right_positional_args_size = 1; \
+  right_positional_args[0] = val; \
+  if(!get_field(current_hidden_object.object.data, "u_throw", 7, &dest)) { \
+    FATAL_ERROR("no throw method registered!", main.c_null); \
+  } \
+  if(dest.t != CLOSURE) { \
+    FATAL_ERROR("throw is not a method!", dest); \
+  } \
+  left_positional_args_size = 0; \
+  CALL_FUNC(dest);
+#define MIN_RIGHT_ARGS(count) \
+  if(right_positional_args_size < count) { \
+    THROW_ERROR(hidden_object, make_c_string("function takes at least " #count \
+        " right arguments, %d given.\n", right_positional_args_size)); \
+  }
+#define MAX_RIGHT_ARGS(count) \
+  if(right_positional_args_size > count) { \
+    THROW_ERROR(hidden_object, make_c_string("function takes at most " #count \
+        " right arguments, %d given.\n", right_positional_args_size)); \
+  }
+#define MIN_LEFT_ARGS(count) \
+  if(left_positional_args_size < count) { \
+    THROW_ERROR(hidden_object, make_c_string("function takes at least " #count \
+        " left arguments, %d given.\n", left_positional_args_size)); \
+  }
+#define MAX_LEFT_ARGS(count) \
+  if(left_positional_args_size > count) { \
+    THROW_ERROR(hidden_object, make_c_string("function takes at most " #count \
+        " left arguments, %d given.\n", left_positional_args_size)); \
+  }
+#define REQUIRED_FUNCTION(func) \
+  if(func.t != CLOSURE) { \
+    THROW_ERROR(hidden_object, make_c_string("cannot call a non-function!\n"));\
+  }
 
 c_print:
   REQUIRED_FUNCTION(continuation)
   MAX_LEFT_ARGS(0)
+  dest.t = NIL;
   for(i = 0; i < right_positional_args_size; ++i) {
-    builtin_print(&right_positional_args[i]);
+    builtin_print(&right_positional_args[i], &dest);
+    if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
     printf(" ");
   }
   printf("\n");
@@ -102,10 +117,6 @@ c_print:
     dest = right_positional_args[0];
   } else {
     dest.t = NIL;
-  }
-  if(right_positional_args_highwater < 1) {
-    right_positional_args = GC_MALLOC(sizeof(union Value));
-    right_positional_args_highwater = 1;
   }
   right_positional_args_size = 1;
   right_positional_args[0] = dest;
@@ -115,13 +126,15 @@ c_print:
 
 c_if:
   REQUIRED_FUNCTION(continuation)
+  dest.t = NIL;
   if(left_positional_args_size == 1 && right_positional_args_size == 1) {
-    if(builtin_istrue(&right_positional_args[0])) {
+    if(builtin_istrue(&right_positional_args[0], &dest)) {
       REQUIRED_FUNCTION(left_positional_args[0])
       right_positional_args_size = 0;
       left_positional_args_size = 0;
       CALL_FUNC(left_positional_args[0]);
     }
+    if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
     left_positional_args_size = 0;
     right_positional_args[0].t = NIL;
     dest = continuation;
@@ -131,11 +144,12 @@ c_if:
   MAX_LEFT_ARGS(0)
   MIN_RIGHT_ARGS(2)
   MAX_RIGHT_ARGS(3)
-  if(builtin_istrue(&right_positional_args[0])) {
+  if(builtin_istrue(&right_positional_args[0], &dest)) {
     REQUIRED_FUNCTION(right_positional_args[1])
     right_positional_args_size = 0;
     CALL_FUNC(right_positional_args[1])
   }
+  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
   if(right_positional_args_size == 3) {
     REQUIRED_FUNCTION(right_positional_args[2])
     right_positional_args_size = 0;
@@ -149,16 +163,18 @@ c_if:
 
 c_lessthan:
   REQUIRED_FUNCTION(continuation)
+  dest.t = NIL;
   if(left_positional_args_size == 1 && right_positional_args_size == 1) {
     right_positional_args[0].boolean.value = builtin_less_than(
-        &left_positional_args[0], &right_positional_args[0]);
+        &left_positional_args[0], &right_positional_args[0], &dest);
   } else {
     MAX_LEFT_ARGS(0)
     MIN_RIGHT_ARGS(2)
     MAX_RIGHT_ARGS(2)
     right_positional_args[0].boolean.value = builtin_less_than(
-        &right_positional_args[0], &right_positional_args[1]);
+        &right_positional_args[0], &right_positional_args[1], &dest);
   }
+  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
   right_positional_args[0].t = BOOLEAN;
   left_positional_args_size = 0;
   right_positional_args_size = 1;
@@ -168,19 +184,23 @@ c_lessthan:
 
 c_equals:
   REQUIRED_FUNCTION(continuation)
+  dest.t = NIL;
   if(left_positional_args_size == 1 && right_positional_args_size == 1) {
     right_positional_args[0].boolean.value = builtin_equals(
-        &left_positional_args[0], &right_positional_args[0]);
+        &left_positional_args[0], &right_positional_args[0], &dest);
   } else {
     MAX_LEFT_ARGS(0)
     MIN_RIGHT_ARGS(2)
     right_positional_args[0].boolean.value = builtin_equals(
-        &right_positional_args[0], &right_positional_args[1]);
+        &right_positional_args[0], &right_positional_args[1], &dest);
     for(i = 2; i < right_positional_args_size &&
-        right_positional_args[0].boolean.value; ++i)
+        right_positional_args[0].boolean.value; ++i) {
+      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
       right_positional_args[0].boolean.value = builtin_equals(
-          &right_positional_args[1], &right_positional_args[i]);
+          &right_positional_args[1], &right_positional_args[i], &dest);
+    }
   }
+  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
   right_positional_args[0].t = BOOLEAN;
   left_positional_args_size = 0;
   right_positional_args_size = 1;
@@ -193,24 +213,28 @@ c_add:
   if(left_positional_args_size + right_positional_args_size == 0) {
     MIN_RIGHT_ARGS(1)
   }
+  dest.t = NIL;
   if(left_positional_args_size > 0) {
-    dest = left_positional_args[0];
-    for(i = 1; i < left_positional_args_size; ++i)
-      builtin_add(&dest, &left_positional_args[i], &dest);
-    for(i = 0; i < right_positional_args_size; ++i)
-      builtin_add(&dest, &right_positional_args[i], &dest);
+    for(i = 1; i < left_positional_args_size; ++i) {
+      builtin_add(&left_positional_args[0], &left_positional_args[i],
+          &left_positional_args[0], &dest);
+      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+    }
+    for(i = 0; i < right_positional_args_size; ++i) {
+      builtin_add(&left_positional_args[0], &right_positional_args[i],
+          &left_positional_args[0], &dest);
+      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+    }
+    right_positional_args[0] = left_positional_args[0];
   } else {
-    dest = right_positional_args[0];
-    for(i = 1; i < right_positional_args_size; ++i)
-      builtin_add(&dest, &right_positional_args[i], &dest);
+    for(i = 1; i < right_positional_args_size; ++i) {
+      builtin_add(&right_positional_args[0], &right_positional_args[i],
+          &right_positional_args[0], &dest);
+      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+    }
   }
   left_positional_args_size = 0;
-  if(right_positional_args_highwater < 1) {
-    right_positional_args = GC_MALLOC(sizeof(union Value));
-    right_positional_args_highwater = 1;
-  }
   right_positional_args_size = 1;
-  right_positional_args[0] = dest;
   dest = continuation;
   continuation.t = NIL;
   CALL_FUNC(dest)
@@ -219,10 +243,6 @@ c_new_object:
   REQUIRED_FUNCTION(continuation)
   MAX_LEFT_ARGS(0)
   MAX_RIGHT_ARGS(0)
-  if(right_positional_args_highwater < 1) {
-    right_positional_args = GC_MALLOC(sizeof(union Value));
-    right_positional_args_highwater = 1;
-  }
   right_positional_args_size = 1;
   make_object(&right_positional_args[0]);
   dest = continuation;
@@ -236,8 +256,7 @@ c_seal_object:
   MAX_RIGHT_ARGS(1)
   switch(right_positional_args[0].t) {
     default:
-      printf("cannot seal non-object!\n");
-      exit(1);
+      THROW_ERROR(hidden_object, make_c_string("cannot seal non-object!\n"));
     case OBJECT:
       seal_object(right_positional_args[0].object.data);
   }
@@ -250,7 +269,9 @@ ho_throw:
   MAX_RIGHT_ARGS(1)
   MIN_RIGHT_ARGS(1)
   printf("Exception thrown!\n => ");
-  builtin_print(&right_positional_args[0]);
+  dest.t = NIL;
+  builtin_print(&right_positional_args[0], &dest);
+  if(dest.t != NIL) { FATAL_ERROR("unable to print!", dest); }
   printf("\n");
   return 1;
 

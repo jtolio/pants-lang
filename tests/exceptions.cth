@@ -33,6 +33,23 @@ print (try {
   5
 })
 
+try {
+  3(4)
+} { |e|
+  print "caught exception! it was:" e
+}
+
+try {
+  (+ 4 null)
+} { |e|
+  print "tried adding 4 to null:" e
+}
+
+try {
+  (+ { "function" } 4.0 )
+} { |e|
+  print "tried adding closure to float:" e
+}
 
 throw "leave program"
 print "notreached"

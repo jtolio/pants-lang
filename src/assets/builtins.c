@@ -1,4 +1,4 @@
-static inline void builtin_print(union Value* val) {
+static inline void builtin_print(union Value* val, union Value* exception) {
   switch(val->t) {
     case INTEGER:
       printf("%lld", val->integer.value);
@@ -21,14 +21,19 @@ static inline void builtin_print(union Value* val) {
       break;
 
     case CLOSURE:
+      printf("<TODO: closure>");
+      break;
     case OBJECT:
+      printf("<TODO: object>");
+      break;
     default:
-      printf("<TODO: unimplemented>");
+      *exception = make_c_string("unknown type!");
       break;
   }
 }
 
-static inline bool builtin_less_than(union Value* val1, union Value* val2) {
+static inline bool builtin_less_than(union Value* val1, union Value* val2,
+    union Value* exception) {
   switch(val1->t) {
     case INTEGER:
       switch(val2->t) {
@@ -40,8 +45,8 @@ static inline bool builtin_less_than(union Value* val1, union Value* val2) {
         case STRING: return true;
         case OBJECT: return true;
         default:
-          printf("unknown type!\n");
-          exit(1);
+          *exception = make_c_string("unknown type!");
+          return false;
       }
     case FLOAT:
       switch(val2->t) {
@@ -53,8 +58,8 @@ static inline bool builtin_less_than(union Value* val1, union Value* val2) {
         case STRING: return true;
         case OBJECT: return true;
         default:
-          printf("unknown type!\n");
-          exit(1);
+          *exception = make_c_string("unknown type!");
+          return false;
       }
     case BOOLEAN:
       switch(val2->t) {
@@ -66,8 +71,8 @@ static inline bool builtin_less_than(union Value* val1, union Value* val2) {
         case STRING: return true;
         case OBJECT: return true;
         default:
-          printf("unknown type!\n");
-          exit(1);
+          *exception = make_c_string("unknown type!");
+          return false;
       }
     case NIL:
       switch(val2->t) {
@@ -79,8 +84,8 @@ static inline bool builtin_less_than(union Value* val1, union Value* val2) {
         case STRING: return true;
         case OBJECT: return true;
         default:
-          printf("unknown type!\n");
-          exit(1);
+          *exception = make_c_string("unknown type!");
+          return false;
       }
     case CLOSURE:
       switch(val2->t) {
@@ -95,8 +100,8 @@ static inline bool builtin_less_than(union Value* val1, union Value* val2) {
         case STRING: return false;
         case OBJECT: return false;
         default:
-          printf("unknown type!\n");
-          exit(1);
+          *exception = make_c_string("unknown type!");
+          return false;
       }
     case STRING:
       switch(val2->t) {
@@ -114,8 +119,8 @@ static inline bool builtin_less_than(union Value* val1, union Value* val2) {
               val2->string.value, val2->string.value_size) < 0;
         case OBJECT: return true;
         default:
-          printf("unknown type!\n");
-          exit(1);
+          *exception = make_c_string("unknown type!");
+          return false;
       }
     case OBJECT:
       switch(val2->t) {
@@ -127,17 +132,18 @@ static inline bool builtin_less_than(union Value* val1, union Value* val2) {
         case STRING: return false;
         case OBJECT: return val1->object.data < val2->object.data;
         default:
-          printf("unknown type!\n");
-          exit(1);
+          *exception = make_c_string("unknown type!");
+          return false;
       }
     default:
-      printf("unknown type!\n");
-      exit(1);
+      *exception = make_c_string("unknown type!");
+      return false;
   }
   return false;
 }
 
-static inline bool builtin_equals(union Value* val1, union Value* val2) {
+static inline bool builtin_equals(union Value* val1, union Value* val2,
+    union Value* exception) {
   if(!((val1->t == INTEGER && val2->t == FLOAT) ||
        (val1->t == FLOAT && val2->t == INTEGER)) &&
      val1->t != val2->t)
@@ -169,14 +175,13 @@ static inline bool builtin_equals(union Value* val1, union Value* val2) {
           safe_strcmp(val1->string.value, val1->string.value_size,
               val1->string.value, val2->string.value_size) == 0;
     default:
-      printf("TODO: unimplemented\n");
-      exit(1);
+      *exception = make_c_string("TODO: unimplemented");
       return false;
   }
 }
 
 static inline void builtin_add(union Value* val1, union Value* val2,
-    union Value* rv) {
+    union Value* rv, union Value* exception) {
   switch(val1->t) {
     case INTEGER:
       switch(val2->t) {
@@ -190,16 +195,14 @@ static inline void builtin_add(union Value* val1, union Value* val2,
           return;
         case STRING:
         case OBJECT:
-          printf("TODO: unimplemented\n");
-          exit(1);
+          *exception = make_c_string("TODO: unimplemented");
           rv->t = NIL;
           return;
         case BOOLEAN:
         case NIL:
         case CLOSURE:
         default:
-          printf("unsupported addition!\n");
-          exit(1);
+          *exception = make_c_string("unsupported addition!");
           rv->t = NIL;
           return;
       }
@@ -215,16 +218,14 @@ static inline void builtin_add(union Value* val1, union Value* val2,
           return;
         case STRING:
         case OBJECT:
-          printf("TODO: unimplemented\n");
-          exit(1);
+          *exception = make_c_string("TODO: unimplemented");
           rv->t = NIL;
           return;
         case BOOLEAN:
         case NIL:
         case CLOSURE:
         default:
-          printf("unsupported addition!\n");
-          exit(1);
+          *exception = make_c_string("unsupported addition!");
           rv->t = NIL;
           return;
       }
@@ -232,8 +233,7 @@ static inline void builtin_add(union Value* val1, union Value* val2,
       switch(val2->t) {
         case STRING:
           if(val1->string.byte_oriented != val2->string.byte_oriented) {
-            printf("TODO: unimplemented\n");
-            exit(1);
+            *exception = make_c_string("TODO: unimplemented");
             rv->t = NIL;
             return;
           }
@@ -256,22 +256,19 @@ static inline void builtin_add(union Value* val1, union Value* val2,
         case NIL:
         case CLOSURE:
         default:
-          printf("TODO: unimplemented\n");
-          exit(1);
+          *exception = make_c_string("TODO: unimplemented");
           rv->t = NIL;
           return;
       }
     case OBJECT:
-      printf("TODO: unimplemented\n");
-      exit(1);
+      *exception = make_c_string("TODO: unimplemented");
       rv->t = NIL;
       return;
     case BOOLEAN:
       switch(val2->t) {
         case STRING:
         case OBJECT:
-          printf("TODO: unimplemented\n");
-          exit(1);
+          *exception = make_c_string("TODO: unimplemented");
           rv->t = NIL;
           return;
         case INTEGER:
@@ -280,8 +277,7 @@ static inline void builtin_add(union Value* val1, union Value* val2,
         case NIL:
         case CLOSURE:
         default:
-          printf("unsupported addition!\n");
-          exit(1);
+          *exception = make_c_string("unsupported addition!");
           rv->t = NIL;
           return;
       }
@@ -289,8 +285,7 @@ static inline void builtin_add(union Value* val1, union Value* val2,
       switch(val2->t) {
         case STRING:
         case OBJECT:
-          printf("TODO: unimplemented\n");
-          exit(1);
+          *exception = make_c_string("TODO: unimplemented");
           rv->t = NIL;
           return;
         case INTEGER:
@@ -299,8 +294,7 @@ static inline void builtin_add(union Value* val1, union Value* val2,
         case NIL:
         case CLOSURE:
         default:
-          printf("unsupported addition!\n");
-          exit(1);
+          *exception = make_c_string("unsupported addition!");
           rv->t = NIL;
           return;
       }
@@ -308,8 +302,7 @@ static inline void builtin_add(union Value* val1, union Value* val2,
       switch(val2->t) {
         case STRING:
         case OBJECT:
-          printf("TODO: unimplemented\n");
-          exit(1);
+          *exception = make_c_string("TODO: unimplemented");
           rv->t = NIL;
           return;
         case INTEGER:
@@ -318,20 +311,18 @@ static inline void builtin_add(union Value* val1, union Value* val2,
         case NIL:
         case CLOSURE:
         default:
-          printf("unsupported addition!\n");
-          exit(1);
+          *exception = make_c_string("unsupported addition!");
           rv->t = NIL;
           return;
       }
     default:
-      printf("unsupported addition!\n");
-      exit(1);
+      *exception = make_c_string("unsupported addition!");
       rv->t = NIL;
       return;
   }
 }
 
-static inline bool builtin_istrue(union Value* val) {
+static inline bool builtin_istrue(union Value* val, union Value* exception) {
   switch(val->t) {
     case INTEGER:
     case FLOAT:
@@ -345,7 +336,7 @@ static inline bool builtin_istrue(union Value* val) {
     case CLOSURE:
       return true;
     default:
-      printf("unimplemented!\n");
-      exit(1);
+      *exception = make_c_string("unimplemented!");
+      return false;
   }
 }

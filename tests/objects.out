@@ -1,8 +1,9 @@
-<TODO: unimplemented>
+<TODO: object>
 3
 4
 5
 should make it here
-object u_obj sealed!
+Exception thrown!
+=> object u_obj sealed!
 
 return code: 1

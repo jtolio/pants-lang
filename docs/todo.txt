@@ -1,5 +1,4 @@
 todo
- * runtime support for exceptions
  * wiki pages and docs
  * c primitives
  * cirth primitives

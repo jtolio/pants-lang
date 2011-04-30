@@ -4,6 +4,9 @@
 
 using namespace cirth::cps;
 
+#define MIN_RIGHT_ARG_HIGHWATER 10
+#define MIN_LEFT_ARG_HIGHWATER 2
+
 static std::string var_access(const std::string& env, const Name& name) {
   std::ostringstream os;
   if(name.is_mutated())
@@ -29,15 +32,17 @@ class ValueWriter : public ValueVisitor {
       *m_os << "  dest = " << var_access(m_env, field->object) << ";\n"
                "  switch(dest.t) {\n"
                "    default:\n"
-               "      printf(\"TODO: fields\\n\");\n"
-               "      exit(1);\n"
+               "      THROW_ERROR("
+            << var_access(m_env, HIDDEN_OBJECT) <<
+               ", make_c_string(\"TODO: fields\"));\n"
                "    case OBJECT:\n"
                "      if(!get_field(dest.object.data, "
             << to_bytestring(field->field.c_name()) << ", "
             << field->field.c_name().size() << ", &dest)) {\n"
-               "        printf(\"field %s not found!\\n\", "
-            << to_bytestring(field->field.c_name()) << ");\n"
-               "        exit(1);\n"
+               "        THROW_ERROR("
+            << var_access(m_env, HIDDEN_OBJECT) <<
+               ", make_c_string(\"field %s not found!\", "
+            << to_bytestring(field->field.c_name()) << "));\n"
                "      }\n"
                "      break;\n"
                "  }\n";
@@ -96,12 +101,43 @@ class ExpressionWriter : public ExpressionVisitor {
         *m_os << "  continuation.t = NIL;\n";
       }
 
-      if(call->hidden_object_optional_args.size() > 0) {
-        *m_os << "  if(!copy_object(&" << var_access(m_env, HIDDEN_OBJECT)
-              << ", &hidden_object)) {\n"
-                 "    printf(\"object required\\n\");\n"
-                 "    exit(1);\n"
+      if(call->right_positional_args.size() > MIN_RIGHT_ARG_HIGHWATER) {
+        *m_os << "  if(" << call->right_positional_args.size()
+              << " > right_positional_args_highwater) {\n"
+                 "    right_positional_args_highwater = "
+              << call->right_positional_args.size() << ";\n"
+                 "    right_positional_args = GC_MALLOC(sizeof(union Value) * "
+              << call->right_positional_args.size() << ");\n"
                  "  }\n";
+      }
+      *m_os << "  right_positional_args_size = "
+            << call->right_positional_args.size() << ";\n";
+
+      for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
+        call->right_positional_args[i]->accept(&writer);
+        *m_os << "  right_positional_args[" << i << "] = dest;\n";
+      }
+
+      if(call->left_positional_args.size() > MIN_LEFT_ARG_HIGHWATER) {
+        *m_os << "  if(" << call->left_positional_args.size()
+              << " > left_positional_args_highwater) {\n"
+                 "    left_positional_args_highwater = "
+              << call->left_positional_args.size() << ";\n"
+                 "    left_positional_args = GC_MALLOC(sizeof(union Value) * "
+              << call->left_positional_args.size() << ");\n"
+                 "  }\n";
+      }
+      *m_os << "  left_positional_args_size = "
+            << call->left_positional_args.size() << ";\n";
+
+      for(unsigned int i = 0; i < call->left_positional_args.size(); ++i) {
+        *m_os << "  left_positional_args[" << i << "] = "
+              << var_access(m_env, call->left_positional_args[i]) << ";\n";
+      }
+
+      if(call->hidden_object_optional_args.size() > 0) {
+        *m_os << "  copy_object(&" << var_access(m_env, HIDDEN_OBJECT)
+              << ", &hidden_object);\n";
         for(unsigned int i = 0; i < call->hidden_object_optional_args.size();
             ++i) {
           *m_os << "  set_field(hidden_object.object.data, "
@@ -119,38 +155,11 @@ class ExpressionWriter : public ExpressionVisitor {
               << ";\n";
       }
 
-      *m_os << "  if(" << call->right_positional_args.size()
-            << " > right_positional_args_highwater) {\n"
-               "    right_positional_args_highwater = "
-            << call->right_positional_args.size() << ";\n"
-               "    right_positional_args = GC_MALLOC(sizeof(union Value) * "
-            << call->right_positional_args.size() << ");\n"
-               "  }\n"
-               "  right_positional_args_size = "
-            << call->right_positional_args.size() << ";\n";
-
-      for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
-        call->right_positional_args[i]->accept(&writer);
-        *m_os << "  right_positional_args[" << i << "] = dest;\n";
-      }
-
-      *m_os << "  if(" << call->left_positional_args.size()
-            << " > left_positional_args_highwater) {\n"
-               "    left_positional_args_highwater = "
-            << call->left_positional_args.size() << ";\n"
-               "    left_positional_args = GC_MALLOC(sizeof(union Value) * "
-            << call->left_positional_args.size() << ");\n"
-               "  }\n"
-               "  left_positional_args_size = "
-            << call->left_positional_args.size() << ";\n";
-
-      for(unsigned int i = 0; i < call->left_positional_args.size(); ++i) {
-        *m_os << "  left_positional_args[" << i << "] = "
-              << var_access(m_env, call->left_positional_args[i]) << ";\n";
-      }
-
       call->callable->accept(&writer);
-      *m_os << "  REQUIRED_FUNCTION(dest)\n"
+      *m_os << "  if(dest.t != CLOSURE) {\n"
+               "    THROW_ERROR(" << var_access(m_env, HIDDEN_OBJECT)
+            << ", make_c_string(\"cannot call a non-function!\"));\n"
+               "  }\n"
                "  CALL_FUNC(dest)\n";
     }
     void visit(VariableMutation* mut) {
@@ -162,16 +171,16 @@ class ExpressionWriter : public ExpressionVisitor {
       *m_os << "  dest = " << var_access(m_env, mut->object) << ";\n"
                "  switch(dest.t) {\n"
                "    default:\n"
-               "      printf(\"not an object!\\n\");\n"
-               "      exit(1);\n"
+               "      THROW_ERROR(" << var_access(m_env, HIDDEN_OBJECT)
+            << ", make_c_string(\"not an object!\"));\n"
                "    case OBJECT:\n"
                "      if(!set_field(dest.object.data, "
             << to_bytestring(mut->field.c_name()) << ", "
             << mut->field.c_name().size() << ", &"
             << var_access(m_env, mut->value) << ")) {\n"
-               "        printf(\"object %s sealed!\\n\", "
-            << to_bytestring(mut->object.c_name()) << ");\n"
-               "        exit(1);\n"
+               "        THROW_ERROR(" << var_access(m_env, HIDDEN_OBJECT)
+            << ", make_c_string(\"object %s sealed!\", "
+            << to_bytestring(mut->object.c_name()) << "));\n"
                "      }\n"
                "      break;\n"
                "  }\n";

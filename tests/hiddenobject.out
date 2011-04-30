@@ -1,5 +1,6 @@
 hidden object test
 3
-field u_x not found!
+Exception thrown!
+=> field u_x not found!
 
 return code: 1
