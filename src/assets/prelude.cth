@@ -110,6 +110,39 @@ Dictionary = {
     each n.right f
   }}
 
+  # whoa, deletes are complicated
+  delete = {|n, k|
+    if (< k n.key) {
+      if (n.left ==. null) {
+        null
+      } {
+        if (n.left.key ==. k) {
+          old_left = n.left
+          n.left = null
+          each old_left.left { |k, v| update n k v }
+          each old_left.right { |k, v| update n k v }
+          old_left.value
+        } {
+          delete n.left k
+        }
+      }
+    } {
+      if (n.right ==. null) {
+        null
+      } {
+        if (n.right.key ==. k) {
+          old_right = n.right
+          n.right = null
+          each old_right.left { |k, v| update n k v }
+          each old_right.right { |k, v| update n k v }
+          old_right.value
+        } {
+          delete n.right k
+        }
+      }
+    }
+  }
+
   construct {|obj|
     obj.~update = {|k,v|
       if (tree_root ==. null) {
@@ -121,6 +154,21 @@ Dictionary = {
     obj.~index = {|i| index tree_root i }
     obj.has_key? = {|i| has_key? tree_root i }
     obj.each = {|f| each tree_root f }
+    obj.delete = {|k|
+      if (tree_root ==. null) {
+        null
+      } {
+        if (tree_root.key ==. k) {
+          old_root = tree_root
+          tree_root := null
+          each old_root.left { |k, v| obj[k] = v }
+          each old_root.right { |k, v| obj[k] = v }
+          old_root.value
+        } {
+          delete tree_root k
+        }
+      }
+    }
 
     # this is terrible. let's make lookups O(n)! :(
     obj.copy = {

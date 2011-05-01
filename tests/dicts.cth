@@ -21,10 +21,17 @@ print x.size()
 y = x.copy.
 
 y[10] = "new"
+y[3] = 11
 
 print "=="
 x.each {|k, v| print "each:" k v }
 print x.size()
 print "=="
+y.each {|k, v| print "each:" k v }
+print y.size()
+
+print.
+
+print y.delete(3)
 y.each {|k, v| print "each:" k v }
 print y.size()
