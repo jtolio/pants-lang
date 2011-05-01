@@ -18,7 +18,6 @@ and = { |left, right| if left { right } { left } }
 or = { |left, right| if left { left } { right } }
 not = { |val| if val { false } { true } }
 
-
 construct = { |func|
   obj = new_object.
   rv = func obj
@@ -111,36 +110,22 @@ Dictionary = {
   }}
 
   # whoa, deletes are complicated
-  delete = {|n, k|
+  delete = {|n, k| return = cont
+    old_node = null
     if (< k n.key) {
-      if (n.left ==. null) {
-        null
-      } {
-        if (n.left.key ==. k) {
-          old_left = n.left
-          n.left = null
-          each old_left.left { |k, v| update n k v }
-          each old_left.right { |k, v| update n k v }
-          old_left.value
-        } {
-          delete n.left k
-        }
-      }
+      { return null } @if (n.left ==. null)
+      { return (delete n.left k) } @if (not (== n.left.key k))
+      old_node := n.left
+      n.left = null
     } {
-      if (n.right ==. null) {
-        null
-      } {
-        if (n.right.key ==. k) {
-          old_right = n.right
-          n.right = null
-          each old_right.left { |k, v| update n k v }
-          each old_right.right { |k, v| update n k v }
-          old_right.value
-        } {
-          delete n.right k
-        }
-      }
+      { return null } @if (n.right ==. null)
+      { return (delete n.right k) } @if (not (== n.right.key k))
+      old_node := n.right
+      n.right = null
     }
+    each old_node.left { |k, v| update n k v }
+    each old_node.right { |k, v| update n k v }
+    return old_node.value
   }
 
   construct {|obj|
@@ -154,20 +139,14 @@ Dictionary = {
     obj.~index = {|i| index tree_root i }
     obj.has_key? = {|i| has_key? tree_root i }
     obj.each = {|f| each tree_root f }
-    obj.delete = {|k|
-      if (tree_root ==. null) {
-        null
-      } {
-        if (tree_root.key ==. k) {
-          old_root = tree_root
-          tree_root := null
-          each old_root.left { |k, v| obj[k] = v }
-          each old_root.right { |k, v| obj[k] = v }
-          old_root.value
-        } {
-          delete tree_root k
-        }
-      }
+    obj.delete = {|k| return = cont
+      { return null } @if (== tree_root null)
+      { return (delete tree_root k) } @if (not (== tree_root.key k))
+      old_root = tree_root
+      tree_root := null
+      each old_root.left { |k, v| obj[k] = v }
+      each old_root.right { |k, v| obj[k] = v }
+      old_root.value
     }
 
     # this is terrible. let's make lookups O(n)! :(
@@ -178,10 +157,6 @@ Dictionary = {
     }
 
     # this is also terrible. fold anyone? or even better, cached size?
-    obj.size = {
-      sum = 0
-      each tree_root { |k, v| sum := + sum 1 }
-      sum
-    }
+    obj.size = { sum = 0; each tree_root { |k, v| sum := + sum 1 }; sum }
   }
 }

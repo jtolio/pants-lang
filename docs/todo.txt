@@ -12,3 +12,13 @@ parser
  * strings
  * better comments
  * more unit tests
+
+language problems
+ * infix is gross
+ * function calls with no arguments are gross
+
+possible super easy optimizations
+ * runs of variable definitions should be compacted into a single continuation
+   call
+ * definitions should only end up being mutated nulls if the rhs has the
+   definition's lhs as a free-var
