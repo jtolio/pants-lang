@@ -1,0 +1,40 @@
+0 : a
+1 : b
+2 : c
+
+-1 : c
+-2 : b
+-3 : a
+
+a
+out of range: array index out of bounds!
+
+c
+out of range: array index out of bounds!
+
+0 : d
+1 : e
+
+-1 : e
+-2 : d
+
+d
+out of range: array index out of bounds!
+
+e
+out of range: array index out of bounds!
+
+0 : hello
+1 : mr
+2 : sam
+
+0 : hello
+1 : mr
+2 : fox
+
+0 : hello
+1 : mr
+2 : poopypants
+
+
+return code: 0

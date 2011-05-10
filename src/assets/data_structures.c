@@ -1,3 +1,9 @@
+struct Array {
+  unsigned int array_size;
+  unsigned int array_highwater;
+  union Value* array;
+};
+
 struct ObjectTree {
   char* key;
   unsigned int key_size;

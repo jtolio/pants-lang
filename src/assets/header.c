@@ -95,6 +95,7 @@ struct env_main {
   union Value c_divide;
   union Value c_new_object;
   union Value c_seal_object;
+  union Value c_Array;
 };
 
 static inline union Value make_cell(union Value val) {

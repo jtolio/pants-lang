@@ -19,6 +19,10 @@ int main(int argc, char** argv) {
   }
 
   try {
+    // force counters
+    UPDATE_FIELD; // gets 0
+    LOOKUP_FIELD; // gets 1
+
     std::vector<PTR<ast::Expression> > ast;
     bool r = parser::parse(os.str(), ast);
     if(!r) throw expectation_failure("failed parsing!");

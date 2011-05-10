@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
   DEFINE_BUILTIN(modulo)
   DEFINE_BUILTIN(new_object)
   DEFINE_BUILTIN(seal_object)
+  DEFINE_BUILTIN(Array)
 
 #undef DEFINE_BUILTIN
 
@@ -85,26 +86,26 @@ int main(int argc, char **argv) {
 #define MIN_RIGHT_ARGS(count) \
   if(right_positional_args_size < count) { \
     THROW_ERROR(hidden_object, make_c_string("function takes at least " #count \
-        " right arguments, %d given.\n", right_positional_args_size)); \
+        " right arguments, %d given.", right_positional_args_size)); \
   }
 #define MAX_RIGHT_ARGS(count) \
   if(right_positional_args_size > count) { \
     THROW_ERROR(hidden_object, make_c_string("function takes at most " #count \
-        " right arguments, %d given.\n", right_positional_args_size)); \
+        " right arguments, %d given.", right_positional_args_size)); \
   }
 #define MIN_LEFT_ARGS(count) \
   if(left_positional_args_size < count) { \
     THROW_ERROR(hidden_object, make_c_string("function takes at least " #count \
-        " left arguments, %d given.\n", left_positional_args_size)); \
+        " left arguments, %d given.", left_positional_args_size)); \
   }
 #define MAX_LEFT_ARGS(count) \
   if(left_positional_args_size > count) { \
     THROW_ERROR(hidden_object, make_c_string("function takes at most " #count \
-        " left arguments, %d given.\n", left_positional_args_size)); \
+        " left arguments, %d given.", left_positional_args_size)); \
   }
 #define REQUIRED_FUNCTION(func) \
   if(func.t != CLOSURE) { \
-    THROW_ERROR(hidden_object, make_c_string("cannot call a non-function!\n"));\
+    THROW_ERROR(hidden_object, make_c_string("cannot call a non-function!"));\
   }
 
 c_print:
@@ -356,7 +357,7 @@ c_seal_object:
   MAX_RIGHT_ARGS(1)
   switch(right_positional_args[0].t) {
     default:
-      THROW_ERROR(hidden_object, make_c_string("cannot seal non-object!\n"));
+      THROW_ERROR(hidden_object, make_c_string("cannot seal non-object!"));
     case OBJECT:
       seal_object(right_positional_args[0].object.data);
   }
@@ -391,5 +392,87 @@ c_halt:
       if(dest.t != NIL) { FATAL_ERROR("failed exiting with value", dest); }
       return 1;
   }
+
+c_Array:
+  MAX_LEFT_ARGS(0)
+  REQUIRED_FUNCTION(continuation)
+  env = GC_MALLOC(sizeof(struct Array));
+  ((struct Array*)env)->array_size = right_positional_args_size;
+  ((struct Array*)env)->array_highwater = right_positional_args_size;
+  ((struct Array*)env)->array = GC_MALLOC(sizeof(union Value) *
+      right_positional_args_size);
+  for(i = 0; i < right_positional_args_size; ++i)
+    ((struct Array*)env)->array[i] = right_positional_args[i];
+  make_object(&right_positional_args[0]);
+  dest.t = CLOSURE;
+  dest.closure.env = env;
+  dest.closure.func = &&c_Array_size;
+  set_field(right_positional_args[0].object.data, "u_size", 6, &dest);
+  dest.closure.func = &&c_Array_update;
+  set_field(right_positional_args[0].object.data, "s_update_0", 10, &dest);
+  dest.closure.func = &&c_Array_index;
+  set_field(right_positional_args[0].object.data, "s_index_1", 9, &dest);
+  seal_object(right_positional_args[0].object.data);
+  left_positional_args_size = 0;
+  right_positional_args_size = 1;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest);
+
+c_Array_size:
+  MAX_LEFT_ARGS(0)
+  MAX_RIGHT_ARGS(0)
+  REQUIRED_FUNCTION(continuation)
+  right_positional_args[0].t = INTEGER;
+  right_positional_args[0].integer.value = ((struct Array*)env)->array_size;
+  right_positional_args_size = 1;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest);
+
+c_Array_update:
+  MAX_LEFT_ARGS(0)
+  MAX_RIGHT_ARGS(2)
+  MIN_RIGHT_ARGS(2)
+  REQUIRED_FUNCTION(continuation)
+  if(right_positional_args[0].t != INTEGER) {
+    THROW_ERROR(hidden_object, make_c_string("array indexing must be done with "
+        "an integer!"));
+  }
+  if(right_positional_args[0].integer.value < 0)
+    right_positional_args[0].integer.value += ((struct Array*)env)->array_size;
+  if(right_positional_args[0].integer.value >= ((struct Array*)env)->array_size
+      || right_positional_args[0].integer.value < 0) {
+    THROW_ERROR(hidden_object, make_c_string("array index out of bounds!"));
+  }
+  ((struct Array*)env)->array[right_positional_args[0].integer.value] =
+      right_positional_args[1];
+  right_positional_args[0] = right_positional_args[1];
+  right_positional_args_size = 1;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest);
+
+c_Array_index:
+  MAX_LEFT_ARGS(0)
+  MAX_RIGHT_ARGS(1)
+  MIN_RIGHT_ARGS(1)
+  REQUIRED_FUNCTION(continuation)
+  if(right_positional_args[0].t != INTEGER) {
+    THROW_ERROR(hidden_object, make_c_string("array indexing must be done with "
+        "an integer!"));
+  }
+  if(right_positional_args[0].integer.value < 0)
+    right_positional_args[0].integer.value += ((struct Array*)env)->array_size;
+  if(right_positional_args[0].integer.value >= ((struct Array*)env)->array_size
+      || right_positional_args[0].integer.value < 0) {
+    THROW_ERROR(hidden_object, make_c_string("array index out of bounds!"));
+  }
+  right_positional_args[0] =
+      ((struct Array*)env)->array[right_positional_args[0].integer.value];
+  right_positional_args_size = 1;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest);
 
 start:

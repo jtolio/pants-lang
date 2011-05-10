@@ -2,9 +2,7 @@ todo
  * wiki pages and docs
  * c primitives
  * cirth primitives
- * arrays/dictionaries
  * all argument styles passing
- * exceptions using kappa environments
  * all other primitives
 
 parser
