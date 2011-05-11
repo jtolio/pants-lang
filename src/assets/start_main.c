@@ -396,18 +396,21 @@ c_halt:
 c_Array:
   MAX_LEFT_ARGS(0)
   REQUIRED_FUNCTION(continuation)
-  env = GC_MALLOC(sizeof(struct Array));
-  ((struct Array*)env)->array_size = right_positional_args_size;
-  ((struct Array*)env)->array_highwater = right_positional_args_size;
-  ((struct Array*)env)->array = GC_MALLOC(sizeof(union Value) *
-      right_positional_args_size);
-  for(i = 0; i < right_positional_args_size; ++i)
-    ((struct Array*)env)->array[i] = right_positional_args[i];
+  env = make_array();
+  append_values(env, right_positional_args, right_positional_args_size);
   make_object(&right_positional_args[0]);
   dest.t = CLOSURE;
   dest.closure.env = env;
   dest.closure.func = &&c_Array_size;
   set_field(right_positional_args[0].object.data, "u_size", 6, &dest);
+  dest.closure.func = &&c_Array_append;
+  set_field(right_positional_args[0].object.data, "u_append", 8, &dest);
+  dest.closure.func = &&c_Array_pop;
+  set_field(right_positional_args[0].object.data, "u_pop", 5, &dest);
+  dest.closure.func = &&c_Array_shift;
+  set_field(right_positional_args[0].object.data, "u_shift", 7, &dest);
+  dest.closure.func = &&c_Array_unshift;
+  set_field(right_positional_args[0].object.data, "u_unshift", 9, &dest);
   dest.closure.func = &&c_Array_update;
   set_field(right_positional_args[0].object.data, "s_update_0", 10, &dest);
   dest.closure.func = &&c_Array_index;
@@ -424,7 +427,7 @@ c_Array_size:
   MAX_RIGHT_ARGS(0)
   REQUIRED_FUNCTION(continuation)
   right_positional_args[0].t = INTEGER;
-  right_positional_args[0].integer.value = ((struct Array*)env)->array_size;
+  right_positional_args[0].integer.value = ((struct Array*)env)->size;
   right_positional_args_size = 1;
   dest = continuation;
   continuation.t = NIL;
@@ -440,12 +443,12 @@ c_Array_update:
         "an integer!"));
   }
   if(right_positional_args[0].integer.value < 0)
-    right_positional_args[0].integer.value += ((struct Array*)env)->array_size;
-  if(right_positional_args[0].integer.value >= ((struct Array*)env)->array_size
+    right_positional_args[0].integer.value += ((struct Array*)env)->size;
+  if(right_positional_args[0].integer.value >= ((struct Array*)env)->size
       || right_positional_args[0].integer.value < 0) {
     THROW_ERROR(hidden_object, make_c_string("array index out of bounds!"));
   }
-  ((struct Array*)env)->array[right_positional_args[0].integer.value] =
+  ((struct Array*)env)->data[right_positional_args[0].integer.value] =
       right_positional_args[1];
   right_positional_args[0] = right_positional_args[1];
   right_positional_args_size = 1;
@@ -463,14 +466,69 @@ c_Array_index:
         "an integer!"));
   }
   if(right_positional_args[0].integer.value < 0)
-    right_positional_args[0].integer.value += ((struct Array*)env)->array_size;
-  if(right_positional_args[0].integer.value >= ((struct Array*)env)->array_size
+    right_positional_args[0].integer.value += ((struct Array*)env)->size;
+  if(right_positional_args[0].integer.value >= ((struct Array*)env)->size
       || right_positional_args[0].integer.value < 0) {
     THROW_ERROR(hidden_object, make_c_string("array index out of bounds!"));
   }
   right_positional_args[0] =
-      ((struct Array*)env)->array[right_positional_args[0].integer.value];
+      ((struct Array*)env)->data[right_positional_args[0].integer.value];
   right_positional_args_size = 1;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest);
+
+c_Array_append:
+  MAX_LEFT_ARGS(0)
+  MIN_RIGHT_ARGS(1)
+  REQUIRED_FUNCTION(continuation)
+  append_values(env, right_positional_args, right_positional_args_size);
+  right_positional_args_size = 1;
+  right_positional_args[0].t = NIL;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest);
+
+c_Array_pop:
+  MAX_LEFT_ARGS(0)
+  MAX_RIGHT_ARGS(0)
+  REQUIRED_FUNCTION(continuation)
+  i = ((struct Array*)env)->size;
+  if(i == 0) {
+    right_positional_args[0].t = NIL;
+  } else {
+    ((struct Array*)env)->size = --i;
+    right_positional_args[0] = ((struct Array*)env)->data[i];
+  }
+  right_positional_args_size = 1;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest);
+
+c_Array_shift:
+  MAX_LEFT_ARGS(0)
+  MAX_RIGHT_ARGS(0)
+  REQUIRED_FUNCTION(continuation)
+  if(((struct Array*)env)->size == 0) {
+    right_positional_args[0].t = NIL;
+  } else {
+    right_positional_args[0] = ((struct Array*)env)->data[0];
+    shift_values(env, -1);
+  }
+  right_positional_args_size = 1;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest);
+
+c_Array_unshift:
+  MAX_LEFT_ARGS(0)
+  MIN_RIGHT_ARGS(1)
+  REQUIRED_FUNCTION(continuation)
+  shift_values(env, right_positional_args_size);
+  for(i = 0; i < right_positional_args_size; ++i)
+    ((struct Array*)env)->data[i] = right_positional_args[i];
+  right_positional_args_size = 1;
+  right_positional_args[0].t = NIL;
   dest = continuation;
   continuation.t = NIL;
   CALL_FUNC(dest);

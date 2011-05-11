@@ -12,11 +12,16 @@ C_LIBRARIES = ["-lgc"]
 class Error_(Exception): pass
 class TestError(Error_): pass
 
-def find_tests():
+def find_tests(explicit_tests):
+  filter_tests = False
+  if explicit_tests:
+    explicit_tests = set(explicit_tests)
+    filter_tests = True
   for filename in os.listdir("."):
     if not TEST_EXT.search(filename): continue
     testname = TEST_EXT.sub('', filename)
-    if os.path.exists("%s.out" % testname):
+    if os.path.exists("%s.out" % testname) and (not filter_tests or
+        testname in explicit_tests):
       yield (filename, "%s.out" % testname)
 
 def translate(source_path):
@@ -34,10 +39,10 @@ def translate(source_path):
 def clean_up(output):
   return '\n'.join((x.strip() for x in output.strip().split('\n')))
 
-def run_tests():
+def run_tests(explicit_tests):
   failed_tests = 0
   total_tests = 0
-  for source, output in find_tests():
+  for source, output in find_tests(explicit_tests):
     try:
       c_source = translate(source)
       try:
@@ -66,4 +71,4 @@ def run_tests():
   sys.stdout.write("\nTotal tests: %d, Successes: %d, Failures: %d\n" % (
       total_tests, (total_tests - failed_tests), failed_tests))
 
-if __name__ == "__main__": run_tests()
+if __name__ == "__main__": run_tests(sys.argv[1:])

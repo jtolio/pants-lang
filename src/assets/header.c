@@ -8,6 +8,8 @@
 #define true 1
 #define false 0
 const unsigned int MAX_C_STRING_SIZE = 1024;
+const unsigned int MIN_ARRAY_SIZE = 10;
+const unsigned int MAX_ARRAY_ADDITION = 4096;
 const char C_STRING_TRUNCATED_MESSAGE[] = "...";
 
 enum ValueTag {

@@ -49,3 +49,16 @@ v[2] = "fox"
 output_list v
 v[2] = "poopypants"
 output_list v
+
+x = []
+x.append(3)
+x.append(4)
+x.unshift(5)
+output_list(x)
+
+print x.pop()
+print.
+output_list(x)
+print x.shift()
+print.
+output_list(x)
