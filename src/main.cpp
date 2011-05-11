@@ -4,6 +4,7 @@
 #include "ir.h"
 #include "cps.h"
 #include "compile.h"
+#include "optimize.h"
 #include <iostream>
 #include "assets.h"
 
@@ -33,10 +34,12 @@ int main(int argc, char** argv) {
     ir::convert(ast, ir, lastval);
     lastval = NULL_VALUE;
     ast.clear();
+    optimize::ir(ir);
 
     PTR<cps::Expression> cps;
     cps::transform(ir, lastval, cps);
     ir.clear();
+    optimize::cps(cps);
 
     compile::compile(cps, std::cout);
   } catch (const std::exception& e) {
