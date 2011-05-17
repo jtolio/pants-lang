@@ -2,7 +2,7 @@
 
 __author__ = "JT Olds <hello@jtolds.com>"
 
-import os, re, subprocess, tempfile, sys
+import os, re, subprocess, tempfile, sys, threading, Queue
 
 TEST_EXT = re.compile(r'\.cth$')
 COMPILER_PATH = "../src/cirth"
@@ -39,37 +39,77 @@ def translate(source_path):
 def clean_up(output):
   return '\n'.join((x.strip() for x in output.strip().split('\n')))
 
-def run_tests(explicit_tests):
-  failed_tests = 0
+def run_test(compiler, source, output):
+  errors = []
+  try:
+    c_source = translate(source)
+    try:
+      subprocess.check_call(compiler + ["-o", c_source[:-2], c_source] +
+          C_LIBRARIES)
+      binary = subprocess.Popen([c_source[:-2]], stdout=subprocess.PIPE)
+      binary_output = clean_up(binary.communicate()[0] + ("\nreturn code: %d" %
+          binary.returncode))
+      expected_output = clean_up(file(output).read())
+      if binary_output != expected_output:
+        errors.append("\n".join((
+            "test %s" % source,
+            "============== Expected:",
+            expected_output,
+            "============== Received:",
+            binary_output,
+            "",
+            "output mismatch for test %s" % source)))
+        raise TestError, "output mismatch for test %s" % source
+    finally:
+      os.unlink(c_source[:-2])
+      os.unlink(c_source)
+  except Exception, e:
+    errors.append("FAILURE: %s" % e)
+  return errors
+
+def worker(job_queue, errors):
+  while True:
+    try: job = job_queue.get_nowait()
+    except Queue.Empty, e: return
+    job_errors = run_test(*job)
+    if job_errors:
+      errors.put(1)
+      for error in job_errors:
+        sys.stdout.write("%s\n" % error)
+    sys.stdout.write(".")
+    sys.stdout.flush()
+
+def run_tests(explicit_tests, parallelism):
   total_tests = 0
+  job_queue = Queue.Queue()
+  errors = Queue.Queue()
   for compiler in C_COMPILERS:
     for source, output in find_tests(explicit_tests):
-      try:
-        c_source = translate(source)
-        try:
-          subprocess.check_call(compiler + ["-o", c_source[:-2], c_source] +
-              C_LIBRARIES)
-          binary = subprocess.Popen([c_source[:-2]], stdout=subprocess.PIPE)
-          binary_output = clean_up(binary.communicate()[0] +
-              ("\nreturn code: %d" % binary.returncode))
-          expected_output = clean_up(file(output).read())
-          if binary_output != expected_output:
-            sys.stdout.write("test %s\n============== Expected:\n" % source)
-            sys.stdout.write(expected_output)
-            sys.stdout.write("\n============== Received:\n")
-            sys.stdout.write(binary_output)
-            sys.stdout.write("\n")
-            raise TestError, "output mismatch for test %s" % source
-        finally:
-          subprocess.call(["rm", "-f", c_source[:-2], c_source])
-      except Exception, e:
-        sys.stdout.write("FAILURE: %s\n" % e)
-        failed_tests += 1
+      job_queue.put((compiler, source, output))
       total_tests += 1
-      sys.stdout.write(".")
-      sys.stdout.flush()
-
+  threads = [threading.Thread(target=worker, args=(job_queue, errors))
+      for _ in xrange(parallelism)]
+  for thread in threads: thread.start()
+  alive_threads = True
+  while alive_threads:
+    alive_threads = False
+    for thread in threads:
+      if thread.is_alive():
+        alive_threads = True
+        thread.join(0.1) # don't keep the main thread asleep. python is sad
+  failed_tests = errors.qsize()
   sys.stdout.write("\nTotal tests: %d, Successes: %d, Failures: %d\n" % (
       total_tests, (total_tests - failed_tests), failed_tests))
 
-if __name__ == "__main__": run_tests(sys.argv[1:])
+def processor_count():
+  processors = {}
+  for line in file("/proc/cpuinfo"):
+    data = [x.strip() for x in line.strip().split(":")]
+    if data[0] == "processor" and len(data) > 1: processors[data[1]] = True
+  return max(len(processors), 1)
+
+def main(argv):
+  run_tests(argv[1:], processor_count())
+  return 0
+
+if __name__ == "__main__": sys.exit(main(sys.argv))
