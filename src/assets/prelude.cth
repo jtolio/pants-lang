@@ -33,23 +33,9 @@ seal_object = null
 
 
 freeze = { |macro|
-  k = null
-  obj = construct { |o|
-    o.k = null
-    o.arg = null
-  }
-  rv = {
-    k := cont
-    false
-  }()
-  if (rv) {
-    obj.k macro(obj.arg)
-  }
-  { |arg|
-    obj.k = cont
-    obj.arg = arg
-    k true
-  }
+  k = null; sub_k = null; sub_arg = null
+  if { k := cont; false }() { sub_k macro(sub_arg) }
+  { |arg| sub_k := cont; sub_arg := arg; k true }
 }
 
 
