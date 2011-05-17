@@ -2,7 +2,7 @@ int main(int argc, char **argv) {
   struct env_main main;
   void* env = &main;
   union Value dest;
-  unsigned int i, a, b;
+  unsigned int i;
   union Value initial_right_positional_args[10];
   union Value* right_positional_args = initial_right_positional_args;
   unsigned int right_positional_args_size = 0;

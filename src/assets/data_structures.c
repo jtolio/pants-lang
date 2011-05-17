@@ -109,6 +109,7 @@ static inline struct Array* make_array() {
 }
 
 static inline void reserve_space(struct Array* array, unsigned int total_size) {
+  unsigned int i = 0;
   if(total_size <= array->highwater) return;
   while(array->highwater < total_size) {
     unsigned int new_space = array->highwater;
@@ -116,29 +117,34 @@ static inline void reserve_space(struct Array* array, unsigned int total_size) {
     array->highwater += new_space;
   }
   union Value* new_data = GC_MALLOC(sizeof(union Value) * array->highwater);
-  for(unsigned int i = 0; i < array->size; ++i) new_data[i] = array->data[i];
+  for(i = 0; i < array->size; ++i) new_data[i] = array->data[i];
   array->data = new_data;
 }
 
 static inline void append_values(struct Array* array, union Value* values,
     unsigned int size) {
+  unsigned int i = 0;
   reserve_space(array, array->size + size);
-  for(unsigned int i = 0; i < size; ++i)
+  for(i = 0; i < size; ++i)
     array->data[array->size + i] = values[i];
   array->size += size;
 }
 
 static inline void shift_values(struct Array* array, signed int amount_to_right){
   if(amount_to_right < 0) {
-    for(signed int i = -amount_to_right; i < array->size; ++i)
+    signed int i = 0;
+    for(i = -amount_to_right; i < array->size; ++i)
       array->data[i + amount_to_right] = array->data[i];
     array->size += amount_to_right;
     return;
   }
   if(amount_to_right == 0) return;
   reserve_space(array, array->size + amount_to_right);
-  for(unsigned int i = array->size; i > 0; --i) {
-    array->data[i - 1 + amount_to_right] = array->data[i - 1];
+  {
+    unsigned int i = 0;
+    for(i = array->size; i > 0; --i) {
+      array->data[i - 1 + amount_to_right] = array->data[i - 1];
+    }
   }
   array->size += amount_to_right;
 }

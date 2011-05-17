@@ -1,6 +1,6 @@
 #!./script_wrapper.sh ../src/cirth
 
-hello := { |target|
+hello = { |target|
   print "Hello" (+ target "!")
 }
 
