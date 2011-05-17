@@ -87,10 +87,10 @@ std::string cps::Variable::format(unsigned int indent_level) const {
   return os.str();
 }
 
-std::string cps::Function::format(unsigned int indent_level) const {
+std::string cps::Callable::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "Function(\n" << indent(indent_level) << "Left(\n"
-     << indent(indent_level+1);
+  os << "Callable(" << (function ? "function,\n" : "continuation,\n")
+     << indent(indent_level) << "Left(\n" << indent(indent_level+1);
   bool comma_needed = false;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
     if(comma_needed) os << ",\n" << indent(indent_level+1);
@@ -124,23 +124,6 @@ std::string cps::Function::format(unsigned int indent_level) const {
   }
   os << "),\n" << indent(indent_level) << expression->format(indent_level+1)
      << ")";
-  return os.str();
-}
-
-std::string cps::Continuation::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "Continuation(\n" << indent(indent_level);
-  for(unsigned int i = 0; i < vars.size(); ++i) {
-    os << vars[i].format(indent_level+1) << ",\n" << indent(indent_level);
-  }
-  os << expression->format(indent_level+1) << ")";
-  return os.str();
-}
-
-std::string cps::Scope::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "Scope(\n" << indent(indent_level)
-     << expression->format(indent_level+1) << ")";
   return os.str();
 }
 
@@ -199,13 +182,13 @@ public:
     *rv = PTR<cps::Value>(new cps::Field(val->object, val->field));
   }
   void visit(ir::Scope* old_scope) {
-    PTR<cps::Scope> new_scope(new cps::Scope);
-    *rv = new_scope;
+    PTR<cps::Callable> new_func(new cps::Callable(true));
+    *rv = new_func;
     cps::transform(old_scope->expressions, old_scope->lastval,
-        new_scope->expression);
+        new_func->expression);
   }
   void visit(ir::Function* old_func) {
-    PTR<cps::Function> new_func(new cps::Function);
+    PTR<cps::Callable> new_func(new cps::Callable(true));
     *rv = new_func;
     // transform internals
     cps::transform(old_func->expressions, old_func->lastval,
@@ -214,8 +197,8 @@ public:
     PTR<cps::Call> call(new cps::Call);
     call->right_positional_args.push_back(PTR<cps::Value>(
         new cps::Variable(CONTINUATION)));
-    PTR<cps::Continuation> continuation(new cps::Continuation);
-    continuation->vars.push_back(RETURN);
+    PTR<cps::Callable> continuation(new cps::Callable(false));
+    continuation->right_positional_args.push_back(RETURN);
     continuation->expression = new_func->expression;
     call->callable = continuation;
     new_func->expression = call;
@@ -269,8 +252,8 @@ public:
   void visit(ir::Definition* definition) {
     PTR<cps::Call> call(new cps::Call);
     call->right_positional_args.push_back(trans(definition->value));
-    PTR<cps::Continuation> continuation(new cps::Continuation);
-    continuation->vars.push_back(definition->assignee);
+    PTR<cps::Callable> continuation(new cps::Callable(false));
+    continuation->right_positional_args.push_back(definition->assignee);
     continuation->expression = *out_ir;
     call->callable = continuation;
     *out_ir = call;
@@ -324,8 +307,8 @@ public:
           rv->term->hidden_object_optional_args[i].key,
           rv->term->hidden_object_optional_args[i].variable));
     }
-    PTR<cps::Continuation> continuation(new cps::Continuation);
-    continuation->vars.push_back(rv->assignee);
+    PTR<cps::Callable> continuation(new cps::Callable(false));
+    continuation->right_positional_args.push_back(rv->assignee);
     continuation->expression = *out_ir;
     call->continuation = continuation;
     *out_ir = call;
@@ -366,9 +349,7 @@ public:
 
   void visit(cps::Field* val) { m_names->insert(val->object); }
   void visit(cps::Variable* val) { m_names->insert(val->variable); }
-  void visit(cps::Function* val) { val->free_names(*m_names); }
-  void visit(cps::Continuation* val) { val->free_names(*m_names); }
-  void visit(cps::Scope* val) { val->free_names(*m_names); }
+  void visit(cps::Callable* val) { val->free_names(*m_names); }
 private:
   std::set<cps::Name>* m_names;
 };
@@ -412,7 +393,7 @@ static inline void add_unique_name(std::set<cps::Name>& names,
   names.insert(name);
 }
 
-void cps::Function::arg_names(std::set<cps::Name>& names) {
+void cps::Callable::arg_names(std::set<cps::Name>& names) {
   std::set<cps::Name> args;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i)
     add_unique_name(args, left_positional_args[i]);
@@ -423,14 +404,15 @@ void cps::Function::arg_names(std::set<cps::Name>& names) {
     add_unique_name(args, right_optional_args[i].key);
   if(!!right_arbitrary_arg) add_unique_name(args, right_arbitrary_arg.get());
   if(!!right_keyword_arg) add_unique_name(args, right_keyword_arg.get());
-  add_unique_name(args, HIDDEN_OBJECT);
-  add_unique_name(args, RETURN);
-  add_unique_name(args, CONTINUATION);
+  if(function) {
+    add_unique_name(args, HIDDEN_OBJECT);
+    add_unique_name(args, CONTINUATION);
+  }
   for(std::set<Name>::iterator it(args.begin()); it != args.end(); ++it)
     names.insert(*it);
 }
 
-void cps::Function::free_names(std::set<cps::Name>& names) {
+void cps::Callable::free_names(std::set<cps::Name>& names) {
   std::set<Name> new_names;
   expression->free_names(new_names);
   std::set<Name> args;
@@ -442,39 +424,4 @@ void cps::Function::free_names(std::set<cps::Name>& names) {
     names.insert(*it);
   for(unsigned int i = 0; i < right_optional_args.size(); ++i)
     names.insert(right_optional_args[i].value);
-}
-
-void cps::Continuation::arg_names(std::set<Name>& names) {
-  std::set<cps::Name> args;
-  for(unsigned int i = 0; i < vars.size(); ++i)
-    add_unique_name(args, vars[i]);
-  for(std::set<Name>::iterator it(args.begin()); it != args.end(); ++it)
-    names.insert(*it);
-}
-
-void cps::Continuation::free_names(std::set<Name>& names) {
-  std::set<Name> new_names;
-  expression->free_names(new_names);
-  for(unsigned int i = 0; i < vars.size(); ++i)
-    new_names.erase(vars[i]);
-  for(std::set<Name>::iterator it(new_names.begin());
-      it != new_names.end(); ++it)
-    names.insert(*it);
-}
-
-void cps::Scope::arg_names(std::set<Name>& names) {
-  names.insert(HIDDEN_OBJECT);
-  names.insert(CONTINUATION);
-}
-
-void cps::Scope::free_names(std::set<Name>& names) {
-  std::set<Name> new_names;
-  expression->free_names(new_names);
-  std::set<Name> args;
-  arg_names(args);
-  for(std::set<Name>::iterator it(args.begin()); it != args.end(); ++it)
-    new_names.erase(*it);
-  for(std::set<Name>::iterator it(new_names.begin());
-      it != new_names.end(); ++it)
-    names.insert(*it);
 }

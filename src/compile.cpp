@@ -46,13 +46,15 @@ class ValueWriter : public ValueVisitor {
                "      }\n"
                "      break;\n"
                "  }\n";
+      m_lastval = "dest";
     }
     void visit(Variable* var) {
-      *m_os << "  dest = " << var_access(m_env, var->variable) << ";\n";
+      m_lastval = var_access(m_env, var->variable);
     }
     void visit(Integer* integer) {
       *m_os << "  dest.t = INTEGER;\n"
                "  dest.integer.value = " << integer->value << ";\n";
+      m_lastval = "dest";
     }
     void visit(String* str) {
       *m_os << "  dest.t = STRING;\n"
@@ -60,15 +62,14 @@ class ValueWriter : public ValueVisitor {
             << (str->byte_oriented ? "true" : "false") << ";\n"
                "  dest.string.value = " << to_bytestring(str->value) << ";\n"
                "  dest.string.value_size = " << str->value.size() << ";\n";
+      m_lastval = "dest";
     }
     void visit(Float* floating) {
       *m_os << "  dest.t = FLOAT;\n"
                "  dest.floating.value = " << floating->value << ";\n";
+      m_lastval = "dest";
     }
-    void visit(Function* func) { visit_callable(func); }
-    void visit(Continuation* func) { visit_callable(func); }
-    void visit(Scope* func) { visit_callable(func); }
-    void visit_callable(Callable* func) {
+    void visit(Callable* func) {
       *m_os << "  dest.t = CLOSURE;\n"
                "  dest.closure.func = &&" << func->c_name() << ";\n";
       std::set<Name> free_names;
@@ -81,10 +82,13 @@ class ValueWriter : public ValueVisitor {
               << it->c_name() << " = " << m_env << "->" << it->c_name()
               << ";\n";
       }
+      m_lastval = "dest";
     }
+    std::string lastval() const { return m_lastval; }
   private:
     std::ostream* m_os;
     std::string m_env;
+    std::string m_lastval;
 };
 
 class ExpressionWriter : public ExpressionVisitor {
@@ -96,7 +100,7 @@ class ExpressionWriter : public ExpressionVisitor {
 
       if(call->continuation.get()) {
         call->continuation->accept(&writer);
-        *m_os << "  continuation = dest;\n";
+        *m_os << "  continuation = " << writer.lastval() << ";\n";
       } else {
         *m_os << "  continuation.t = NIL;\n";
       }
@@ -115,7 +119,8 @@ class ExpressionWriter : public ExpressionVisitor {
 
       for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
         call->right_positional_args[i]->accept(&writer);
-        *m_os << "  right_positional_args[" << i << "] = dest;\n";
+        *m_os << "  right_positional_args[" << i << "] = " << writer.lastval()
+              << ";\n";
       }
 
       if(call->left_positional_args.size() > MIN_LEFT_ARG_HIGHWATER) {
@@ -156,6 +161,8 @@ class ExpressionWriter : public ExpressionVisitor {
       }
 
       call->callable->accept(&writer);
+      if(writer.lastval() != "dest")
+        *m_os << "  dest = " << writer.lastval() << ";\n";
       *m_os << "  if(dest.t != CLOSURE) {\n"
                "    THROW_ERROR(" << var_access(m_env, HIDDEN_OBJECT)
             << ", make_c_string(\"cannot call a non-function!\"));\n"
@@ -211,17 +218,18 @@ class CallableWriter : public ValueVisitor {
     void visit(Integer*) {}
     void visit(String*) {}
     void visit(Float*) {}
-    void visit(Function* func) {
+    void visit(Callable* func) {
       prelim(func);
       *m_os << "  MIN_RIGHT_ARGS(" << func->right_positional_args.size()
             << ")\n"
                "  MIN_LEFT_ARGS(" << func->left_positional_args.size()
-            << ")\n"
-               "  REQUIRED_FUNCTION(continuation)\n"
-               "  " << scope_to_env(func->c_name()) << "->"
-            << CONTINUATION.c_name() << " = continuation;\n"
-               "  " << scope_to_env(func->c_name()) << "->"
-            << HIDDEN_OBJECT.c_name() << " = hidden_object;\n";
+            << ")\n";
+      if(func->function) {
+        *m_os << "  " << scope_to_env(func->c_name()) << "->"
+              << CONTINUATION.c_name() << " = continuation;\n"
+                 "  " << scope_to_env(func->c_name()) << "->"
+              << HIDDEN_OBJECT.c_name() << " = hidden_object;\n";
+      }
       for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
         bool is_mutated(func->right_positional_args[i].is_mutated());
         *m_os << "  " << scope_to_env(func->c_name()) << "->"
@@ -240,33 +248,6 @@ class CallableWriter : public ValueVisitor {
         if(is_mutated) *m_os << ")";
         *m_os << ";\n";
       }
-      wrapup(func);
-    }
-    void visit(Continuation* func) {
-      prelim(func);
-      *m_os << "  MIN_RIGHT_ARGS(" << func->vars.size() << ")\n"
-               "  MAX_RIGHT_ARGS(" << func->vars.size() << ")\n"
-               "  MAX_LEFT_ARGS(0)\n";
-      for(unsigned int i = 0; i < func->vars.size(); ++i) {
-        bool is_mutated(func->vars[i].is_mutated());
-        *m_os << "  " << scope_to_env(func->c_name()) << "->"
-              << func->vars[i].c_name() << " = ";
-        if(is_mutated) *m_os << "make_cell(";
-        *m_os << "right_positional_args[" << i << "]";
-        if(is_mutated) *m_os << ")";
-        *m_os << ";\n";
-      }
-      wrapup(func);
-    }
-    void visit(Scope* func) {
-      prelim(func);
-      *m_os << "  MAX_RIGHT_ARGS(0)\n"
-               "  MAX_LEFT_ARGS(0)\n"
-               "  REQUIRED_FUNCTION(continuation)\n"
-               "  " << scope_to_env(func->c_name()) << "->"
-            << CONTINUATION.c_name() << " = continuation;\n"
-               "  " << scope_to_env(func->c_name()) << "->"
-            << HIDDEN_OBJECT.c_name() << " = hidden_object;\n";
       wrapup(func);
     }
   private:

@@ -9,8 +9,8 @@ namespace cps {
 
   typedef cirth::ir::Name Name;
   struct Callable; struct Field; struct Variable; struct Integer;
-  struct String; struct Float; struct Function; struct Continuation;
-  struct Scope; struct Call; struct VariableMutation; struct ObjectMutation;
+  struct String; struct Float; struct Callable; struct Call;
+  struct VariableMutation; struct ObjectMutation;
 
   struct ValueVisitor {
     virtual void visit(Field*) = 0;
@@ -18,9 +18,7 @@ namespace cps {
     virtual void visit(Integer*) = 0;
     virtual void visit(String*) = 0;
     virtual void visit(Float*) = 0;
-    virtual void visit(Function*) = 0;
-    virtual void visit(Continuation*) = 0;
-    virtual void visit(Scope*) = 0;
+    virtual void visit(Callable*) = 0;
   };
 
   struct ExpressionVisitor {
@@ -147,45 +145,26 @@ namespace cps {
   };
 
   struct Callable : public Value {
-    Callable() : varid(m_varcount++) {}
+    Callable(bool function_) : varid(m_varcount++), function(function_) {}
     PTR<Expression> expression;
-    virtual void free_names(std::set<Name>& names) = 0;
-    virtual void arg_names(std::set<Name>& names) = 0;
-    std::string c_name() const {
-      std::ostringstream os;
-      os << "f_" << varid;
-      return os.str();
-    }
-    unsigned int varid;
-    private: static unsigned int m_varcount;
-  };
-
-  struct Function : public Callable {
     std::vector<Name> left_positional_args;
     boost::optional<Name> left_arbitrary_arg;
     std::vector<Name> right_positional_args;
     std::vector<Definition> right_optional_args;
     boost::optional<Name> right_arbitrary_arg;
     boost::optional<Name> right_keyword_arg;
+    unsigned int varid;
+    bool function;
+    std::string c_name() const {
+      std::ostringstream os;
+      os << "f_" << varid;
+      return os.str();
+    }
     std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* v) { v->visit(this); }
     void arg_names(std::set<Name>& names);
     void free_names(std::set<Name>& names);
-  };
-
-  struct Continuation : public Callable {
-    std::vector<Name> vars;
-    std::string format(unsigned int indent_level) const;
-    void accept(ValueVisitor* v) { v->visit(this); }
-    void arg_names(std::set<Name>& names);
-    void free_names(std::set<Name>& names);
-  };
-
-  struct Scope : public Callable {
-    std::string format(unsigned int indent_level) const;
-    void accept(ValueVisitor* v) { v->visit(this); }
-    void arg_names(std::set<Name>& names);
-    void free_names(std::set<Name>& names);
+    private: static unsigned int m_varcount;
   };
 
   void transform(const std::vector<PTR<cirth::ir::Expression> >& in_ir,
