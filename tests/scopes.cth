@@ -1,0 +1,58 @@
+x = (3)
+print x
+{ |x| print x; x := 4; print x }(2)
+print x
+
+print.
+
+x = 1
+y = { print x }
+y.
+print x
+x := 2
+y.
+print x
+
+print.
+
+x = 1
+y = { print x }
+y.
+print x
+x = 2
+y.
+print x
+
+print.
+
+z = {
+  (
+    cont 3
+  )
+  cont 4
+}
+
+print z()
+
+z = {
+  cont 4
+  (
+    cont 3
+  )
+}
+
+print z()
+
+print.
+
+x = 10
+(
+  x = 11
+)
+print x
+
+x = 10
+(
+  x := 11
+)
+print x
