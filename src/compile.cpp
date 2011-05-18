@@ -7,6 +7,12 @@ using namespace cirth::cps;
 #define MIN_RIGHT_ARG_HIGHWATER 10
 #define MIN_LEFT_ARG_HIGHWATER 2
 
+static inline std::string scope_to_env(const std::string& scope) {
+  std::ostringstream env;
+  env << "((struct env_" << scope << "*)env)";
+  return env.str();
+}
+
 static std::string var_access(const std::string& env, const Name& name) {
   std::ostringstream os;
   if(name.is_mutated())
@@ -22,6 +28,28 @@ static std::string to_bytestring(const std::string& data) {
   for(unsigned int i = 0; i < data.size(); ++i) os << "\\x" << (int)data[i];
   os << "\\x00\"";
   return os.str();
+}
+
+static void inline write_expression(PTR<Expression> cps, std::ostream& os,
+    const std::string& scope);
+
+static void inline write_closure(std::ostream& os, Callable* func,
+    bool include_label, const std::string& name, const std::string& env) {
+  os << "  " << name << ".t = CLOSURE;\n";
+  if(include_label)
+    os << "  " << name << ".closure.func = &&" << func->c_name() << ";\n";
+  else
+    os << "  " << name << ".closure.func = NULL;\n";
+  std::set<Name> free_names;
+  func->free_names(free_names);
+  os << "  " << name << ".closure.env = GC_MALLOC(sizeof(struct env_"
+        << func->c_name() << "));\n";
+  for(std::set<Name>::const_iterator it(free_names.begin());
+      it != free_names.end(); ++it) {
+    os << "  ((struct env_" << func->c_name() << "*)" << name
+       << ".closure.env)->" << it->c_name() << " = " << env << "->"
+       << it->c_name() << ";\n";
+  }
 }
 
 class ValueWriter : public ValueVisitor {
@@ -70,18 +98,7 @@ class ValueWriter : public ValueVisitor {
       m_lastval = "dest";
     }
     void visit(Callable* func) {
-      *m_os << "  dest.t = CLOSURE;\n"
-               "  dest.closure.func = &&" << func->c_name() << ";\n";
-      std::set<Name> free_names;
-      func->free_names(free_names);
-      *m_os << "  dest.closure.env = GC_MALLOC(sizeof(struct env_"
-            << func->c_name() << "));\n";
-      for(std::set<Name>::const_iterator it(free_names.begin());
-          it != free_names.end(); ++it) {
-        *m_os << "  ((struct env_" << func->c_name() << "*)dest.closure.env)->"
-              << it->c_name() << " = " << m_env << "->" << it->c_name()
-              << ";\n";
-      }
+      write_closure(*m_os, func, true, "dest", m_env);
       m_lastval = "dest";
     }
     std::string lastval() const { return m_lastval; }
@@ -90,6 +107,39 @@ class ValueWriter : public ValueVisitor {
     std::string m_env;
     std::string m_lastval;
 };
+
+static void write_callable(std::ostream& os, Callable* func) {
+  os << "\n" << func->c_name() << ":\n"
+           "  MIN_RIGHT_ARGS(" << func->right_positional_args.size()
+        << ")\n"
+           "  MIN_LEFT_ARGS(" << func->left_positional_args.size()
+        << ")\n";
+  if(func->function) {
+    os << "  " << scope_to_env(func->c_name()) << "->"
+          << CONTINUATION.c_name() << " = continuation;\n"
+             "  " << scope_to_env(func->c_name()) << "->"
+          << HIDDEN_OBJECT.c_name() << " = hidden_object;\n";
+  }
+  for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
+    bool is_mutated(func->right_positional_args[i].is_mutated());
+    os << "  " << scope_to_env(func->c_name()) << "->"
+          << func->right_positional_args[i].c_name() << " = ";
+    if(is_mutated) os << "make_cell(";
+    os << "right_positional_args[" << i << "]";
+    if(is_mutated) os << ")";
+    os << ";\n";
+  }
+  for(unsigned int i = 0; i < func->left_positional_args.size(); ++i) {
+    bool is_mutated(func->left_positional_args[i].is_mutated());
+    os << "  " << scope_to_env(func->c_name()) << "->"
+          << func->left_positional_args[i].c_name() << " = ";
+    if(is_mutated) os << "make_cell(";
+    os << "left_positional_args[" << i << "]";
+    if(is_mutated) os << ")";
+    os << ";\n";
+  }
+  write_expression(func->expression, os, func->c_name());
+}
 
 class ExpressionWriter : public ExpressionVisitor {
   public:
@@ -159,7 +209,13 @@ class ExpressionWriter : public ExpressionVisitor {
         *m_os << "  hidden_object = " << var_access(m_env, HIDDEN_OBJECT)
               << ";\n";
       }
-
+      Callable* callable(dynamic_cast<Callable*>(call->callable.get()));
+      if(callable) {
+        write_closure(*m_os, callable, false, "dest", m_env);
+        *m_os << "  env = dest.closure.env;\n";
+        write_callable(*m_os, callable);
+        return;
+      }
       call->callable->accept(&writer);
       if(writer.lastval() != "dest")
         *m_os << "  dest = " << writer.lastval() << ";\n";
@@ -168,6 +224,7 @@ class ExpressionWriter : public ExpressionVisitor {
             << ", make_c_string(\"cannot call a non-function!\"));\n"
                "  }\n"
                "  CALL_FUNC(dest)\n";
+
     }
     void visit(VariableMutation* mut) {
       *m_os << "  (*" << m_env << "->" << mut->assignee.c_name()
@@ -198,72 +255,15 @@ class ExpressionWriter : public ExpressionVisitor {
     std::string m_env;
 };
 
-static inline std::string scope_to_env(const std::string& scope) {
-  std::ostringstream env;
-  env << "((struct env_" << scope << "*)env)";
-  return env.str();
-}
-
 static void inline write_expression(PTR<Expression> cps, std::ostream& os,
     const std::string& scope) {
   ExpressionWriter writer(&os, scope_to_env(scope));
   cps->accept(&writer);
 }
 
-class CallableWriter : public ValueVisitor {
-  public:
-    CallableWriter(std::ostream* os) : m_os(os) {}
-    void visit(Field*) {}
-    void visit(Variable*) {}
-    void visit(Integer*) {}
-    void visit(String*) {}
-    void visit(Float*) {}
-    void visit(Callable* func) {
-      prelim(func);
-      *m_os << "  MIN_RIGHT_ARGS(" << func->right_positional_args.size()
-            << ")\n"
-               "  MIN_LEFT_ARGS(" << func->left_positional_args.size()
-            << ")\n";
-      if(func->function) {
-        *m_os << "  " << scope_to_env(func->c_name()) << "->"
-              << CONTINUATION.c_name() << " = continuation;\n"
-                 "  " << scope_to_env(func->c_name()) << "->"
-              << HIDDEN_OBJECT.c_name() << " = hidden_object;\n";
-      }
-      for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
-        bool is_mutated(func->right_positional_args[i].is_mutated());
-        *m_os << "  " << scope_to_env(func->c_name()) << "->"
-              << func->right_positional_args[i].c_name() << " = ";
-        if(is_mutated) *m_os << "make_cell(";
-        *m_os << "right_positional_args[" << i << "]";
-        if(is_mutated) *m_os << ")";
-        *m_os << ";\n";
-      }
-      for(unsigned int i = 0; i < func->left_positional_args.size(); ++i) {
-        bool is_mutated(func->left_positional_args[i].is_mutated());
-        *m_os << "  " << scope_to_env(func->c_name()) << "->"
-              << func->left_positional_args[i].c_name() << " = ";
-        if(is_mutated) *m_os << "make_cell(";
-        *m_os << "left_positional_args[" << i << "]";
-        if(is_mutated) *m_os << ")";
-        *m_os << ";\n";
-      }
-      wrapup(func);
-    }
-  private:
-    void prelim(Callable* func) {
-      *m_os << "\n" << func->c_name() << ":\n";
-    }
-    void wrapup(Callable* func) {
-      write_expression(func->expression, *m_os, func->c_name());
-    }
-  private:
-    std::ostream* m_os;
-};
-
 void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
 
-  std::vector<PTR<cps::Callable> > callables;
+  std::vector<std::pair<PTR<cps::Callable>, bool> > callables;
   std::set<Name> free_names;
   cps->callables(callables);
   cps->free_names(free_names);
@@ -280,11 +280,11 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
   os << cirth::assets::BUILTINS_C << "\n";
 
   for(unsigned int i = 0; i < callables.size(); ++i) {
-    os << "struct env_" << callables[i]->c_name() << " {\n";
+    os << "struct env_" << callables[i].first->c_name() << " {\n";
     std::set<Name> free_names;
     std::set<Name> arg_names;
-    callables[i]->free_names(free_names);
-    callables[i]->arg_names(arg_names);
+    callables[i].first->free_names(free_names);
+    callables[i].first->arg_names(arg_names);
     for(std::set<Name>::iterator it(free_names.begin()); it != free_names.end();
         ++it) {
       os << "  union Value " << it->c_name() << ";\n";
@@ -299,9 +299,9 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
   os << cirth::assets::START_MAIN_C;
   write_expression(cps, os, "main");
 
-  CallableWriter writer(&os);
-  for(unsigned int i = 0; i < callables.size(); ++i)
-    callables[i]->accept(&writer);
+  for(unsigned int i = 0; i < callables.size(); ++i) {
+    if(!callables[i].second) write_callable(os, callables[i].first.get());
+  }
 
   os << cirth::assets::END_MAIN_C;
 

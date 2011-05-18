@@ -89,7 +89,7 @@ namespace cps {
   struct Expression {
     virtual ~Expression() {}
     virtual std::string format(unsigned int indent_level) const = 0;
-    virtual void callables(std::vector<PTR<Callable> >& callables) = 0;
+    virtual void callables(std::vector<std::pair<PTR<Callable>, bool> >&) = 0;
     virtual void free_names(std::set<Name>& names) = 0;
     virtual void accept(ExpressionVisitor*) = 0;
     protected: Expression() {} };
@@ -104,7 +104,7 @@ namespace cps {
     boost::optional<Name> right_keyword_arg;
     std::vector<Definition> hidden_object_optional_args;
     PTR<Value> continuation;
-    void callables(std::vector<PTR<Callable> >& callables);
+    void callables(std::vector<std::pair<PTR<Callable>, bool> >& callables);
     void free_names(std::set<Name>& names);
     std::string format(unsigned int indent_level) const;
     void accept(ExpressionVisitor* v) { v->visit(this); }
@@ -119,7 +119,7 @@ namespace cps {
     Name assignee;
     Name value;
     PTR<Expression> next_expression;
-    void callables(std::vector<PTR<Callable> >& callables)
+    void callables(std::vector<std::pair<PTR<Callable>, bool> >& callables)
       { next_expression->callables(callables); }
     void free_names(std::set<Name>& names) {
       next_expression->free_names(names);
@@ -139,7 +139,7 @@ namespace cps {
     Name field;
     Name value;
     PTR<Expression> next_expression;
-    void callables(std::vector<PTR<Callable> >& callables)
+    void callables(std::vector<std::pair<PTR<Callable>, bool> >& callables)
       { next_expression->callables(callables); }
     void free_names(std::set<Name>& names) {
       next_expression->free_names(names);
