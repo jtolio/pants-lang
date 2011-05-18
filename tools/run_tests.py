@@ -2,10 +2,13 @@
 
 __author__ = "JT Olds <hello@jtolds.com>"
 
-import os, re, subprocess, tempfile, sys, threading, Queue
+import os, re, subprocess, tempfile, sys, threading, Queue, traceback
 
+TEST_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
+    "tests"))
 TEST_EXT = re.compile(r'\.cth$')
-COMPILER_PATH = "../src/cirth"
+COMPILER_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
+    "src", "cirth"))
 C_COMPILERS = [["clang"], ["gcc"]]
 C_LIBRARIES = ["-lgc"]
 
@@ -17,12 +20,14 @@ def find_tests(explicit_tests):
   if explicit_tests:
     explicit_tests = set(explicit_tests)
     filter_tests = True
-  for filename in os.listdir("."):
+  for filename in os.listdir(TEST_DIR):
     if not TEST_EXT.search(filename): continue
     testname = TEST_EXT.sub('', filename)
-    if os.path.exists("%s.out" % testname) and (not filter_tests or
-        testname in explicit_tests):
-      yield (filename, "%s.out" % testname)
+    if os.path.exists(os.path.join(TEST_DIR, "%s.out" % testname)) and (
+        not filter_tests or testname in explicit_tests):
+      yield (os.path.join(TEST_DIR, filename),
+             os.path.join(TEST_DIR, "%s.out" % testname),
+             testname)
 
 def translate(source_path):
   in_file = file(source_path)
@@ -39,7 +44,7 @@ def translate(source_path):
 def clean_up(output):
   return '\n'.join((x.strip() for x in output.strip().split('\n')))
 
-def run_test(compiler, source, output):
+def run_test(compiler, source, output, testname):
   errors = []
   try:
     c_source = translate(source)
@@ -58,13 +63,14 @@ def run_test(compiler, source, output):
             "============== Received:",
             binary_output,
             "",
-            "output mismatch for test %s" % source)))
-        raise TestError, "output mismatch for test %s" % source
+            "output mismatch for test %s" % testname)))
+        raise TestError, "output mismatch for test %s" % testname
     finally:
       os.unlink(c_source[:-2])
       os.unlink(c_source)
   except Exception, e:
-    errors.append("FAILURE: %s" % e)
+    errors.append("FAILURE on test %s: %s\n%s" % (testname, e,
+        traceback.format_exc()))
   return errors
 
 def worker(job_queue, errors):
@@ -84,8 +90,8 @@ def run_tests(explicit_tests, parallelism):
   job_queue = Queue.Queue()
   errors = Queue.Queue()
   for compiler in C_COMPILERS:
-    for source, output in find_tests(explicit_tests):
-      job_queue.put((compiler, source, output))
+    for source, output, testname in find_tests(explicit_tests):
+      job_queue.put((compiler, source, output, testname))
       total_tests += 1
   threads = [threading.Thread(target=worker, args=(job_queue, errors))
       for _ in xrange(parallelism)]
