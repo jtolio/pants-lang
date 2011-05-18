@@ -31,6 +31,7 @@ namespace cps {
     virtual ~Value() {}
     virtual std::string format(unsigned int indent_level) const = 0;
     virtual void accept(ValueVisitor*) = 0;
+    virtual void free_names(std::set<Name>& names) = 0;
     protected: Value() {} };
 
   struct Field : public Value {
@@ -38,6 +39,7 @@ namespace cps {
       : object(object_), field(field_) {}
     std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* v) { v->visit(this); }
+    void free_names(std::set<Name>& names) { names.insert(object); }
     Name object;
     Name field;
   };
@@ -47,6 +49,7 @@ namespace cps {
     Name variable;
     std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* v) { v->visit(this); }
+    void free_names(std::set<Name>& names) { names.insert(variable); }
   };
 
   struct Integer : public Value {
@@ -54,6 +57,7 @@ namespace cps {
     long long value;
     std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* v) { v->visit(this); }
+    void free_names(std::set<Name>& names) {}
   };
 
   struct String : public Value {
@@ -63,6 +67,7 @@ namespace cps {
     bool byte_oriented;
     std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* v) { v->visit(this); }
+    void free_names(std::set<Name>& names) {}
   };
 
   struct Float : public Value {
@@ -70,6 +75,7 @@ namespace cps {
     double value;
     std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* v) { v->visit(this); }
+    void free_names(std::set<Name>& names) {}
   };
 
   struct Definition {

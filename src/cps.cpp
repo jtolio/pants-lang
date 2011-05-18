@@ -340,25 +340,10 @@ static void callables_in_values(PTR<cps::Value> value,
   callable->expression->callables(callables);
 }
 
-class FreeNameSearchVisitor : public cps::ValueVisitor {
-public:
-  FreeNameSearchVisitor(std::set<cps::Name>* names) : m_names(names) {}
-  void visit(cps::Integer* val) {}
-  void visit(cps::String* val) {}
-  void visit(cps::Float* val) {}
-
-  void visit(cps::Field* val) { m_names->insert(val->object); }
-  void visit(cps::Variable* val) { m_names->insert(val->variable); }
-  void visit(cps::Callable* val) { val->free_names(*m_names); }
-private:
-  std::set<cps::Name>* m_names;
-};
-
 static void free_names_in_values(PTR<cps::Value> value,
     std::set<cps::Name>& names) {
   if(!value) return;
-  FreeNameSearchVisitor visitor(&names);
-  value->accept(&visitor);
+  value->free_names(names);
 }
 
 void cps::Call::callables(std::vector<PTR<cps::Callable> >& callables) {
