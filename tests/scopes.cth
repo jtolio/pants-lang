@@ -56,3 +56,27 @@ x = 10
   x := 11
 )
 print x
+
+print.
+
+var = 100
+get = { print var }
+set = { |val| var := val }
+var = 101
+print var
+get.
+set 102
+print var
+get.
+
+print.
+
+var2 = 200
+get = { print var2 }
+set = { |val| var2 := val }
+var2 := 201
+print var2
+get.
+set 202
+print var2
+get.
