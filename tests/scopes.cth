@@ -80,3 +80,13 @@ get.
 set 202
 print var2
 get.
+
+print.
+
+recursion = {|x|
+  if (< x 10) {
+    recursion (+ x 1)
+  }
+  print x
+}
+recursion 1
