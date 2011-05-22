@@ -122,7 +122,7 @@ public:
   }
 
   void visit(ast::SubExpression* subexp) {
-    PTR<ir::Scope> scope(new ir::Scope(NULL_VALUE));
+    PTR<ir::Function> scope(new ir::Function(NULL_VALUE, false));
     ConversionVisitor subvisitor(&scope->expressions, &scope->lastval,
         m_varcount);
     subvisitor.visit(subexp->expressions);
@@ -266,7 +266,7 @@ public:
   }
 
   void visit(ast::Function* infunc) {
-    PTR<ir::Function> outfunc(new ir::Function(NULL_VALUE));
+    PTR<ir::Function> outfunc(new ir::Function(NULL_VALUE, true));
     outfunc->left_positional_args.reserve(infunc->left_required_args.size());
     for(unsigned int i = 0; i < infunc->left_required_args.size(); ++i) {
       outfunc->left_positional_args.push_back(ir::PositionalInArgument(
@@ -599,7 +599,8 @@ std::string cirth::ir::Call::format(unsigned int indent_level) const {
 
 std::string cirth::ir::Function::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "Function(Left(";
+  os << "Function(" << (redefine_return ? "return_redefined" :
+      "return_unchanged") << ", Left(";
   bool comma_needed = false;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
     if(comma_needed) os << ", ";
@@ -632,17 +633,6 @@ std::string cirth::ir::Function::format(unsigned int indent_level) const {
     os << right_keyword_arg.get().format(indent_level+2);
   }
   os << "), Expressions(";
-  for(unsigned int i = 0; i < expressions.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << expressions[i]->format(indent_level+2);
-  }
-  os << "), LastVal(" << lastval.format(indent_level+2) << "))";
-  return os.str();
-}
-
-std::string cirth::ir::Scope::format(unsigned int indent_level) const {
-  std::ostringstream os;
-  os << "Scope(Expressions(";
   for(unsigned int i = 0; i < expressions.size(); ++i) {
     if(i > 0) os << ", ";
     os << expressions[i]->format(indent_level+2);

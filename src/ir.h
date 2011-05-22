@@ -39,7 +39,6 @@ namespace ir {
     virtual void visit(ByteString*) = 0;
     virtual void visit(Float*) = 0;
     virtual void visit(Function*) = 0;
-    virtual void visit(Scope*) = 0;
   };
 
   struct Expression {
@@ -229,26 +228,18 @@ namespace ir {
     std::string format(unsigned int indent_level) const;
   };
 
-  struct Callable : public Value {
+  struct Function : public Value {
+    Function(const Name& lastval_, bool redefine_return_)
+      : lastval(lastval_), redefine_return(redefine_return_) {}
     std::vector<PTR<Expression> > expressions;
     Name lastval;
-    protected: Callable(const Name& lastval_) : lastval(lastval_) {}
-  };
-
-  struct Function : public Callable {
-    Function(const Name& lastval_) : Callable(lastval_) {}
     std::vector<PositionalInArgument> left_positional_args;
     boost::optional<ArbitraryInArgument> left_arbitrary_arg;
     std::vector<PositionalInArgument> right_positional_args;
     std::vector<OptionalInArgument> right_optional_args;
     boost::optional<ArbitraryInArgument> right_arbitrary_arg;
     boost::optional<KeywordInArgument> right_keyword_arg;
-    std::string format(unsigned int indent_level) const;
-    void accept(ValueVisitor* visitor) { visitor->visit(this); }
-  };
-
-  struct Scope : public Callable {
-    Scope(const Name& lastval_) : Callable(lastval_) {}
+    bool redefine_return;
     std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };

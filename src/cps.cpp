@@ -181,27 +181,22 @@ public:
   void visit(ir::Field* val) {
     *rv = PTR<cps::Value>(new cps::Field(val->object, val->field));
   }
-  void visit(ir::Scope* old_scope) {
-    PTR<cps::Callable> new_func(new cps::Callable(true));
-    *rv = new_func;
-    cps::transform(old_scope->expressions, old_scope->lastval,
-        new_func->expression);
-  }
   void visit(ir::Function* old_func) {
     PTR<cps::Callable> new_func(new cps::Callable(true));
     *rv = new_func;
     // transform internals
     cps::transform(old_func->expressions, old_func->lastval,
         new_func->expression);
-    // redefine return
-    PTR<cps::Call> call(new cps::Call);
-    call->right_positional_args.push_back(PTR<cps::Value>(
-        new cps::Variable(CONTINUATION)));
-    PTR<cps::Callable> continuation(new cps::Callable(false));
-    continuation->right_positional_args.push_back(RETURN);
-    continuation->expression = new_func->expression;
-    call->callable = continuation;
-    new_func->expression = call;
+    if(old_func->redefine_return) {
+      PTR<cps::Call> call(new cps::Call);
+      call->right_positional_args.push_back(PTR<cps::Value>(
+          new cps::Variable(CONTINUATION)));
+      PTR<cps::Callable> continuation(new cps::Callable(false));
+      continuation->right_positional_args.push_back(RETURN);
+      continuation->expression = new_func->expression;
+      call->callable = continuation;
+      new_func->expression = call;
+    }
     // transform args
     new_func->left_positional_args.reserve(
         old_func->left_positional_args.size());

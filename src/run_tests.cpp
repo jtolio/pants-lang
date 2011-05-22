@@ -420,21 +420,21 @@ public:
   void testSimple() {
     CPPUNIT_ASSERT(ir_translate("x = { 3 }\nx.\n") ==
         "Definition(u_x, Variable(c_null))\n"
-        "Definition(c_ir_2, Function(Left(), Right(), "
+        "Definition(c_ir_2, Function(return_redefined, Left(), Right(), "
             "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
         "VariableMutation(u_x, c_ir_2)\n"
         "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), HiddenObject()))\n"
         "c_ir_3");
     CPPUNIT_ASSERT(ir_translate("x = { 3 }\nx()\n") ==
         "Definition(u_x, Variable(c_null))\n"
-        "Definition(c_ir_2, Function(Left(), Right(), "
+        "Definition(c_ir_2, Function(return_redefined, Left(), Right(), "
             "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
         "VariableMutation(u_x, c_ir_2)\n"
         "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), HiddenObject()))\n"
         "c_ir_3");
     CPPUNIT_ASSERT(ir_translate("x = { 3 }\nx.") ==
         "Definition(u_x, Variable(c_null))\n"
-        "Definition(c_ir_2, Function(Left(), Right(), "
+        "Definition(c_ir_2, Function(return_redefined, Left(), Right(), "
             "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
         "VariableMutation(u_x, c_ir_2)\n"
         "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), HiddenObject()))\n"
