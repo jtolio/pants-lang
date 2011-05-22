@@ -90,3 +90,17 @@ recursion = {|x|
   print x
 }
 recursion 1
+
+print.
+
+recursion = {|x, y|
+  x := y
+  print x
+  if (< y 10) {
+    recursion 1 (+ y 1)
+  }
+  print x
+}
+recursion 1 1
+
+print.
