@@ -5,8 +5,8 @@ using namespace cirth::ir;
 void cirth::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
 
 #define BIND_NAME_VAL(name, val) \
-  ir.push_back(PTR<Expression>(new Definition(name, PTR<Value>( \
-      new Variable(val)))));
+  ir.push_back(PTR<Expression>(new Assignment(name, PTR<Value>( \
+      new Variable(val)), true)));
 #define BIND_SYMBOL(user_name, c_name) \
   BIND_NAME_VAL(Name(user_name, true), Name(c_name, false))
 #define BIND_NAME(name) BIND_SYMBOL(name, name)

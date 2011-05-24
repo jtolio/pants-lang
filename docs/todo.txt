@@ -1,4 +1,5 @@
 todo
+ * malloc benchmarking
  * wiki pages and docs
  * c primitives
  * cirth primitives
@@ -15,8 +16,7 @@ language problems
  * infix is gross
  * function calls with no arguments are gross
 
-possible super easy optimizations
- * runs of variable definitions should be compacted into a single continuation
-   call
- * definitions should only end up being mutated nulls if the rhs has the
-   definition's lhs as a free-var
+upcoming optimizations
+ * globalization of as many vars as possible
+ * env rewrite (minimize new environments)
+ * elimination of useless assignments

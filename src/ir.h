@@ -18,12 +18,10 @@
 namespace cirth {
 namespace ir {
 
-  struct Definition; struct VariableMutation; struct ObjectMutation;
-  struct ReturnValue;
+  struct Assignment; struct ObjectMutation; struct ReturnValue;
 
   struct ExpressionVisitor {
-    virtual void visit(Definition*) = 0;
-    virtual void visit(VariableMutation*) = 0;
+    virtual void visit(Assignment*) = 0;
     virtual void visit(ObjectMutation*) = 0;
     virtual void visit(ReturnValue*) = 0;
   };
@@ -75,27 +73,16 @@ namespace ir {
     bool operator==(const Name& rhs) const
       { return name == rhs.name && user_provided == rhs.user_provided; }
     void generate_varid();
-    void set_mutated();
-    bool is_mutated() const;
     private:
       static std::map<std::string, unsigned int> m_varids;
-      static std::map<std::pair<std::string, bool>, bool> m_mutation;
   };
 
-  struct Definition : public Expression {
-    Definition(const Name& assignee_, PTR<Value> value_)
-      : assignee(assignee_), value(value_) {}
+  struct Assignment : public Expression {
+    Assignment(const Name& assignee_, PTR<Value> value_, bool local_)
+      : assignee(assignee_), value(value_), local(local_) {}
     Name assignee;
     PTR<Value> value;
-    std::string format(unsigned int indent_level) const;
-    void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
-  };
-
-  struct VariableMutation : public Expression {
-    VariableMutation(const Name& assignee_, const Name& value_)
-      : assignee(assignee_), value(value_) {}
-    Name assignee;
-    Name value;
+    bool local;
     std::string format(unsigned int indent_level) const;
     void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
   };
@@ -229,8 +216,7 @@ namespace ir {
   };
 
   struct Function : public Value {
-    Function(const Name& lastval_, bool redefine_return_)
-      : lastval(lastval_), redefine_return(redefine_return_) {}
+    Function(const Name& lastval_) : lastval(lastval_) {}
     std::vector<PTR<Expression> > expressions;
     Name lastval;
     std::vector<PositionalInArgument> left_positional_args;
@@ -239,7 +225,6 @@ namespace ir {
     std::vector<OptionalInArgument> right_optional_args;
     boost::optional<ArbitraryInArgument> right_arbitrary_arg;
     boost::optional<KeywordInArgument> right_keyword_arg;
-    bool redefine_return;
     std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };

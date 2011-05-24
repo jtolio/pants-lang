@@ -15,7 +15,7 @@ static inline std::string scope_to_env(const std::string& scope) {
 
 static std::string var_access(const std::string& env, const Name& name) {
   std::ostringstream os;
-  if(name.is_mutated())
+  if(false) //name.is_mutated())
     os << "(*" << env << "->" << name.c_name() << ".cell.addr)";
   else
     os << env << "->" << name.c_name();
@@ -121,7 +121,7 @@ static void write_callable(std::ostream& os, Callable* func) {
           << HIDDEN_OBJECT.c_name() << " = hidden_object;\n";
   }
   for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
-    bool is_mutated(func->right_positional_args[i].is_mutated());
+    bool is_mutated(false); //func->right_positional_args[i].is_mutated());
     os << "  " << scope_to_env(func->c_name()) << "->"
           << func->right_positional_args[i].c_name() << " = ";
     if(is_mutated) os << "make_cell(";
@@ -130,7 +130,7 @@ static void write_callable(std::ostream& os, Callable* func) {
     os << ";\n";
   }
   for(unsigned int i = 0; i < func->left_positional_args.size(); ++i) {
-    bool is_mutated(func->left_positional_args[i].is_mutated());
+    bool is_mutated(false); //func->left_positional_args[i].is_mutated());
     os << "  " << scope_to_env(func->c_name()) << "->"
           << func->left_positional_args[i].c_name() << " = ";
     if(is_mutated) os << "make_cell(";
@@ -168,9 +168,8 @@ class ExpressionWriter : public ExpressionVisitor {
             << call->right_positional_args.size() << ";\n";
 
       for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
-        call->right_positional_args[i]->accept(&writer);
-        *m_os << "  right_positional_args[" << i << "] = " << writer.lastval()
-              << ";\n";
+        *m_os << "  right_positional_args[" << i << "] = "
+              << var_access(m_env, call->right_positional_args[i]) << ";\n";
       }
 
       if(call->left_positional_args.size() > MIN_LEFT_ARG_HIGHWATER) {
@@ -209,27 +208,24 @@ class ExpressionWriter : public ExpressionVisitor {
         *m_os << "  hidden_object = " << var_access(m_env, HIDDEN_OBJECT)
               << ";\n";
       }
-      Callable* callable(dynamic_cast<Callable*>(call->callable.get()));
-      if(callable) {
-        write_closure(*m_os, callable, false, "dest", m_env);
-        *m_os << "  env = dest.closure.env;\n";
-        write_callable(*m_os, callable);
-        return;
-      }
-      call->callable->accept(&writer);
-      if(writer.lastval() != "dest")
-        *m_os << "  dest = " << writer.lastval() << ";\n";
-      *m_os << "  if(dest.t != CLOSURE) {\n"
+      *m_os << "  dest = " << var_access(m_env, call->callable) << ";\n"
+               "  if(dest.t != CLOSURE) {\n"
                "    THROW_ERROR(" << var_access(m_env, HIDDEN_OBJECT)
             << ", make_c_string(\"cannot call a non-function!\"));\n"
                "  }\n"
                "  CALL_FUNC(dest)\n";
 
     }
-    void visit(VariableMutation* mut) {
-      *m_os << "  (*" << m_env << "->" << mut->assignee.c_name()
-            << ".cell.addr) = " << var_access(m_env, mut->value) << ";\n";
-      mut->next_expression->accept(this);
+    void visit(Assignment* assignment) {
+      ValueWriter writer(m_os, m_env);
+      if(!assignment->local) {
+        assignment->value->accept(&writer);
+        *m_os << "  (*" << m_env << "->" << assignment->assignee.c_name()
+              << ".cell.addr) = " << writer.lastval() << ";\n";
+        assignment->next_expression->accept(this);
+        return;
+      }
+      throw cirth::expectation_failure("TODO: ugh, definitions");
     }
     void visit(ObjectMutation* mut) {
       *m_os << "  dest = " << var_access(m_env, mut->object) << ";\n"

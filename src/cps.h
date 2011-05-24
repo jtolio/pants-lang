@@ -10,7 +10,7 @@ namespace cps {
   typedef cirth::ir::Name Name;
   struct Callable; struct Field; struct Variable; struct Integer;
   struct String; struct Float; struct Callable; struct Call;
-  struct VariableMutation; struct ObjectMutation;
+  struct Assignment; struct ObjectMutation;
 
   struct ValueVisitor {
     virtual void visit(Field*) = 0;
@@ -23,7 +23,7 @@ namespace cps {
 
   struct ExpressionVisitor {
     virtual void visit(Call*) = 0;
-    virtual void visit(VariableMutation*) = 0;
+    virtual void visit(Assignment*) = 0;
     virtual void visit(ObjectMutation*) = 0;
   };
 
@@ -91,40 +91,42 @@ namespace cps {
     virtual std::string format(unsigned int indent_level) const = 0;
     virtual void callables(std::vector<std::pair<PTR<Callable>, bool> >&) = 0;
     virtual void free_names(std::set<Name>& names) = 0;
+    virtual void frame_names(std::set<Name>& names) = 0;
     virtual void accept(ExpressionVisitor*) = 0;
     protected: Expression() {} };
 
   struct Call : public Expression {
-    PTR<Value> callable;
+    Call(const Name& callable_) : callable(callable_) {}
+    Name callable;
     std::vector<Name> left_positional_args;
     boost::optional<Name> left_arbitrary_arg;
-    std::vector<PTR<Value> > right_positional_args;
+    std::vector<Name> right_positional_args;
     std::vector<Definition> right_optional_args;
     boost::optional<Name> right_arbitrary_arg;
     boost::optional<Name> right_keyword_arg;
     std::vector<Definition> hidden_object_optional_args;
-    PTR<Value> continuation;
+    PTR<Callable> continuation;
     void callables(std::vector<std::pair<PTR<Callable>, bool> >& callables);
     void free_names(std::set<Name>& names);
+    void frame_names(std::set<Name>& names);
     std::string format(unsigned int indent_level) const;
     void accept(ExpressionVisitor* v) { v->visit(this); }
   };
 
-  struct VariableMutation : public Expression {
-    VariableMutation(const Name& assignee_, Name value_,
+  struct Assignment : public Expression {
+    Assignment(const Name& assignee_, PTR<Value> value_, bool local_,
         PTR<Expression> next_expression_)
-      : assignee(assignee_), value(value_),
-        next_expression(next_expression_)
-    { assignee.set_mutated(); }
+      : assignee(assignee_), value(value_), local(local_),
+        next_expression(next_expression_) {}
     Name assignee;
-    Name value;
+    PTR<Value> value;
+    bool local;
     PTR<Expression> next_expression;
-    void callables(std::vector<std::pair<PTR<Callable>, bool> >& callables)
-      { next_expression->callables(callables); }
-    void free_names(std::set<Name>& names) {
-      next_expression->free_names(names);
-      names.insert(assignee);
-      names.insert(value);
+    void callables(std::vector<std::pair<PTR<Callable>, bool> >& callables);
+    void free_names(std::set<Name>& names);
+    void frame_names(std::set<Name>& names) {
+      if(local) names.insert(assignee);
+      next_expression->frame_names(names);
     }
     std::string format(unsigned int indent_level) const;
     void accept(ExpressionVisitor* v) { v->visit(this); }
@@ -145,6 +147,9 @@ namespace cps {
       next_expression->free_names(names);
       names.insert(object);
       names.insert(value);
+    }
+    void frame_names(std::set<Name>& names) {
+      next_expression->frame_names(names);
     }
     std::string format(unsigned int indent_level) const;
     void accept(ExpressionVisitor* v) { v->visit(this); }
@@ -170,6 +175,7 @@ namespace cps {
     void accept(ValueVisitor* v) { v->visit(this); }
     void arg_names(std::set<Name>& names);
     void free_names(std::set<Name>& names);
+    void frame_names(std::set<Name>& names) { expression->frame_names(names); }
     private: static unsigned int m_varcount;
   };
 

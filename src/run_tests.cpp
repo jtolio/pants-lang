@@ -419,32 +419,35 @@ public:
 
   void testSimple() {
     CPPUNIT_ASSERT(ir_translate("x = { 3 }\nx.\n") ==
-        "Definition(u_x, Variable(c_null))\n"
-        "Definition(c_ir_2, Function(return_redefined, Left(), Right(), "
-            "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
-        "VariableMutation(u_x, c_ir_2)\n"
+        "Assignment(local, u_x, Variable(c_null))\n"
+        "Assignment(local, c_ir_2, Function(Left(), Right(), "
+            "Expressions(Assignment(local, u_cont, Variable(c_continuation)), "
+            "Assignment(local, c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
+        "Assignment(nonlocal, u_x, Variable(c_ir_2))\n"
         "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), HiddenObject()))\n"
         "c_ir_3");
     CPPUNIT_ASSERT(ir_translate("x = { 3 }\nx()\n") ==
-        "Definition(u_x, Variable(c_null))\n"
-        "Definition(c_ir_2, Function(return_redefined, Left(), Right(), "
-            "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
-        "VariableMutation(u_x, c_ir_2)\n"
+        "Assignment(local, u_x, Variable(c_null))\n"
+        "Assignment(local, c_ir_2, Function(Left(), Right(), "
+            "Expressions(Assignment(local, u_cont, Variable(c_continuation)), "
+            "Assignment(local, c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
+        "Assignment(nonlocal, u_x, Variable(c_ir_2))\n"
         "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), HiddenObject()))\n"
         "c_ir_3");
     CPPUNIT_ASSERT(ir_translate("x = { 3 }\nx.") ==
-        "Definition(u_x, Variable(c_null))\n"
-        "Definition(c_ir_2, Function(return_redefined, Left(), Right(), "
-            "Expressions(Definition(c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
-        "VariableMutation(u_x, c_ir_2)\n"
+        "Assignment(local, u_x, Variable(c_null))\n"
+        "Assignment(local, c_ir_2, Function(Left(), Right(), "
+            "Expressions(Assignment(local, u_cont, Variable(c_continuation)), "
+            "Assignment(local, c_ir_1, Integer(3))), LastVal(c_ir_1)))\n"
+        "Assignment(nonlocal, u_x, Variable(c_ir_2))\n"
         "ReturnValue(c_ir_3, Call(u_x, Left(), Right(), HiddenObject()))\n"
         "c_ir_3");
     CPPUNIT_ASSERT(ir_translate("x.x := 3\n") ==
-        "Definition(c_ir_1, Integer(3))\n"
+        "Assignment(local, c_ir_1, Integer(3))\n"
         "ObjectMutation(u_x, u_x, c_ir_1)\n"
         "c_ir_1");
     CPPUNIT_ASSERT(ir_translate("print .x\n") ==
-        "Definition(c_ir_2, Field(c_hidden_object, u_x))\n"
+        "Assignment(local, c_ir_2, Field(c_hidden_object, u_x))\n"
         "ReturnValue(c_ir_3, Call(u_print, Left(), "
             "Right(PositionalOutArgument(c_ir_2)), HiddenObject()))\n"
         "c_ir_3");

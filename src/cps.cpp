@@ -30,7 +30,7 @@ std::string cps::Call::format(unsigned int indent_level) const {
   comma_needed = false;
   for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
     if(comma_needed) os << ",\n" << indent(indent_level+1);
-    os << right_positional_args[i]->format(indent_level+2);
+    os << right_positional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
@@ -59,7 +59,7 @@ std::string cps::Call::format(unsigned int indent_level) const {
   if(continuation.get())
     os << ",\n" << indent(indent_level) << "Cont("
        << continuation->format(indent_level+1) << ")";
-  os << ",\n" << indent(indent_level) << callable->format(indent_level+1)
+  os << ",\n" << indent(indent_level) << callable.format(indent_level+1)
      << ")";
   return os.str();
 }
@@ -73,10 +73,11 @@ std::string cps::ObjectMutation::format(unsigned int indent_level) const {
   return os.str();
 }
 
-std::string cps::VariableMutation::format(unsigned int indent_level) const {
+std::string cps::Assignment::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "VariableMutation(" << assignee.format(indent_level+1) << ", "
-     << value.format(indent_level+1) << ",\n" << indent(indent_level)
+  os << "Assignment(" << (local ? "local, " : "nonlocal, ")
+     << assignee.format(indent_level+1) << ", "
+     << value->format(indent_level+1) << ",\n" << indent(indent_level)
      << next_expression->format(indent_level+1) << ")";
   return os.str();
 }
@@ -184,20 +185,8 @@ public:
   void visit(ir::Function* old_func) {
     PTR<cps::Callable> new_func(new cps::Callable(true));
     *rv = new_func;
-    // transform internals
     cps::transform(old_func->expressions, old_func->lastval,
         new_func->expression);
-    if(old_func->redefine_return) {
-      PTR<cps::Call> call(new cps::Call);
-      call->right_positional_args.push_back(PTR<cps::Value>(
-          new cps::Variable(CONTINUATION)));
-      PTR<cps::Callable> continuation(new cps::Callable(false));
-      continuation->right_positional_args.push_back(RETURN);
-      continuation->expression = new_func->expression;
-      call->callable = continuation;
-      new_func->expression = call;
-    }
-    // transform args
     new_func->left_positional_args.reserve(
         old_func->left_positional_args.size());
     for(unsigned int i = 0; i < old_func->left_positional_args.size(); ++i) {
@@ -244,26 +233,16 @@ static PTR<cps::Value> trans(const PTR<ir::Value>& val) {
 class ExpressionTranslation : public ir::ExpressionVisitor {
 public:
   ExpressionTranslation(PTR<cps::Expression>* out_ir_) : out_ir(out_ir_) {}
-  void visit(ir::Definition* definition) {
-    PTR<cps::Call> call(new cps::Call);
-    call->right_positional_args.push_back(trans(definition->value));
-    PTR<cps::Callable> continuation(new cps::Callable(false));
-    continuation->right_positional_args.push_back(definition->assignee);
-    continuation->expression = *out_ir;
-    call->callable = continuation;
-    *out_ir = call;
-  }
-  void visit(ir::VariableMutation* varmutation) {
-    *out_ir = PTR<cps::VariableMutation>(new cps::VariableMutation(
-        varmutation->assignee, varmutation->value, *out_ir));
+  void visit(ir::Assignment* assignment) {
+    *out_ir = PTR<cps::Assignment>(new cps::Assignment(assignment->assignee,
+        trans(assignment->value), assignment->local, *out_ir));
   }
   void visit(ir::ObjectMutation* objmutation) {
     *out_ir = PTR<cps::ObjectMutation>(new cps::ObjectMutation(
         objmutation->object, objmutation->field, objmutation->value, *out_ir));
   }
   void visit(ir::ReturnValue* rv) {
-    PTR<cps::Call> call(new cps::Call);
-    call->callable = PTR<cps::Value>(new cps::Variable(rv->term->callable));
+    PTR<cps::Call> call(new cps::Call(rv->term->callable));
     call->left_positional_args.reserve(rv->term->left_positional_args.size());
     for(unsigned int i = 0; i < rv->term->left_positional_args.size(); ++i) {
       call->left_positional_args.push_back(
@@ -277,8 +256,7 @@ public:
         rv->term->right_positional_args.size());
     for(unsigned int i = 0; i < rv->term->right_positional_args.size(); ++i) {
       call->right_positional_args.push_back(
-          PTR<cps::Value>(new cps::Variable(
-          rv->term->right_positional_args[i].variable)));
+          rv->term->right_positional_args[i].variable);
     }
     call->right_optional_args.reserve(rv->term->right_optional_args.size());
     for(unsigned int i = 0; i < rv->term->right_optional_args.size(); ++i) {
@@ -314,10 +292,8 @@ private:
 
 void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
     const ir::Name& in_lastval, PTR<cps::Expression>& out_ir) {
-  PTR<cps::Call> call(new cps::Call);
-  call->callable = PTR<cps::Value>(new cps::Variable(CONTINUATION));
-  call->right_positional_args.push_back(PTR<cps::Value>(new cps::Variable(
-      in_lastval)));
+  PTR<cps::Call> call(new cps::Call(CONTINUATION));
+  call->right_positional_args.push_back(in_lastval);
   out_ir = call;
   ExpressionTranslation visitor(&out_ir);
   for(unsigned int i = in_ir.size(); i > 0; --i) {
@@ -326,7 +302,8 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
 }
 
 static void callables_in_values(PTR<cps::Value> value,
-    std::vector<std::pair<PTR<cps::Callable>, bool> >& callables, bool called_directly) {
+    std::vector<std::pair<PTR<cps::Callable>, bool> >& callables,
+    bool called_directly) {
   if(!value) return;
   std::pair<PTR<cps::Callable>, bool> callable;
   callable.first = boost::dynamic_pointer_cast<cps::Callable>(value);
@@ -344,20 +321,22 @@ static void free_names_in_values(PTR<cps::Value> value,
 
 void cps::Call::callables(std::vector<std::pair<PTR<cps::Callable>, bool> >&
     callables) {
-  callables_in_values(callable, callables, true);
-  for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
-    callables_in_values(right_positional_args[i], callables, false);
-  }
   callables_in_values(continuation, callables, false);
 }
 
+void cps::Assignment::callables(
+    std::vector<std::pair<PTR<cps::Callable>, bool> >& callables) {
+  next_expression->callables(callables);
+  callables_in_values(value, callables, false);
+}
+
 void cps::Call::free_names(std::set<Name>& names) {
-  free_names_in_values(callable, names);
+  names.insert(callable);
   for(unsigned int i = 0; i < left_positional_args.size(); ++i)
     names.insert(left_positional_args[i]);
   if(!!left_arbitrary_arg) names.insert(left_arbitrary_arg.get());
   for(unsigned int i = 0; i < right_positional_args.size(); ++i)
-    free_names_in_values(right_positional_args[i], names);
+    names.insert(right_positional_args[i]);
   for(unsigned int i = 0; i < right_optional_args.size(); ++i)
     names.insert(right_optional_args[i].value);
   for(unsigned int i = 0; i < hidden_object_optional_args.size(); ++i)
@@ -406,4 +385,24 @@ void cps::Callable::free_names(std::set<cps::Name>& names) {
     names.insert(*it);
   for(unsigned int i = 0; i < right_optional_args.size(); ++i)
     names.insert(right_optional_args[i].value);
+}
+
+void cps::Assignment::free_names(std::set<cps::Name>& names) {
+  if(!local) {
+    next_expression->free_names(names);
+    value->free_names(names);
+    names.insert(assignee);
+    return;
+  }
+  std::set<Name> new_names;
+  next_expression->free_names(new_names);
+  value->free_names(new_names);
+  new_names.erase(assignee);
+  for(std::set<Name>::iterator it(new_names.begin());
+      it != new_names.end(); ++it)
+    names.insert(*it);
+}
+
+void cps::Call::frame_names(std::set<Name>& names) {
+  continuation->frame_names(names);
 }
