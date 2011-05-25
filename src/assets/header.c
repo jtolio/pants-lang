@@ -62,6 +62,7 @@ struct Closure {
   enum ValueTag t;
   void* func;
   void* env;
+  void* frame;
 };
 
 struct Cell {
@@ -78,26 +79,6 @@ union Value {
   struct Boolean boolean;
   struct Closure closure;
   struct Cell cell;
-};
-
-struct env_main {
-  union Value c_continuation;
-  union Value c_hidden_object;
-  union Value c_null;
-  union Value c_print;
-  union Value c_if;
-  union Value c_true;
-  union Value c_false;
-  union Value c_lessthan;
-  union Value c_equals;
-  union Value c_add;
-  union Value c_subtract;
-  union Value c_multiply;
-  union Value c_modulo;
-  union Value c_divide;
-  union Value c_new_object;
-  union Value c_seal_object;
-  union Value c_Array;
 };
 
 static inline union Value make_cell(union Value val) {

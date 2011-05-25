@@ -96,7 +96,9 @@ static inline bool builtin_less_than(union Value* val1, union Value* val2,
         case CLOSURE:
           if(val1->closure.func < val2->closure.func) return true;
           if(val1->closure.func != val2->closure.func) return false;
-          return val1->closure.env < val2->closure.env;
+          if(val1->closure.env < val2->closure.env) return true;
+          if(val1->closure.env != val2->closure.env) return false;
+          return val1->closure.frame < val2->closure.frame;
         case STRING: return false;
         case OBJECT: return false;
         default:
@@ -167,7 +169,8 @@ static inline bool builtin_equals(union Value* val1, union Value* val2,
       return true;
     case CLOSURE:
       return val1->closure.func == val2->closure.func &&
-          val1->closure.env == val2->closure.env;
+          val1->closure.env == val2->closure.env &&
+          val1->closure.frame == val2->closure.frame;
     case OBJECT:
       return val1->object.data == val2->object.data;
     case STRING:

@@ -1,6 +1,7 @@
 int main(int argc, char **argv) {
-  struct env_main main;
-  void* env = &main;
+  struct nameset_1 globals;
+  void* env = NULL;
+  void* frame = &globals;
   union Value dest;
   unsigned int i;
   union Value initial_right_positional_args[10];
@@ -17,25 +18,27 @@ int main(int argc, char **argv) {
 
   GC_INIT();
 
-  main.c_continuation.t = CLOSURE;
-  main.c_continuation.closure.func = &&c_halt;
-  main.c_continuation.closure.env = NULL;
+  globals.c_continuation.t = CLOSURE;
+  globals.c_continuation.closure.func = &&c_halt;
+  globals.c_continuation.closure.env = NULL;
+  globals.c_continuation.closure.frame = NULL;
 
-  main.c_null.t = NIL;
-  main.c_true.t = BOOLEAN;
-  main.c_true.boolean.value = true;
-  main.c_false.t = BOOLEAN;
-  main.c_false.boolean.value = false;
+  globals.c_null.t = NIL;
+  globals.c_true.t = BOOLEAN;
+  globals.c_true.boolean.value = true;
+  globals.c_false.t = BOOLEAN;
+  globals.c_false.boolean.value = false;
 
-  main.c_hidden_object.t = OBJECT;
-  main.c_hidden_object.object.data = &hidden_object_data;
+  globals.c_hidden_object.t = OBJECT;
+  globals.c_hidden_object.object.data = &hidden_object_data;
   hidden_object_data.sealed = false;
   hidden_object_data.tree = NULL;
 
 #define DEFINE_BUILTIN(name) \
-  main.c_##name.t = CLOSURE; \
-  main.c_##name.closure.func = &&c_##name; \
-  main.c_##name.closure.env = NULL;
+  globals.c_##name.t = CLOSURE; \
+  globals.c_##name.closure.func = &&c_##name; \
+  globals.c_##name.closure.env = NULL; \
+  globals.c_##name.closure.frame = NULL;
 
   DEFINE_BUILTIN(print)
   DEFINE_BUILTIN(if)
@@ -55,6 +58,7 @@ int main(int argc, char **argv) {
   dest.t = CLOSURE;
   dest.closure.func = &&ho_throw;
   dest.closure.env = NULL;
+  dest.closure.frame = NULL;
   set_field(&hidden_object_data, "u_throw", 7, &dest);
 
   seal_object(&hidden_object_data);
@@ -71,12 +75,13 @@ int main(int argc, char **argv) {
   return 1;
 #define CALL_FUNC(callable) \
   env = callable.closure.env; \
+  frame = callable.closure.frame; \
   goto *callable.closure.func;
 #define THROW_ERROR(current_hidden_object, val) \
   right_positional_args_size = 1; \
   right_positional_args[0] = val; \
   if(!get_field(current_hidden_object.object.data, "u_throw", 7, &dest)) { \
-    FATAL_ERROR("no throw method registered!", main.c_null); \
+    FATAL_ERROR("no throw method registered!", globals.c_null); \
   } \
   if(dest.t != CLOSURE) { \
     FATAL_ERROR("throw is not a method!", dest); \
@@ -401,6 +406,7 @@ c_Array:
   make_object(&right_positional_args[0]);
   dest.t = CLOSURE;
   dest.closure.env = env;
+  dest.closure.frame = NULL;
   dest.closure.func = &&c_Array_size;
   set_field(right_positional_args[0].object.data, "u_size", 6, &dest);
   dest.closure.func = &&c_Array_append;

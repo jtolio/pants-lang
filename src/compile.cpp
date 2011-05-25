@@ -7,20 +7,83 @@ using namespace cirth::cps;
 #define MIN_RIGHT_ARG_HIGHWATER 10
 #define MIN_LEFT_ARG_HIGHWATER 2
 
-static inline std::string scope_to_env(const std::string& scope) {
-  std::ostringstream env;
-  env << "((struct env_" << scope << "*)env)";
-  return env.str();
-}
+class VariableContext {
+public:
+  VariableContext(unsigned int free_id, unsigned int frame_id)
+    : m_freeID(free_id), m_frameID(frame_id) {}
+  VariableContext(unsigned int free_id, unsigned int frame_id,
+      const std::set<Name>& active_frame_names)
+    : m_freeID(free_id), m_frameID(frame_id),
+      m_activeFrameNames(active_frame_names) {}
+  std::string varAccess(const Name& name) {
+    std::ostringstream os;
+    os << "((struct nameset_";
+    if(m_activeFrameNames.find(name) != m_activeFrameNames.end()) {
+      os << m_frameID << "*)frame)->";
+    } else {
+      os << m_freeID << "*)env)->";
+    }
+    os << name.c_name();
+    return os.str();
+  }
+  std::string varDefine(const Name& name) {
+    localDefinition(name);
+    std::ostringstream os;
+    os << "((struct nameset_" << m_frameID << "*)frame)->" << name.c_name();
+    return os.str();
+  }
+  void localDefinition(const Name& name) { m_activeFrameNames.insert(name); }
+  unsigned int frameID() { return m_frameID; }
+  unsigned int freeID() { return m_freeID; }
+private:
+  unsigned int m_freeID;
+  unsigned int m_frameID;
+  std::set<Name> m_activeFrameNames;
+};
 
-static std::string var_access(const std::string& env, const Name& name) {
-  std::ostringstream os;
-  if(false) //name.is_mutated())
-    os << "(*" << env << "->" << name.c_name() << ".cell.addr)";
-  else
-    os << env << "->" << name.c_name();
-  return os.str();
-}
+class NameSetManager {
+public:
+  typedef std::map<std::string, std::pair<std::set<Name>, unsigned int> >
+          NameSetContainer;
+public:
+  void addSet(const std::set<Name>& names) { getID(names); }
+
+  unsigned int getID(const std::set<Name>& names) {
+    std::string key(namesetKey(names));
+    NameSetContainer::iterator it(m_namesets.find(key));
+    if(it != m_namesets.end()) return it->second.second;
+    m_namesets[key].first = names;
+    m_namesets[key].second = m_namesets.size();
+    return m_namesets.size();
+  }
+
+  void writeStructs(std::ostream& os) {
+    for(NameSetContainer::iterator it1(m_namesets.begin());
+        it1 != m_namesets.end(); ++it1) {
+      os << "struct nameset_" << it1->second.second << " {\n";
+      for(std::set<Name>::iterator it2(it1->second.first.begin());
+          it2 != it1->second.first.end(); ++it2) {
+        os << "  union Value " << it2->c_name() << ";\n";
+      }
+      os << "};\n\n";
+    }
+  }
+
+private:
+  std::string namesetKey(const std::set<Name>& names) {
+    std::ostringstream os;
+    for(std::set<Name>::const_iterator it(names.begin()); it != names.end();
+        ++it) {
+      // yay sets being in sorted order always
+      os << it->c_name() << ", ";
+    }
+    return os.str();
+  }
+
+private:
+  NameSetContainer m_namesets;
+
+};
 
 static std::string to_bytestring(const std::string& data) {
   std::ostringstream os;
@@ -31,44 +94,26 @@ static std::string to_bytestring(const std::string& data) {
 }
 
 static void inline write_expression(PTR<Expression> cps, std::ostream& os,
-    const std::string& scope);
-
-static void inline write_closure(std::ostream& os, Callable* func,
-    bool include_label, const std::string& name, const std::string& env) {
-  os << "  " << name << ".t = CLOSURE;\n";
-  if(include_label)
-    os << "  " << name << ".closure.func = &&" << func->c_name() << ";\n";
-  else
-    os << "  " << name << ".closure.func = NULL;\n";
-  std::set<Name> free_names;
-  func->free_names(free_names);
-  os << "  " << name << ".closure.env = GC_MALLOC(sizeof(struct env_"
-        << func->c_name() << "));\n";
-  for(std::set<Name>::const_iterator it(free_names.begin());
-      it != free_names.end(); ++it) {
-    os << "  ((struct env_" << func->c_name() << "*)" << name
-       << ".closure.env)->" << it->c_name() << " = " << env << "->"
-       << it->c_name() << ";\n";
-  }
-}
+    VariableContext& context, NameSetManager& namesets);
 
 class ValueWriter : public ValueVisitor {
   public:
-    ValueWriter(std::ostream* os, const std::string& env)
-      : m_os(os), m_env(env) {}
+    ValueWriter(std::ostream* os, VariableContext* context,
+        NameSetManager* namesets)
+      : m_os(os), m_context(context), m_namesets(namesets) {}
     void visit(Field* field) {
-      *m_os << "  dest = " << var_access(m_env, field->object) << ";\n"
+      *m_os << "  dest = " << m_context->varAccess(field->object) << ";\n"
                "  switch(dest.t) {\n"
                "    default:\n"
                "      THROW_ERROR("
-            << var_access(m_env, HIDDEN_OBJECT) <<
+            << m_context->varAccess(HIDDEN_OBJECT) <<
                ", make_c_string(\"TODO: fields\"));\n"
                "    case OBJECT:\n"
                "      if(!get_field(dest.object.data, "
             << to_bytestring(field->field.c_name()) << ", "
             << field->field.c_name().size() << ", &dest)) {\n"
                "        THROW_ERROR("
-            << var_access(m_env, HIDDEN_OBJECT) <<
+            << m_context->varAccess(HIDDEN_OBJECT) <<
                ", make_c_string(\"field %s not found!\", "
             << to_bytestring(field->field.c_name()) << "));\n"
                "      }\n"
@@ -77,7 +122,7 @@ class ValueWriter : public ValueVisitor {
       m_lastval = "dest";
     }
     void visit(Variable* var) {
-      m_lastval = var_access(m_env, var->variable);
+      m_lastval = m_context->varAccess(var->variable);
     }
     void visit(Integer* integer) {
       *m_os << "  dest.t = INTEGER;\n"
@@ -98,32 +143,50 @@ class ValueWriter : public ValueVisitor {
       m_lastval = "dest";
     }
     void visit(Callable* func) {
-      write_closure(*m_os, func, true, "dest", m_env);
+      std::set<Name> free_names;
+      func->free_names(free_names);
+      unsigned int free_id(m_namesets->getID(free_names));
+      *m_os << "  dest.t = CLOSURE;\n"
+               "  dest.closure.func = &&" << func->c_name() << ";\n";
+      if(func->function) {
+        *m_os << "  dest.closure.frame = NULL;\n"
+                 "  dest.closure.env = GC_MALLOC(sizeof(struct nameset_"
+              << free_id << "));\n";
+        for(std::set<Name>::const_iterator it(free_names.begin());
+            it != free_names.end(); ++it) {
+          *m_os << "  ((struct nameset_" << free_id << "*)dest.closure.env)->"
+                << it->c_name() << " = " << m_context->varAccess(*it) << ";\n";
+        }
+      } else {
+        *m_os << "  dest.closure.frame = frame;\n"
+                 "  dest.closure.env = env;\n";
+      }
       m_lastval = "dest";
     }
     std::string lastval() const { return m_lastval; }
   private:
     std::ostream* m_os;
-    std::string m_env;
+    VariableContext* m_context;
+    NameSetManager* m_namesets;
     std::string m_lastval;
 };
 
-static void write_callable(std::ostream& os, Callable* func) {
+static void write_callable(std::ostream& os, Callable* func,
+    VariableContext* context, NameSetManager* namesets) {
   os << "\n" << func->c_name() << ":\n"
            "  MIN_RIGHT_ARGS(" << func->right_positional_args.size()
         << ")\n"
            "  MIN_LEFT_ARGS(" << func->left_positional_args.size()
         << ")\n";
   if(func->function) {
-    os << "  " << scope_to_env(func->c_name()) << "->"
-          << CONTINUATION.c_name() << " = continuation;\n"
-             "  " << scope_to_env(func->c_name()) << "->"
-          << HIDDEN_OBJECT.c_name() << " = hidden_object;\n";
+    os << "  frame = GC_MALLOC(sizeof(struct nameset_" << context->frameID()
+       << "));\n"
+          "  " << context->varDefine(CONTINUATION) << " = continuation;\n";
+    os << "  " << context->varDefine(HIDDEN_OBJECT) << " = hidden_object;\n";
   }
   for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
     bool is_mutated(false); //func->right_positional_args[i].is_mutated());
-    os << "  " << scope_to_env(func->c_name()) << "->"
-          << func->right_positional_args[i].c_name() << " = ";
+    os << "  " << context->varDefine(func->right_positional_args[i]) << " = ";
     if(is_mutated) os << "make_cell(";
     os << "right_positional_args[" << i << "]";
     if(is_mutated) os << ")";
@@ -131,22 +194,22 @@ static void write_callable(std::ostream& os, Callable* func) {
   }
   for(unsigned int i = 0; i < func->left_positional_args.size(); ++i) {
     bool is_mutated(false); //func->left_positional_args[i].is_mutated());
-    os << "  " << scope_to_env(func->c_name()) << "->"
-          << func->left_positional_args[i].c_name() << " = ";
+    os << "  " << context->varDefine(func->left_positional_args[i]) << " = ";
     if(is_mutated) os << "make_cell(";
     os << "left_positional_args[" << i << "]";
     if(is_mutated) os << ")";
     os << ";\n";
   }
-  write_expression(func->expression, os, func->c_name());
+  write_expression(func->expression, os, *context, *namesets);
 }
 
 class ExpressionWriter : public ExpressionVisitor {
   public:
-    ExpressionWriter(std::ostream* os, const std::string& env)
-      : m_os(os), m_env(env) {}
+    ExpressionWriter(std::ostream* os, VariableContext* context,
+        NameSetManager* namesets)
+      : m_os(os), m_context(context), m_namesets(namesets) {}
     void visit(Call* call) {
-      ValueWriter writer(m_os, m_env);
+      ValueWriter writer(m_os, m_context, m_namesets);
 
       if(call->continuation.get()) {
         call->continuation->accept(&writer);
@@ -169,7 +232,7 @@ class ExpressionWriter : public ExpressionVisitor {
 
       for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
         *m_os << "  right_positional_args[" << i << "] = "
-              << var_access(m_env, call->right_positional_args[i]) << ";\n";
+              << m_context->varAccess(call->right_positional_args[i]) << ";\n";
       }
 
       if(call->left_positional_args.size() > MIN_LEFT_ARG_HIGHWATER) {
@@ -186,11 +249,11 @@ class ExpressionWriter : public ExpressionVisitor {
 
       for(unsigned int i = 0; i < call->left_positional_args.size(); ++i) {
         *m_os << "  left_positional_args[" << i << "] = "
-              << var_access(m_env, call->left_positional_args[i]) << ";\n";
+              << m_context->varAccess(call->left_positional_args[i]) << ";\n";
       }
 
       if(call->hidden_object_optional_args.size() > 0) {
-        *m_os << "  copy_object(&" << var_access(m_env, HIDDEN_OBJECT)
+        *m_os << "  copy_object(&" << m_context->varAccess(HIDDEN_OBJECT)
               << ", &hidden_object);\n";
         for(unsigned int i = 0; i < call->hidden_object_optional_args.size();
             ++i) {
@@ -200,45 +263,45 @@ class ExpressionWriter : public ExpressionVisitor {
                 << ", "
                 << call->hidden_object_optional_args[i].key.c_name().size()
                 << ", &"
-                << var_access(m_env, call->hidden_object_optional_args[i].value)
+                << m_context->varAccess(
+                    call->hidden_object_optional_args[i].value)
                 << ");\n";
         }
         *m_os << "  seal_object(hidden_object.object.data);\n";
       } else {
-        *m_os << "  hidden_object = " << var_access(m_env, HIDDEN_OBJECT)
+        *m_os << "  hidden_object = " << m_context->varAccess(HIDDEN_OBJECT)
               << ";\n";
       }
-      *m_os << "  dest = " << var_access(m_env, call->callable) << ";\n"
+      *m_os << "  dest = " << m_context->varAccess(call->callable) << ";\n"
                "  if(dest.t != CLOSURE) {\n"
-               "    THROW_ERROR(" << var_access(m_env, HIDDEN_OBJECT)
+               "    THROW_ERROR(" << m_context->varAccess(HIDDEN_OBJECT)
             << ", make_c_string(\"cannot call a non-function!\"));\n"
                "  }\n"
                "  CALL_FUNC(dest)\n";
 
+      if(call->continuation.get())
+        write_callable(*m_os, call->continuation.get(), m_context, m_namesets);
     }
     void visit(Assignment* assignment) {
-      ValueWriter writer(m_os, m_env);
-      if(!assignment->local) {
-        assignment->value->accept(&writer);
-        *m_os << "  (*" << m_env << "->" << assignment->assignee.c_name()
-              << ".cell.addr) = " << writer.lastval() << ";\n";
-        assignment->next_expression->accept(this);
-        return;
-      }
-      throw cirth::expectation_failure("TODO: ugh, definitions");
+      ValueWriter writer(m_os, m_context, m_namesets);
+      assignment->value->accept(&writer);
+      if(assignment->local) m_context->localDefinition(assignment->assignee);
+      *m_os << "  " << m_context->varAccess(assignment->assignee) << " = "
+            << writer.lastval() << ";\n";
+      assignment->next_expression->accept(this);
     }
     void visit(ObjectMutation* mut) {
-      *m_os << "  dest = " << var_access(m_env, mut->object) << ";\n"
+      *m_os << "  dest = " << m_context->varAccess(mut->object) << ";\n"
                "  switch(dest.t) {\n"
                "    default:\n"
-               "      THROW_ERROR(" << var_access(m_env, HIDDEN_OBJECT)
+               "      THROW_ERROR(" << m_context->varAccess(HIDDEN_OBJECT)
             << ", make_c_string(\"not an object!\"));\n"
                "    case OBJECT:\n"
                "      if(!set_field(dest.object.data, "
             << to_bytestring(mut->field.c_name()) << ", "
             << mut->field.c_name().size() << ", &"
-            << var_access(m_env, mut->value) << ")) {\n"
-               "        THROW_ERROR(" << var_access(m_env, HIDDEN_OBJECT)
+            << m_context->varAccess(mut->value) << ")) {\n"
+               "        THROW_ERROR(" << m_context->varAccess(HIDDEN_OBJECT)
             << ", make_c_string(\"object %s sealed!\", "
             << to_bytestring(mut->object.c_name()) << "));\n"
                "      }\n"
@@ -248,18 +311,19 @@ class ExpressionWriter : public ExpressionVisitor {
     }
   private:
     std::ostream* m_os;
-    std::string m_env;
+    VariableContext* m_context;
+    NameSetManager* m_namesets;
 };
 
 static void inline write_expression(PTR<Expression> cps, std::ostream& os,
-    const std::string& scope) {
-  ExpressionWriter writer(&os, scope_to_env(scope));
+    VariableContext& context, NameSetManager& namesets) {
+  ExpressionWriter writer(&os, &context, &namesets);
   cps->accept(&writer);
 }
 
 void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
 
-  std::vector<std::pair<PTR<cps::Callable>, bool> > callables;
+  std::vector<PTR<cps::Callable> > callables;
   std::set<Name> free_names;
   cps->callables(callables);
   cps->free_names(free_names);
@@ -275,28 +339,40 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
   os << cirth::assets::DATA_STRUCTURES_C << "\n";
   os << cirth::assets::BUILTINS_C << "\n";
 
+  NameSetManager namesets;
+  std::set<Name> names;
+  // handle globals specially
+  cps->free_names(names);
+  cps->frame_names(names);
+  namesets.addSet(names);
+  VariableContext root_context(0, namesets.getID(names), names);
+
   for(unsigned int i = 0; i < callables.size(); ++i) {
-    os << "struct env_" << callables[i].first->c_name() << " {\n";
-    std::set<Name> free_names;
-    std::set<Name> arg_names;
-    callables[i].first->free_names(free_names);
-    callables[i].first->arg_names(arg_names);
-    for(std::set<Name>::iterator it(free_names.begin()); it != free_names.end();
-        ++it) {
-      os << "  union Value " << it->c_name() << ";\n";
-    }
-    for(std::set<Name>::iterator it(arg_names.begin()); it != arg_names.end();
-        ++it) {
-      os << "  union Value " << it->c_name() << ";\n";
-    }
-    os << "};\n\n";
+    if(!callables[i]->function) continue;
+    names.clear();
+    callables[i]->free_names(names);
+    namesets.addSet(names);
+    names.clear();
+    callables[i]->frame_names(names);
+    namesets.addSet(names);
   }
 
+  namesets.writeStructs(os);
+
   os << cirth::assets::START_MAIN_C;
-  write_expression(cps, os, "main");
+
+  write_expression(cps, os, root_context, namesets);
 
   for(unsigned int i = 0; i < callables.size(); ++i) {
-    if(!callables[i].second) write_callable(os, callables[i].first.get());
+    if(callables[i]->function) {
+      std::set<Name> free_names;
+      callables[i]->free_names(free_names);
+      std::set<Name> frame_names;
+      callables[i]->frame_names(frame_names);
+      VariableContext new_context(namesets.getID(free_names),
+          namesets.getID(frame_names));
+      write_callable(os, callables[i].get(), &new_context, &namesets);
+    }
   }
 
   os << cirth::assets::END_MAIN_C;

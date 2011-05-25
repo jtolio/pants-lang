@@ -89,7 +89,7 @@ namespace cps {
   struct Expression {
     virtual ~Expression() {}
     virtual std::string format(unsigned int indent_level) const = 0;
-    virtual void callables(std::vector<std::pair<PTR<Callable>, bool> >&) = 0;
+    virtual void callables(std::vector<PTR<Callable> >&) = 0;
     virtual void free_names(std::set<Name>& names) = 0;
     virtual void frame_names(std::set<Name>& names) = 0;
     virtual void accept(ExpressionVisitor*) = 0;
@@ -106,7 +106,7 @@ namespace cps {
     boost::optional<Name> right_keyword_arg;
     std::vector<Definition> hidden_object_optional_args;
     PTR<Callable> continuation;
-    void callables(std::vector<std::pair<PTR<Callable>, bool> >& callables);
+    void callables(std::vector<PTR<Callable> >& callables);
     void free_names(std::set<Name>& names);
     void frame_names(std::set<Name>& names);
     std::string format(unsigned int indent_level) const;
@@ -122,7 +122,7 @@ namespace cps {
     PTR<Value> value;
     bool local;
     PTR<Expression> next_expression;
-    void callables(std::vector<std::pair<PTR<Callable>, bool> >& callables);
+    void callables(std::vector<PTR<Callable> >& callables);
     void free_names(std::set<Name>& names);
     void frame_names(std::set<Name>& names) {
       if(local) names.insert(assignee);
@@ -141,7 +141,7 @@ namespace cps {
     Name field;
     Name value;
     PTR<Expression> next_expression;
-    void callables(std::vector<std::pair<PTR<Callable>, bool> >& callables)
+    void callables(std::vector<PTR<Callable> >& callables)
       { next_expression->callables(callables); }
     void free_names(std::set<Name>& names) {
       next_expression->free_names(names);
@@ -175,7 +175,10 @@ namespace cps {
     void accept(ValueVisitor* v) { v->visit(this); }
     void arg_names(std::set<Name>& names);
     void free_names(std::set<Name>& names);
-    void frame_names(std::set<Name>& names) { expression->frame_names(names); }
+    void frame_names(std::set<Name>& names) {
+      arg_names(names);
+      expression->frame_names(names);
+    }
     private: static unsigned int m_varcount;
   };
 

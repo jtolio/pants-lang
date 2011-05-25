@@ -302,15 +302,13 @@ void cps::transform(const std::vector<PTR<ir::Expression> >& in_ir,
 }
 
 static void callables_in_values(PTR<cps::Value> value,
-    std::vector<std::pair<PTR<cps::Callable>, bool> >& callables,
-    bool called_directly) {
+    std::vector<PTR<cps::Callable> >& callables) {
   if(!value) return;
-  std::pair<PTR<cps::Callable>, bool> callable;
-  callable.first = boost::dynamic_pointer_cast<cps::Callable>(value);
-  if(!callable.first) return;
-  callable.second = called_directly;
+  PTR<cps::Callable> callable(
+      boost::dynamic_pointer_cast<cps::Callable>(value));
+  if(!callable) return;
   callables.push_back(callable);
-  callable.first->expression->callables(callables);
+  callable->expression->callables(callables);
 }
 
 static void free_names_in_values(PTR<cps::Value> value,
@@ -319,15 +317,15 @@ static void free_names_in_values(PTR<cps::Value> value,
   value->free_names(names);
 }
 
-void cps::Call::callables(std::vector<std::pair<PTR<cps::Callable>, bool> >&
+void cps::Call::callables(std::vector<PTR<cps::Callable> >&
     callables) {
-  callables_in_values(continuation, callables, false);
+  callables_in_values(continuation, callables);
 }
 
 void cps::Assignment::callables(
-    std::vector<std::pair<PTR<cps::Callable>, bool> >& callables) {
+    std::vector<PTR<cps::Callable> >& callables) {
   next_expression->callables(callables);
-  callables_in_values(value, callables, false);
+  callables_in_values(value, callables);
 }
 
 void cps::Call::free_names(std::set<Name>& names) {
@@ -404,5 +402,5 @@ void cps::Assignment::free_names(std::set<cps::Name>& names) {
 }
 
 void cps::Call::frame_names(std::set<Name>& names) {
-  continuation->frame_names(names);
+  if(continuation) continuation->frame_names(names);
 }
