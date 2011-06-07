@@ -8,7 +8,7 @@ namespace cirth {
 namespace wrap {
 
   void ir_prepend(std::vector<PTR<cirth::ir::Expression> >& ir);
-  void remove_provided_names(std::set<ir::Name>& names);
+  void provided_names(std::set<ir::Name>& names);
 
 }}
 

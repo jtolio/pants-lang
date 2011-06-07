@@ -27,12 +27,17 @@ public:
     return os.str();
   }
   std::string valAccess(const Name& name) {
-    // TODO: dereference cell if necessary
-    return varAccess(name);
+    if(name.user_provided) {
+      std::ostringstream os; // TODO
+      os << "(*" << varAccess(name) << ".cell.addr)";
+      return os.str();
+    } else {
+      return varAccess(name);
+    }
   }
   void localDefinition(const Name& name) { m_activeFrameNames.insert(name); }
   bool activeInFrame(const Name& name)
-    { m_activeFrameNames.find(name) != m_activeFrameNames.end(); }
+    { return m_activeFrameNames.find(name) != m_activeFrameNames.end(); }
   unsigned int frameID() { return m_frameID; }
   unsigned int freeID() { return m_freeID; }
 private:
@@ -190,7 +195,7 @@ static void write_callable(std::ostream& os, Callable* func,
        << (is_mutated ? "make_cell(hidden_object);\n" : "hidden_object;\n");
   }
   for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
-    bool is_mutated(false); // TODO
+    bool is_mutated(func->right_positional_args[i].user_provided); // TODO
     context->localDefinition(func->right_positional_args[i]);
     os << "  " << context->varAccess(func->right_positional_args[i]) << " = ";
     if(is_mutated) os << "make_cell(";
@@ -199,7 +204,7 @@ static void write_callable(std::ostream& os, Callable* func,
     os << ";\n";
   }
   for(unsigned int i = 0; i < func->left_positional_args.size(); ++i) {
-    bool is_mutated(false); // TODO
+    bool is_mutated(func->left_positional_args[i].user_provided); // TODO
     context->localDefinition(func->left_positional_args[i]);
     os << "  " << context->varAccess(func->left_positional_args[i]) << " = ";
     if(is_mutated) os << "make_cell(";
@@ -295,7 +300,7 @@ class ExpressionWriter : public ExpressionVisitor {
       bool written = false;
       if(assignment->local) {
         bool active_in_frame(m_context->activeInFrame(assignment->assignee));
-        bool is_mutated(false); // TODO
+        bool is_mutated(assignment->assignee.user_provided); // TODO
         m_context->localDefinition(assignment->assignee);
         if(!active_in_frame && is_mutated) {
           *m_os << "  " << m_context->varAccess(assignment->assignee)
@@ -346,7 +351,13 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
   std::set<Name> free_names;
   cps->callables(callables);
   cps->free_names(free_names);
-  cirth::wrap::remove_provided_names(free_names);
+
+  std::set<Name> provided_names;
+  cirth::wrap::provided_names(provided_names);
+
+  for(std::set<Name>::iterator it(provided_names.begin());
+      it != provided_names.end(); ++it)
+    free_names.erase(*it);
 
   if(free_names.size() > 0) {
     std::ostringstream os;
@@ -364,7 +375,7 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
   cps->free_names(names);
   cps->frame_names(names);
   namesets.addSet(names);
-  VariableContext root_context(0, namesets.getID(names), names);
+  VariableContext root_context(0, namesets.getID(names), provided_names);
 
   for(unsigned int i = 0; i < callables.size(); ++i) {
     if(!callables[i]->function) continue;

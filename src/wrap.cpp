@@ -38,30 +38,30 @@ void cirth::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
 
 }
 
-void cirth::wrap::remove_provided_names(std::set<Name>& names) {
-#define REMOVE_NAME(name) names.erase(Name(name, false));
+void cirth::wrap::provided_names(std::set<Name>& names) {
+#define ADD_NAME(name) names.insert(Name(name, false));
 
-//  REMOVE_NAME("Dictionary");
-  REMOVE_NAME("Array");
-  REMOVE_NAME("new_object");
-  REMOVE_NAME("seal_object");
-  REMOVE_NAME("if");
-  REMOVE_NAME("print");
-//  REMOVE_NAME("construct");
-//  REMOVE_NAME("import");
-  REMOVE_NAME("add");
-  REMOVE_NAME("subtract");
-  REMOVE_NAME("divide");
-  REMOVE_NAME("multiply");
-  REMOVE_NAME("modulo");
-  REMOVE_NAME("true");
-  REMOVE_NAME("false");
-  REMOVE_NAME("equals");
-  REMOVE_NAME("lessthan");
+//  ADD_NAME("Dictionary");
+  ADD_NAME("Array");
+  ADD_NAME("new_object");
+  ADD_NAME("seal_object");
+  ADD_NAME("if");
+  ADD_NAME("print");
+//  ADD_NAME("construct");
+//  ADD_NAME("import");
+  ADD_NAME("add");
+  ADD_NAME("subtract");
+  ADD_NAME("divide");
+  ADD_NAME("multiply");
+  ADD_NAME("modulo");
+  ADD_NAME("true");
+  ADD_NAME("false");
+  ADD_NAME("equals");
+  ADD_NAME("lessthan");
 
-#undef REMOVE_NAME
+#undef ADD_NAME
 
-  names.erase(NULL_VALUE);
-  names.erase(CONTINUATION);
-  names.erase(HIDDEN_OBJECT);
+  names.insert(NULL_VALUE);
+  names.insert(CONTINUATION);
+  names.insert(HIDDEN_OBJECT);
 }
