@@ -26,13 +26,13 @@ public:
     os << name.c_name();
     return os.str();
   }
-  std::string varDefine(const Name& name) {
-    localDefinition(name);
-    std::ostringstream os;
-    os << "((struct nameset_" << m_frameID << "*)frame)->" << name.c_name();
-    return os.str();
+  std::string valAccess(const Name& name) {
+    // TODO: dereference cell if necessary
+    return varAccess(name);
   }
   void localDefinition(const Name& name) { m_activeFrameNames.insert(name); }
+  bool activeInFrame(const Name& name)
+    { m_activeFrameNames.find(name) != m_activeFrameNames.end(); }
   unsigned int frameID() { return m_frameID; }
   unsigned int freeID() { return m_freeID; }
 private:
@@ -102,18 +102,18 @@ class ValueWriter : public ValueVisitor {
         NameSetManager* namesets)
       : m_os(os), m_context(context), m_namesets(namesets) {}
     void visit(Field* field) {
-      *m_os << "  dest = " << m_context->varAccess(field->object) << ";\n"
+      *m_os << "  dest = " << m_context->valAccess(field->object) << ";\n"
                "  switch(dest.t) {\n"
                "    default:\n"
                "      THROW_ERROR("
-            << m_context->varAccess(HIDDEN_OBJECT) <<
+            << m_context->valAccess(HIDDEN_OBJECT) <<
                ", make_c_string(\"TODO: fields\"));\n"
                "    case OBJECT:\n"
                "      if(!get_field(dest.object.data, "
             << to_bytestring(field->field.c_name()) << ", "
             << field->field.c_name().size() << ", &dest)) {\n"
                "        THROW_ERROR("
-            << m_context->varAccess(HIDDEN_OBJECT) <<
+            << m_context->valAccess(HIDDEN_OBJECT) <<
                ", make_c_string(\"field %s not found!\", "
             << to_bytestring(field->field.c_name()) << "));\n"
                "      }\n"
@@ -122,7 +122,7 @@ class ValueWriter : public ValueVisitor {
       m_lastval = "dest";
     }
     void visit(Variable* var) {
-      m_lastval = m_context->varAccess(var->variable);
+      m_lastval = m_context->valAccess(var->variable);
     }
     void visit(Integer* integer) {
       *m_os << "  dest.t = INTEGER;\n"
@@ -179,22 +179,29 @@ static void write_callable(std::ostream& os, Callable* func,
            "  MIN_LEFT_ARGS(" << func->left_positional_args.size()
         << ")\n";
   if(func->function) {
+    bool is_mutated(false); // TODO
+    context->localDefinition(CONTINUATION);
+    context->localDefinition(HIDDEN_OBJECT);
     os << "  frame = GC_MALLOC(sizeof(struct nameset_" << context->frameID()
        << "));\n"
-          "  " << context->varDefine(CONTINUATION) << " = continuation;\n";
-    os << "  " << context->varDefine(HIDDEN_OBJECT) << " = hidden_object;\n";
+          "  " << context->varAccess(CONTINUATION) << " = "
+       << (is_mutated ? "make_cell(continuation);\n" : "continuation;\n")
+       << "  " << context->varAccess(HIDDEN_OBJECT) << " = "
+       << (is_mutated ? "make_cell(hidden_object);\n" : "hidden_object;\n");
   }
   for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
-    bool is_mutated(false); //func->right_positional_args[i].is_mutated());
-    os << "  " << context->varDefine(func->right_positional_args[i]) << " = ";
+    bool is_mutated(false); // TODO
+    context->localDefinition(func->right_positional_args[i]);
+    os << "  " << context->varAccess(func->right_positional_args[i]) << " = ";
     if(is_mutated) os << "make_cell(";
     os << "right_positional_args[" << i << "]";
     if(is_mutated) os << ")";
     os << ";\n";
   }
   for(unsigned int i = 0; i < func->left_positional_args.size(); ++i) {
-    bool is_mutated(false); //func->left_positional_args[i].is_mutated());
-    os << "  " << context->varDefine(func->left_positional_args[i]) << " = ";
+    bool is_mutated(false); // TODO
+    context->localDefinition(func->left_positional_args[i]);
+    os << "  " << context->varAccess(func->left_positional_args[i]) << " = ";
     if(is_mutated) os << "make_cell(";
     os << "left_positional_args[" << i << "]";
     if(is_mutated) os << ")";
@@ -232,7 +239,7 @@ class ExpressionWriter : public ExpressionVisitor {
 
       for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
         *m_os << "  right_positional_args[" << i << "] = "
-              << m_context->varAccess(call->right_positional_args[i]) << ";\n";
+              << m_context->valAccess(call->right_positional_args[i]) << ";\n";
       }
 
       if(call->left_positional_args.size() > MIN_LEFT_ARG_HIGHWATER) {
@@ -249,11 +256,11 @@ class ExpressionWriter : public ExpressionVisitor {
 
       for(unsigned int i = 0; i < call->left_positional_args.size(); ++i) {
         *m_os << "  left_positional_args[" << i << "] = "
-              << m_context->varAccess(call->left_positional_args[i]) << ";\n";
+              << m_context->valAccess(call->left_positional_args[i]) << ";\n";
       }
 
       if(call->hidden_object_optional_args.size() > 0) {
-        *m_os << "  copy_object(&" << m_context->varAccess(HIDDEN_OBJECT)
+        *m_os << "  copy_object(&" << m_context->valAccess(HIDDEN_OBJECT)
               << ", &hidden_object);\n";
         for(unsigned int i = 0; i < call->hidden_object_optional_args.size();
             ++i) {
@@ -263,18 +270,18 @@ class ExpressionWriter : public ExpressionVisitor {
                 << ", "
                 << call->hidden_object_optional_args[i].key.c_name().size()
                 << ", &"
-                << m_context->varAccess(
+                << m_context->valAccess(
                     call->hidden_object_optional_args[i].value)
                 << ");\n";
         }
         *m_os << "  seal_object(hidden_object.object.data);\n";
       } else {
-        *m_os << "  hidden_object = " << m_context->varAccess(HIDDEN_OBJECT)
+        *m_os << "  hidden_object = " << m_context->valAccess(HIDDEN_OBJECT)
               << ";\n";
       }
-      *m_os << "  dest = " << m_context->varAccess(call->callable) << ";\n"
+      *m_os << "  dest = " << m_context->valAccess(call->callable) << ";\n"
                "  if(dest.t != CLOSURE) {\n"
-               "    THROW_ERROR(" << m_context->varAccess(HIDDEN_OBJECT)
+               "    THROW_ERROR(" << m_context->valAccess(HIDDEN_OBJECT)
             << ", make_c_string(\"cannot call a non-function!\"));\n"
                "  }\n"
                "  CALL_FUNC(dest)\n";
@@ -285,23 +292,35 @@ class ExpressionWriter : public ExpressionVisitor {
     void visit(Assignment* assignment) {
       ValueWriter writer(m_os, m_context, m_namesets);
       assignment->value->accept(&writer);
-      if(assignment->local) m_context->localDefinition(assignment->assignee);
-      *m_os << "  " << m_context->varAccess(assignment->assignee) << " = "
-            << writer.lastval() << ";\n";
+      bool written = false;
+      if(assignment->local) {
+        bool active_in_frame(m_context->activeInFrame(assignment->assignee));
+        bool is_mutated(false); // TODO
+        m_context->localDefinition(assignment->assignee);
+        if(!active_in_frame && is_mutated) {
+          *m_os << "  " << m_context->varAccess(assignment->assignee)
+                << " = make_cell(" << writer.lastval() << ");\n";
+          written = true;
+        }
+      }
+      if(!written) {
+        *m_os << "  " << m_context->valAccess(assignment->assignee) << " = "
+              << writer.lastval() << ";\n";
+      }
       assignment->next_expression->accept(this);
     }
     void visit(ObjectMutation* mut) {
-      *m_os << "  dest = " << m_context->varAccess(mut->object) << ";\n"
+      *m_os << "  dest = " << m_context->valAccess(mut->object) << ";\n"
                "  switch(dest.t) {\n"
                "    default:\n"
-               "      THROW_ERROR(" << m_context->varAccess(HIDDEN_OBJECT)
+               "      THROW_ERROR(" << m_context->valAccess(HIDDEN_OBJECT)
             << ", make_c_string(\"not an object!\"));\n"
                "    case OBJECT:\n"
                "      if(!set_field(dest.object.data, "
             << to_bytestring(mut->field.c_name()) << ", "
             << mut->field.c_name().size() << ", &"
-            << m_context->varAccess(mut->value) << ")) {\n"
-               "        THROW_ERROR(" << m_context->varAccess(HIDDEN_OBJECT)
+            << m_context->valAccess(mut->value) << ")) {\n"
+               "        THROW_ERROR(" << m_context->valAccess(HIDDEN_OBJECT)
             << ", make_c_string(\"object %s sealed!\", "
             << to_bytestring(mut->object.c_name()) << "));\n"
                "      }\n"
