@@ -6,7 +6,7 @@ unsigned int cps::Callable::m_varcount = 0;
 
 static std::string indent(unsigned int indent_level) {
   std::ostringstream os;
-  for(unsigned int i = 0; i <= indent_level; ++i) {
+  for(unsigned int i = 0; i < indent_level; ++i) {
     os << "  ";
   }
   return os.str();
@@ -14,52 +14,52 @@ static std::string indent(unsigned int indent_level) {
 
 std::string cps::Call::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "Call(\n" << indent(indent_level) << "Left(\n"
-     << indent(indent_level+1);
+  os << "Call(\n" << indent(indent_level+1) << "Left(\n"
+     << indent(indent_level+2);
   bool comma_needed = false;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);
+    if(comma_needed) os << ",\n" << indent(indent_level+2);
     os << left_positional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   if(!!left_arbitrary_arg) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);
+    if(comma_needed) os << ",\n" << indent(indent_level+2);
     os << left_arbitrary_arg.get().format(indent_level+2);
   }
-  os << "),\n" << indent(indent_level) << "Right(\n" << indent(indent_level+1);
+  os << "),\n" << indent(indent_level+1) << "Right(\n" << indent(indent_level+2);
   comma_needed = false;
   for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);
+    if(comma_needed) os << ",\n" << indent(indent_level+2);
     os << right_positional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);
+    if(comma_needed) os << ",\n" << indent(indent_level+2);
     os << right_optional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   if(!!right_arbitrary_arg) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);
+    if(comma_needed) os << ",\n" << indent(indent_level+2);
     os << right_arbitrary_arg.get().format(indent_level+2);
     comma_needed = true;
   }
   if(!!right_keyword_arg) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);
+    if(comma_needed) os << ",\n" << indent(indent_level+2);
     os << right_keyword_arg.get().format(indent_level+2);
   }
-  os << "),\n" << indent(indent_level) << "HiddenObject(\n"
-     << indent(indent_level+1);
+  os << "),\n" << indent(indent_level+1) << "HiddenObject(\n"
+     << indent(indent_level+2);
   comma_needed = false;
   for(unsigned int i = 0; i < hidden_object_optional_args.size(); ++i) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);
+    if(comma_needed) os << ",\n" << indent(indent_level+2);
     os << hidden_object_optional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   os << ")";
   if(continuation.get())
-    os << ",\n" << indent(indent_level) << "Cont("
-       << continuation->format(indent_level+1) << ")";
-  os << ",\n" << indent(indent_level) << callable.format(indent_level+1)
+    os << ",\n" << indent(indent_level+1) << "Cont("
+       << continuation->format(indent_level+2) << ")";
+  os << ",\n" << indent(indent_level+1) << callable.format(indent_level+1)
      << ")";
   return os.str();
 }
@@ -69,7 +69,7 @@ std::string cps::ObjectMutation::format(unsigned int indent_level) const {
   os << "ObjectMutation(" << object.format(indent_level+1) << ", "
      << field.format(indent_level+1) << ", " << value.format(indent_level+1)
      << ",\n" << indent(indent_level)
-     << next_expression->format(indent_level+1) << ")";
+     << next_expression->format(indent_level) << ")";
   return os.str();
 }
 
@@ -78,7 +78,7 @@ std::string cps::Assignment::format(unsigned int indent_level) const {
   os << "Assignment(" << (local ? "local, " : "nonlocal, ")
      << assignee.format(indent_level+1) << ", "
      << value->format(indent_level+1) << ",\n" << indent(indent_level)
-     << next_expression->format(indent_level+1) << ")";
+     << next_expression->format(indent_level) << ")";
   return os.str();
 }
 
@@ -91,39 +91,39 @@ std::string cps::Variable::format(unsigned int indent_level) const {
 std::string cps::Callable::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Callable(" << (function ? "function,\n" : "continuation,\n")
-     << indent(indent_level) << "Left(\n" << indent(indent_level+1);
+     << indent(indent_level+1) << "Left(\n" << indent(indent_level+2);
   bool comma_needed = false;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);
+    if(comma_needed) os << ",\n" << indent(indent_level+2);
     os << left_positional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   if(!!left_arbitrary_arg) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);
+    if(comma_needed) os << ",\n" << indent(indent_level+2);
     os << left_arbitrary_arg.get().format(indent_level+2);
   }
-  os << "),\n" << indent(indent_level) << "Right(\n" << indent(indent_level+1);
+  os << "),\n" << indent(indent_level+1) << "Right(\n" << indent(indent_level+2);
   comma_needed = false;
   for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);;
+    if(comma_needed) os << ",\n" << indent(indent_level+2);;
     os << right_positional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);;
+    if(comma_needed) os << ",\n" << indent(indent_level+2);;
     os << right_optional_args[i].format(indent_level+2);
     comma_needed = true;
   }
   if(!!right_arbitrary_arg) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);;
+    if(comma_needed) os << ",\n" << indent(indent_level+2);;
     os << right_arbitrary_arg.get().format(indent_level+2);
     comma_needed = true;
   }
   if(!!right_keyword_arg) {
-    if(comma_needed) os << ",\n" << indent(indent_level+1);;
+    if(comma_needed) os << ",\n" << indent(indent_level+2);;
     os << right_keyword_arg.get().format(indent_level+2);
   }
-  os << "),\n" << indent(indent_level) << expression->format(indent_level+1)
+  os << "),\n" << indent(indent_level+1) << expression->format(indent_level+1)
      << ")";
   return os.str();
 }
