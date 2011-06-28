@@ -25,6 +25,16 @@ print x
 
 print.
 
+x = 1
+y = ( z = x; { print z } )
+y.
+print x
+x = 2
+y.
+print x
+
+print.
+
 z = {
   (
     cont 3

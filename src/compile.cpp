@@ -36,8 +36,6 @@ public:
     }
   }
   void localDefinition(const Name& name) { m_activeFrameNames.insert(name); }
-  bool activeInFrame(const Name& name)
-    { return m_activeFrameNames.find(name) != m_activeFrameNames.end(); }
   unsigned int frameID() { return m_frameID; }
   unsigned int freeID() { return m_freeID; }
 private:
@@ -299,10 +297,9 @@ class ExpressionWriter : public ExpressionVisitor {
       assignment->value->accept(&writer);
       bool written = false;
       if(assignment->local) {
-        bool active_in_frame(m_context->activeInFrame(assignment->assignee));
         bool is_mutated(assignment->assignee.user_provided); // TODO
         m_context->localDefinition(assignment->assignee);
-        if(!active_in_frame && is_mutated) {
+        if(is_mutated) {
           *m_os << "  " << m_context->varAccess(assignment->assignee)
                 << " = make_cell(" << writer.lastval() << ");\n";
           written = true;
