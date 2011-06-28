@@ -11,9 +11,27 @@
 using namespace cirth;
 
 int main(int argc, char** argv) {
+
+  bool include_prelude = true;
+
+  for(int i = 1; i < argc;) {
+    if(argv[i] == std::string("--skip-prelude")) {
+      include_prelude = false;
+      ++i;
+      continue;
+    }
+    if(argv[i] == std::string("--help")) {
+      std::cout << "usage: " << argv[0] << " [--skip_prelude]" << std::endl;
+      std::cout << "  source comes in stdin, C comes out stdout" << std::endl;
+      return 0;
+    }
+    std::cerr << "unknown argument! try --help" << std::endl;
+    return 1;
+  }
+
   std::string str;
   std::ostringstream os;
-  os << assets::PRELUDE_CTH << "\n";
+  if(include_prelude) os << assets::PRELUDE_CTH << "\n";
 
   while(getline(std::cin, str)) {
     os << str << '\n';
