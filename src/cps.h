@@ -4,10 +4,10 @@
 #include "common.h"
 #include "ir.h"
 
-namespace cirth {
+namespace pants {
 namespace cps {
 
-  typedef cirth::ir::Name Name;
+  typedef pants::ir::Name Name;
   struct Callable; struct Field; struct Variable; struct Integer;
   struct String; struct Float; struct Callable; struct Call;
   struct Assignment; struct ObjectMutation;
@@ -182,7 +182,7 @@ namespace cps {
     private: static unsigned int m_varcount;
   };
 
-  void transform(const std::vector<PTR<cirth::ir::Expression> >& in_ir,
+  void transform(const std::vector<PTR<pants::ir::Expression> >& in_ir,
       const ir::Name& in_lastval, PTR<Expression>& out_ir);
 
 }}

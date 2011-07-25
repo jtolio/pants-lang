@@ -1,9 +1,9 @@
-all: cirth
+all: pants
 
-cirth:
-	cd src && make cirth
+pants:
+	cd src && make pants
 
-test: cirth
+test: pants
 	cd src && make test
 	cd tests && ../tools/run_tests.py
 

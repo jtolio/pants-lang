@@ -2,8 +2,8 @@
 
 set -e
 
-cat $2 | $1 > /tmp/cirth-$$.c
-clang -o /tmp/cirth-$$ /tmp/cirth-$$.c -lgc
-rm -f /tmp/cirth-$$.c
-/tmp/cirth-$$
-rm -f /tmp/cirth-$$
+cat $2 | $1 > /tmp/pants-$$.c
+clang -o /tmp/pants-$$ /tmp/pants-$$.c -lgc
+rm -f /tmp/pants-$$.c
+/tmp/pants-$$
+rm -f /tmp/pants-$$

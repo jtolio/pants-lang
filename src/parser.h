@@ -4,11 +4,11 @@
 #include "common.h"
 #include "ast.h"
 
-namespace cirth {
+namespace pants {
 namespace parser {
 
   bool parse(const std::string& src,
-      std::vector<PTR<cirth::ast::Expression> >& ast);
+      std::vector<PTR<pants::ast::Expression> >& ast);
 
 }}
 

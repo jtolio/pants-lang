@@ -1,4 +1,4 @@
-src/cirth
+src/pants
 src/run_tests
 src/*.o
 src/*.pyc

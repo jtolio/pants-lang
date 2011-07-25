@@ -1,5 +1,3 @@
-#!/home/jt/cirth/tools/script_wrapper.sh /home/jt/cirth/src/cirth
-
 output_list = { |x|
   i = 0
   while { < i x.size() } {

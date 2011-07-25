@@ -1,6 +1,6 @@
 #include "ir.h"
 
-using namespace cirth;
+using namespace pants;
 
 std::map<std::string, unsigned int> ir::Name::m_varids =
     std::map<std::string, unsigned int>();
@@ -380,7 +380,7 @@ void ir::convert(const std::vector<PTR<ast::Expression> >& ast,
   visitor.visit(ast);
 }
 
-std::string cirth::ir::Name::format(unsigned int) const {
+std::string pants::ir::Name::format(unsigned int) const {
   std::ostringstream os;
   os << (user_provided ? "u" : "c")
      << "_"
@@ -388,7 +388,7 @@ std::string cirth::ir::Name::format(unsigned int) const {
   return os.str();
 }
 
-void cirth::ir::Name::generate_varid() {
+void pants::ir::Name::generate_varid() {
   if(!user_provided) return;
   std::map<std::string, unsigned int>::iterator it(m_varids.find(name));
   if(it != m_varids.end()) {
@@ -398,7 +398,7 @@ void cirth::ir::Name::generate_varid() {
   }
 }
 
-std::string cirth::ir::Name::c_name() const {
+std::string pants::ir::Name::c_name() const {
   std::ostringstream s_name;
   bool sanitized = false;
   for(unsigned int i = 0; i < name.size(); ++i) {
@@ -422,14 +422,14 @@ std::string cirth::ir::Name::c_name() const {
   return os.str();
 }
 
-std::string cirth::ir::ReturnValue::format(unsigned int indent_level) const {
+std::string pants::ir::ReturnValue::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "ReturnValue(" << assignee.format(indent_level+1) << ", "
      << term->format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::Assignment::format(unsigned int indent_level) const {
+std::string pants::ir::Assignment::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Assignment(" << (local ? "local, " : "nonlocal, ")
      << assignee.format(indent_level+1) << ", " << value->format(indent_level+1)
@@ -437,7 +437,7 @@ std::string cirth::ir::Assignment::format(unsigned int indent_level) const {
   return os.str();
 }
 
-std::string cirth::ir::ObjectMutation::format(unsigned int indent_level) const {
+std::string pants::ir::ObjectMutation::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "ObjectMutation(" << object.format(indent_level+1) << ", "
      << field.format(indent_level+1) << ", " << value.format(indent_level+1)
@@ -445,51 +445,51 @@ std::string cirth::ir::ObjectMutation::format(unsigned int indent_level) const {
   return os.str();
 }
 
-std::string cirth::ir::Field::format(unsigned int indent_level) const {
+std::string pants::ir::Field::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Field(" << object.format(indent_level+1) << ", "
      << field.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::Variable::format(unsigned int indent_level) const {
+std::string pants::ir::Variable::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Variable(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::Integer::format(unsigned int indent_level) const {
+std::string pants::ir::Integer::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Integer(" << value << ")";
   return os.str();
 }
 
-std::string cirth::ir::CharString::format(unsigned int indent_level) const {
+std::string pants::ir::CharString::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "CharString(" << value << ")";
   return os.str();
 }
 
-std::string cirth::ir::ByteString::format(unsigned int indent_level) const {
+std::string pants::ir::ByteString::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "ByteString(" << value << ")";
   return os.str();
 }
 
-std::string cirth::ir::Float::format(unsigned int indent_level) const {
+std::string pants::ir::Float::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Float(" << value << ")";
   return os.str();
 }
 
-std::string cirth::ir::PositionalOutArgument::format(unsigned int indent_level)
+std::string pants::ir::PositionalOutArgument::format(unsigned int indent_level)
     const {
   std::ostringstream os;
   os << "PositionalOutArgument(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::OptionalOutArgument::format(unsigned int indent_level)
+std::string pants::ir::OptionalOutArgument::format(unsigned int indent_level)
     const {
   std::ostringstream os;
   os << "OptionalOutArgument(" << key.format(indent_level+1) << ", "
@@ -497,28 +497,28 @@ std::string cirth::ir::OptionalOutArgument::format(unsigned int indent_level)
   return os.str();
 }
 
-std::string cirth::ir::ArbitraryOutArgument::format(unsigned int indent_level)
+std::string pants::ir::ArbitraryOutArgument::format(unsigned int indent_level)
     const {
   std::ostringstream os;
   os << "ArbitraryOutArgument(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::KeywordOutArgument::format(unsigned int indent_level)
+std::string pants::ir::KeywordOutArgument::format(unsigned int indent_level)
     const {
   std::ostringstream os;
   os << "KeywordOutArgument(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::PositionalInArgument::format(unsigned int indent_level)
+std::string pants::ir::PositionalInArgument::format(unsigned int indent_level)
     const {
   std::ostringstream os;
   os << "PositionalInArgument(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::OptionalInArgument::format(unsigned int indent_level)
+std::string pants::ir::OptionalInArgument::format(unsigned int indent_level)
     const {
   std::ostringstream os;
   os << "OptionalInArgument(" << variable.format(indent_level+1) << ", "
@@ -526,21 +526,21 @@ std::string cirth::ir::OptionalInArgument::format(unsigned int indent_level)
   return os.str();
 }
 
-std::string cirth::ir::ArbitraryInArgument::format(unsigned int indent_level)
+std::string pants::ir::ArbitraryInArgument::format(unsigned int indent_level)
     const {
   std::ostringstream os;
   os << "ArbitraryInArgument(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::KeywordInArgument::format(unsigned int indent_level)
+std::string pants::ir::KeywordInArgument::format(unsigned int indent_level)
     const {
   std::ostringstream os;
   os << "KeywordInArgument(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
-std::string cirth::ir::Call::format(unsigned int indent_level) const {
+std::string pants::ir::Call::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Call(" << callable.format(indent_level+1) << ", Left(";
   bool comma_needed = false;
@@ -585,7 +585,7 @@ std::string cirth::ir::Call::format(unsigned int indent_level) const {
   return os.str();
 }
 
-std::string cirth::ir::Function::format(unsigned int indent_level) const {
+std::string pants::ir::Function::format(unsigned int indent_level) const {
   std::ostringstream os;
   os << "Function(Left(";
   bool comma_needed = false;

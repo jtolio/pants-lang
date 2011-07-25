@@ -2,13 +2,13 @@
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
 
-namespace cirth {
+namespace pants {
 namespace parser {
 
   namespace qi = boost::spirit::qi;
   namespace ascii = boost::spirit::ascii;
   namespace phx = boost::phoenix;
-  using namespace cirth::ast;
+  using namespace pants::ast;
   typedef std::string::const_iterator Iterator;
 
   struct grammar : qi::grammar<Iterator, std::vector<PTR<Expression> >()>{
@@ -344,11 +344,11 @@ namespace parser {
   };
 }}
 
-bool cirth::parser::parse(const std::string& src,
-    std::vector<PTR<cirth::ast::Expression> >& ast) {
+bool pants::parser::parse(const std::string& src,
+    std::vector<PTR<pants::ast::Expression> >& ast) {
   grammar g;
   std::string::const_iterator iter = src.begin();
-  std::vector<PTR<cirth::ast::Expression> > out;
+  std::vector<PTR<pants::ast::Expression> > out;
   bool r = boost::spirit::qi::phrase_parse(iter, src.end(), g, ascii::space,
       out);
   ast.clear();

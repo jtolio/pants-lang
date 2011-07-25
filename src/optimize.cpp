@@ -1,9 +1,9 @@
 #include "optimize.h"
 
-using namespace cirth;
+using namespace pants;
 
-void cirth::optimize::ir(std::vector<PTR<ir::Expression> >& ir) {
+void pants::optimize::ir(std::vector<PTR<ir::Expression> >& ir) {
 }
 
-void cirth::optimize::cps(PTR<cps::Expression>& cps) {
+void pants::optimize::cps(PTR<cps::Expression>& cps) {
 }

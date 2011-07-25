@@ -8,7 +8,7 @@
 #include <iostream>
 #include "assets.h"
 
-using namespace cirth;
+using namespace pants;
 
 int main(int argc, char** argv) {
 
@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
 
   std::string str;
   std::ostringstream os;
-  if(include_prelude) os << assets::PRELUDE_CTH << "\n";
+  if(include_prelude) os << assets::PRELUDE_P << "\n";
 
   while(getline(std::cin, str)) {
     os << str << '\n';

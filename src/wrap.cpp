@@ -1,8 +1,8 @@
 #include "wrap.h"
 
-using namespace cirth::ir;
+using namespace pants::ir;
 
-void cirth::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
+void pants::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
 
 #define BIND_NAME_VAL(name, val) \
   ir.push_back(PTR<Expression>(new Assignment(name, PTR<Value>( \
@@ -38,7 +38,7 @@ void cirth::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
 
 }
 
-void cirth::wrap::provided_names(std::set<Name>& names) {
+void pants::wrap::provided_names(std::set<Name>& names) {
 #define ADD_NAME(name) names.insert(Name(name, false));
 
 //  ADD_NAME("Dictionary");

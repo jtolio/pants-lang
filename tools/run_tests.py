@@ -6,9 +6,9 @@ import os, re, subprocess, tempfile, sys, threading, Queue, traceback
 
 TEST_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
     "tests"))
-TEST_EXT = re.compile(r'\.cth$')
+TEST_EXT = re.compile(r'\.p$')
 COMPILER_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
-    "src", "cirth"))
+    "src", "pants"))
 C_COMPILERS = [["clang"], ["gcc"]]
 C_LIBRARIES = ["-lgc"]
 

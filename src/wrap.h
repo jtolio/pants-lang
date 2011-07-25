@@ -4,10 +4,10 @@
 #include "common.h"
 #include "ir.h"
 
-namespace cirth {
+namespace pants {
 namespace wrap {
 
-  void ir_prepend(std::vector<PTR<cirth::ir::Expression> >& ir);
+  void ir_prepend(std::vector<PTR<pants::ir::Expression> >& ir);
   void provided_names(std::set<ir::Name>& names);
 
 }}

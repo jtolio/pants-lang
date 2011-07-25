@@ -2,7 +2,7 @@
 #include "assets.h"
 #include "wrap.h"
 
-using namespace cirth::cps;
+using namespace pants::cps;
 
 #define MIN_RIGHT_ARG_HIGHWATER 10
 #define MIN_LEFT_ARG_HIGHWATER 2
@@ -342,7 +342,7 @@ static void inline write_expression(PTR<Expression> cps, std::ostream& os,
   cps->accept(&writer);
 }
 
-void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
+void pants::compile::compile(PTR<Expression> cps, std::ostream& os) {
 
   std::vector<PTR<cps::Callable> > callables;
   std::set<Name> free_names;
@@ -350,7 +350,7 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
   cps->free_names(free_names);
 
   std::set<Name> provided_names;
-  cirth::wrap::provided_names(provided_names);
+  pants::wrap::provided_names(provided_names);
 
   for(std::set<Name>::iterator it(provided_names.begin());
       it != provided_names.end(); ++it)
@@ -362,9 +362,9 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
     throw expectation_failure(os.str());
   }
 
-  os << cirth::assets::HEADER_C << "\n";
-  os << cirth::assets::DATA_STRUCTURES_C << "\n";
-  os << cirth::assets::BUILTINS_C << "\n";
+  os << pants::assets::HEADER_C << "\n";
+  os << pants::assets::DATA_STRUCTURES_C << "\n";
+  os << pants::assets::BUILTINS_C << "\n";
 
   NameSetManager namesets;
   std::set<Name> names;
@@ -386,7 +386,7 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
 
   namesets.writeStructs(os);
 
-  os << cirth::assets::START_MAIN_C;
+  os << pants::assets::START_MAIN_C;
 
   write_expression(cps, os, root_context, namesets);
 
@@ -402,6 +402,6 @@ void cirth::compile::compile(PTR<Expression> cps, std::ostream& os) {
     }
   }
 
-  os << cirth::assets::END_MAIN_C;
+  os << pants::assets::END_MAIN_C;
 
 }

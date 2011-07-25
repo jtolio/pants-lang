@@ -4,18 +4,18 @@
 #include "common.h"
 #include "ast.h"
 
-#define UPDATE_FIELD      ::cirth::ir::Name("~update", true)
-#define LOOKUP_FIELD      ::cirth::ir::Name("~index", true)
-#define DICT_CONSTRUCTOR  ::cirth::ir::Name("Dictionary", true)
-#define ARRAY_CONSTRUCTOR ::cirth::ir::Name("Array", true)
-#define NULL_VALUE        ::cirth::ir::Name("null", false)
-#define HIDDEN_OBJECT     ::cirth::ir::Name("hidden_object", false)
-#define CONTINUATION      ::cirth::ir::Name("continuation", false)
-#define RETURN            ::cirth::ir::Name("cont", true)
-#define THROW             ::cirth::ir::Name("throw", true)
+#define UPDATE_FIELD      ::pants::ir::Name("~update", true)
+#define LOOKUP_FIELD      ::pants::ir::Name("~index", true)
+#define DICT_CONSTRUCTOR  ::pants::ir::Name("Dictionary", true)
+#define ARRAY_CONSTRUCTOR ::pants::ir::Name("Array", true)
+#define NULL_VALUE        ::pants::ir::Name("null", false)
+#define HIDDEN_OBJECT     ::pants::ir::Name("hidden_object", false)
+#define CONTINUATION      ::pants::ir::Name("continuation", false)
+#define RETURN            ::pants::ir::Name("cont", true)
+#define THROW             ::pants::ir::Name("throw", true)
 #define GENSYM_PREFIX     "ir_"
 
-namespace cirth {
+namespace pants {
 namespace ir {
 
   struct Assignment; struct ObjectMutation; struct ReturnValue;
@@ -54,7 +54,7 @@ namespace ir {
   struct Name {
     Name(const std::string& name_, bool user_provided_)
       : name(name_), user_provided(user_provided_) { generate_varid(); }
-    Name(const cirth::ast::Variable& var)
+    Name(const pants::ast::Variable& var)
       : name(var.name), user_provided(var.user_provided)
     {
       if(!name.size()) throw expectation_failure("expected variable name");
@@ -229,9 +229,9 @@ namespace ir {
     void accept(ValueVisitor* visitor) { visitor->visit(this); }
   };
 
-  void convert(const std::vector<PTR<cirth::ast::Expression> >& exps,
-      std::vector<PTR<cirth::ir::Expression> >& out,
-      cirth::ir::Name& lastval);
+  void convert(const std::vector<PTR<pants::ast::Expression> >& exps,
+      std::vector<PTR<pants::ir::Expression> >& out,
+      pants::ir::Name& lastval);
 
 }}
 

@@ -4,7 +4,7 @@
 #include "common.h"
 #include <boost/optional.hpp>
 
-namespace cirth {
+namespace pants {
 namespace ast {
 
   struct Term; struct Application; struct Assignee; struct Mutation;

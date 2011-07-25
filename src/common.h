@@ -13,7 +13,7 @@
 
 #define PTR boost::shared_ptr
 
-namespace cirth {
+namespace pants {
 
   struct expectation_failure : std::runtime_error {
     expectation_failure(const std::string& msg_) throw ()

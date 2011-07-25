@@ -4,7 +4,7 @@
 #include "common.h"
 #include "cps.h"
 
-namespace cirth {
+namespace pants {
 namespace compile {
 
   void compile(PTR<cps::Expression> cps, std::ostream& os);

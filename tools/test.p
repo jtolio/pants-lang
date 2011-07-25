@@ -1,4 +1,4 @@
-#!./script_wrapper.sh ../src/cirth
+#!./script_wrapper.sh ../src/pants
 
 hello = { |target|
   print "Hello" (+ target "!")

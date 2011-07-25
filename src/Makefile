@@ -1,7 +1,7 @@
-CPP = clang++
+CPP = g++
 CFLAGS = -isystem /home/jt/dev/boost_1_45_0
 
-all: cirth
+all: pants
 
 assets.h assets.cpp: assets/* generate_assets.py
 	./generate_assets.py assets
@@ -38,8 +38,8 @@ optimize.o: optimize.cpp optimize.h cps.h ir.h common.h
 run_tests.o: run_tests.cpp common.h parser.h ast.h wrap.h ir.h cps.h compile.h optimize.h
 	$(CPP) $(CFLAGS) -c run_tests.cpp
 
-cirth: main.o parser.o ast.o wrap.o ir.o cps.o compile.o assets.o optimize.o
-	$(CPP) $(CFLAGS) -o cirth main.o ast.o parser.o wrap.o ir.o cps.o compile.o assets.o optimize.o -ldl
+pants: main.o parser.o ast.o wrap.o ir.o cps.o compile.o assets.o optimize.o
+	$(CPP) $(CFLAGS) -o pants main.o ast.o parser.o wrap.o ir.o cps.o compile.o assets.o optimize.o -ldl
 
 run_tests: run_tests.o parser.o ast.o wrap.o ir.o cps.o compile.o assets.o optimize.o
 	$(CPP) $(CFLAGS) -o run_tests run_tests.o ast.o parser.o wrap.o ir.o cps.o compile.o assets.o optimize.o -lcppunit -ldl
@@ -48,4 +48,4 @@ test: run_tests
 	./run_tests
 
 clean:
-	rm -f *.o cirth run_tests assets.h assets.cpp
+	rm -f *.o pants run_tests assets.h assets.cpp

@@ -5,11 +5,11 @@
 #include "ir.h"
 #include "cps.h"
 
-namespace cirth {
+namespace pants {
 namespace optimize {
 
-  void ir(std::vector<PTR<cirth::ir::Expression> >& ir);
-  void cps(PTR<cirth::cps::Expression>& cps);
+  void ir(std::vector<PTR<pants::ir::Expression> >& ir);
+  void cps(PTR<pants::cps::Expression>& cps);
 
 }}
 

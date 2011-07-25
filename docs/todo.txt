@@ -2,7 +2,7 @@ todo
  * malloc benchmarking
  * wiki pages and docs
  * c primitives
- * cirth primitives
+ * pants primitives
  * all argument styles passing
  * all other primitives
 

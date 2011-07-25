@@ -1,6 +1,6 @@
 #include "cps.h"
 
-using namespace cirth;
+using namespace pants;
 
 unsigned int cps::Callable::m_varcount = 0;
 
