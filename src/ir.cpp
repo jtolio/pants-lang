@@ -394,7 +394,8 @@ void pants::ir::Name::generate_varid() {
   if(it != m_varids.end()) {
     varid = it->second;
   } else {
-    m_varids[name] = varid = m_varids.size();
+    varid = m_varids.size();
+    m_varids[name] = varid;
   }
 }
 
