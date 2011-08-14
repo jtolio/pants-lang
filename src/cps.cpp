@@ -100,7 +100,8 @@ std::string cps::Callable::format(unsigned int indent_level) const {
   }
   if(!!left_arbitrary_arg) {
     if(comma_needed) os << ",\n" << indent(indent_level+2);
-    os << left_arbitrary_arg.get().format(indent_level+2);
+    os << "Arbitrary(" << left_arbitrary_arg.get().format(indent_level+2)
+       << ")";
   }
   os << "),\n" << indent(indent_level+1) << "Right(\n" << indent(indent_level+2);
   comma_needed = false;
@@ -111,17 +112,18 @@ std::string cps::Callable::format(unsigned int indent_level) const {
   }
   for(unsigned int i = 0; i < right_optional_args.size(); ++i) {
     if(comma_needed) os << ",\n" << indent(indent_level+2);;
-    os << right_optional_args[i].format(indent_level+2);
+    os << "Optional(" << right_optional_args[i].format(indent_level+2) << ")";
     comma_needed = true;
   }
   if(!!right_arbitrary_arg) {
     if(comma_needed) os << ",\n" << indent(indent_level+2);;
-    os << right_arbitrary_arg.get().format(indent_level+2);
+    os << "Arbitrary(" << right_arbitrary_arg.get().format(indent_level+2)
+       << ")";
     comma_needed = true;
   }
   if(!!right_keyword_arg) {
-    if(comma_needed) os << ",\n" << indent(indent_level+2);;
-    os << right_keyword_arg.get().format(indent_level+2);
+    if(comma_needed) os << ",\n" << indent(indent_level+2);
+    os << "Keyword(" << right_keyword_arg.get().format(indent_level+2) << ")";
   }
   os << "),\n" << indent(indent_level+1) << expression->format(indent_level+1)
      << ")";

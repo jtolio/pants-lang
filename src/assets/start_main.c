@@ -2,6 +2,7 @@ int main(int argc, char **argv) {
   struct nameset_1 globals;
   void* env = NULL;
   void* frame = &globals;
+  void* raw_swap = NULL;
   union Value dest;
   unsigned int i;
   union Value initial_right_positional_args[10];
@@ -15,6 +16,8 @@ int main(int argc, char **argv) {
   union Value continuation;
   union Value hidden_object;
   struct ObjectData hidden_object_data;
+
+  EXTERNAL_FUNCTION_LABEL = &&c_external__function__call;
 
   GC_INIT();
 
@@ -59,7 +62,7 @@ int main(int argc, char **argv) {
   dest.closure.func = &&ho_throw;
   dest.closure.env = NULL;
   dest.closure.frame = NULL;
-  set_field(&hidden_object_data, "u_throw", 7, &dest);
+  set_field(&hidden_object_data, "u_throw", 7, dest);
 
   seal_object(&hidden_object_data);
 
@@ -401,140 +404,24 @@ c_halt:
 c_Array:
   MAX_LEFT_ARGS(0)
   REQUIRED_FUNCTION(continuation)
-  env = make_array();
+  make_array_object(&dest, (struct Array**)&env);
   append_values(env, right_positional_args, right_positional_args_size);
-  make_object(&right_positional_args[0]);
-  dest.t = CLOSURE;
-  dest.closure.env = env;
-  dest.closure.frame = NULL;
-  dest.closure.func = &&c_Array_size;
-  set_field(right_positional_args[0].object.data, "u_size", 6, &dest);
-  dest.closure.func = &&c_Array_append;
-  set_field(right_positional_args[0].object.data, "u_append", 8, &dest);
-  dest.closure.func = &&c_Array_pop;
-  set_field(right_positional_args[0].object.data, "u_pop", 5, &dest);
-  dest.closure.func = &&c_Array_shift;
-  set_field(right_positional_args[0].object.data, "u_shift", 7, &dest);
-  dest.closure.func = &&c_Array_unshift;
-  set_field(right_positional_args[0].object.data, "u_unshift", 9, &dest);
-  dest.closure.func = &&c_Array_update;
-  set_field(right_positional_args[0].object.data, "u__7eupdate", 11, &dest);
-  dest.closure.func = &&c_Array_index;
-  set_field(right_positional_args[0].object.data, "u__7eindex", 10, &dest);
-  seal_object(right_positional_args[0].object.data);
+  right_positional_args[0] = dest;
   left_positional_args_size = 0;
   right_positional_args_size = 1;
   dest = continuation;
   continuation.t = NIL;
   CALL_FUNC(dest);
 
-c_Array_size:
-  MAX_LEFT_ARGS(0)
-  MAX_RIGHT_ARGS(0)
+c_external__function__call:
   REQUIRED_FUNCTION(continuation)
-  right_positional_args[0].t = INTEGER;
-  right_positional_args[0].integer.value = ((struct Array*)env)->size;
-  right_positional_args_size = 1;
-  dest = continuation;
-  continuation.t = NIL;
-  CALL_FUNC(dest);
-
-c_Array_update:
-  MAX_LEFT_ARGS(0)
-  MAX_RIGHT_ARGS(2)
-  MIN_RIGHT_ARGS(2)
-  REQUIRED_FUNCTION(continuation)
-  if(right_positional_args[0].t != INTEGER) {
-    THROW_ERROR(hidden_object, make_c_string("array indexing must be done with "
-        "an integer!"));
+  if(!((ExternalFunction)frame)(env, right_positional_args,
+      right_positional_args_size, left_positional_args,
+      left_positional_args_size, &dest)) {
+    THROW_ERROR(hidden_object, dest);
   }
-  if(right_positional_args[0].integer.value < 0)
-    right_positional_args[0].integer.value += ((struct Array*)env)->size;
-  if(right_positional_args[0].integer.value >= ((struct Array*)env)->size
-      || right_positional_args[0].integer.value < 0) {
-    THROW_ERROR(hidden_object, make_c_string("array index out of bounds!"));
-  }
-  ((struct Array*)env)->data[right_positional_args[0].integer.value] =
-      right_positional_args[1];
-  right_positional_args[0] = right_positional_args[1];
+  right_positional_args[0] = dest;
   right_positional_args_size = 1;
-  dest = continuation;
-  continuation.t = NIL;
-  CALL_FUNC(dest);
-
-c_Array_index:
-  MAX_LEFT_ARGS(0)
-  MAX_RIGHT_ARGS(1)
-  MIN_RIGHT_ARGS(1)
-  REQUIRED_FUNCTION(continuation)
-  if(right_positional_args[0].t != INTEGER) {
-    THROW_ERROR(hidden_object, make_c_string("array indexing must be done with "
-        "an integer!"));
-  }
-  if(right_positional_args[0].integer.value < 0)
-    right_positional_args[0].integer.value += ((struct Array*)env)->size;
-  if(right_positional_args[0].integer.value >= ((struct Array*)env)->size
-      || right_positional_args[0].integer.value < 0) {
-    THROW_ERROR(hidden_object, make_c_string("array index out of bounds!"));
-  }
-  right_positional_args[0] =
-      ((struct Array*)env)->data[right_positional_args[0].integer.value];
-  right_positional_args_size = 1;
-  dest = continuation;
-  continuation.t = NIL;
-  CALL_FUNC(dest);
-
-c_Array_append:
-  MAX_LEFT_ARGS(0)
-  MIN_RIGHT_ARGS(1)
-  REQUIRED_FUNCTION(continuation)
-  append_values(env, right_positional_args, right_positional_args_size);
-  right_positional_args_size = 1;
-  right_positional_args[0].t = NIL;
-  dest = continuation;
-  continuation.t = NIL;
-  CALL_FUNC(dest);
-
-c_Array_pop:
-  MAX_LEFT_ARGS(0)
-  MAX_RIGHT_ARGS(0)
-  REQUIRED_FUNCTION(continuation)
-  i = ((struct Array*)env)->size;
-  if(i == 0) {
-    right_positional_args[0].t = NIL;
-  } else {
-    ((struct Array*)env)->size = --i;
-    right_positional_args[0] = ((struct Array*)env)->data[i];
-  }
-  right_positional_args_size = 1;
-  dest = continuation;
-  continuation.t = NIL;
-  CALL_FUNC(dest);
-
-c_Array_shift:
-  MAX_LEFT_ARGS(0)
-  MAX_RIGHT_ARGS(0)
-  REQUIRED_FUNCTION(continuation)
-  if(((struct Array*)env)->size == 0) {
-    right_positional_args[0].t = NIL;
-  } else {
-    right_positional_args[0] = ((struct Array*)env)->data[0];
-    shift_values(env, -1);
-  }
-  right_positional_args_size = 1;
-  dest = continuation;
-  continuation.t = NIL;
-  CALL_FUNC(dest);
-
-c_Array_unshift:
-  MAX_LEFT_ARGS(0)
-  MIN_RIGHT_ARGS(1)
-  REQUIRED_FUNCTION(continuation)
-  shift_values(env, right_positional_args_size);
-  for(i = 0; i < right_positional_args_size; ++i)
-    ((struct Array*)env)->data[i] = right_positional_args[i];
-  right_positional_args_size = 1;
-  right_positional_args[0].t = NIL;
   dest = continuation;
   continuation.t = NIL;
   CALL_FUNC(dest);

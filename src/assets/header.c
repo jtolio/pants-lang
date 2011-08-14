@@ -11,6 +11,7 @@ const unsigned int MAX_C_STRING_SIZE = 1024;
 const unsigned int MIN_ARRAY_SIZE = 10;
 const unsigned int MAX_ARRAY_ADDITION = 4096;
 const char C_STRING_TRUNCATED_MESSAGE[] = "...";
+void* EXTERNAL_FUNCTION_LABEL;
 
 enum ValueTag {
   INTEGER,
@@ -80,6 +81,21 @@ union Value {
   struct Closure closure;
   struct Cell cell;
 };
+
+typedef bool (*ExternalFunction)(void* environment,
+    union Value* right_positional_args, unsigned int right_positional_args_size,
+    union Value* left_positional_args, unsigned int left_positional_args_size,
+    union Value* dest);
+
+static inline union Value make_external_closure(ExternalFunction func,
+    void* environment) {
+  union Value v;
+  v.t = CLOSURE;
+  v.closure.func = EXTERNAL_FUNCTION_LABEL;
+  v.closure.env = environment;
+  v.closure.frame = func;
+  return v;
+}
 
 static inline union Value make_cell(union Value val) {
   union Value v;

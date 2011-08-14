@@ -8,6 +8,9 @@ while = { |test, body|
 break = { .loop-cont false }
 continue = { .loop-cont true }
 
+each = {|iterable; func|
+  i = 0; while {< i iterable.size()} { func iterable[i]; i := + i 1 }
+}
 
 function = { |func| func(;;return-cont:cont) }
 return = { |var| .return-cont var }

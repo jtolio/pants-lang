@@ -76,8 +76,8 @@ static bool _set_field(struct ObjectTree** tree, char* key,
 }
 
 static inline bool set_field(struct ObjectData* data, char* key,
-    unsigned int key_size, union Value* value) {
-  return _set_field(&data->tree, key, key_size, value, data->sealed);
+    unsigned int key_size, union Value value) {
+  return _set_field(&data->tree, key, key_size, &value, data->sealed);
 }
 
 static bool _get_field(struct ObjectTree* tree, char* key,
@@ -130,7 +130,8 @@ static inline void append_values(struct Array* array, union Value* values,
   array->size += size;
 }
 
-static inline void shift_values(struct Array* array, signed int amount_to_right){
+static inline void shift_values(struct Array* array,
+    signed int amount_to_right) {
   if(amount_to_right < 0) {
     signed int i = 0;
     for(i = -amount_to_right; i < array->size; ++i)
@@ -147,4 +148,130 @@ static inline void shift_values(struct Array* array, signed int amount_to_right)
     }
   }
   array->size += amount_to_right;
+}
+
+static bool array_size(void* array, union Value* ra, unsigned int ras,
+    union Value* la, unsigned int las, union Value* dest) {
+  if(ras != 0 || las != 0) {
+    *dest = make_c_string("expected 0 arguments");
+    return false;
+  }
+  dest->t = INTEGER;
+  dest->integer.value = ((struct Array*)array)->size;
+  return true;
+}
+
+static bool array_update(void* array, union Value* ra, unsigned int ras,
+    union Value* la, unsigned int las, union Value* dest) {
+  if(ras != 2 || las != 0) {
+    *dest = make_c_string("expected 2 right arguments");
+    return false;
+  }
+  if(ra[0].t != INTEGER) {
+    *dest = make_c_string("array indexing must be done with an integer");
+    return false;
+  }
+  if(ra[0].integer.value < 0)
+    ra[0].integer.value += ((struct Array*)array)->size;
+  if(ra[0].integer.value >= ((struct Array*)array)->size ||
+      ra[0].integer.value < 0) {
+    *dest = make_c_string("array index out of bounds!");
+    return false;
+  }
+  ((struct Array*)array)->data[ra[0].integer.value] = ra[1];
+  *dest = ra[1];
+  return true;
+}
+
+static bool array_index(void* array, union Value* ra, unsigned int ras,
+    union Value* la, unsigned int las, union Value* dest) {
+  if(ras != 1 || las != 0) {
+    *dest = make_c_string("expected 1 right argument");
+    return false;
+  }
+  if(ra[0].t != INTEGER) {
+    *dest = make_c_string("array indexing must be done with an integer");
+    return false;
+  }
+  if(ra[0].integer.value < 0)
+    ra[0].integer.value += ((struct Array*)array)->size;
+  if(ra[0].integer.value >= ((struct Array*)array)->size ||
+      ra[0].integer.value < 0) {
+    *dest = make_c_string("array index out of bounds!");
+    return false;
+  }
+  *dest = ((struct Array*)array)->data[ra[0].integer.value];
+  return true;
+}
+
+static bool array_append(void* array, union Value* ra, unsigned int ras,
+    union Value* la, unsigned int las, union Value* dest) {
+  append_values(array, la, las);
+  append_values(array, ra, ras);
+  dest->t = NIL;
+  return true;
+}
+
+static bool array_pop(void* array, union Value* ra, unsigned int ras,
+    union Value* la, unsigned int las, union Value* dest) {
+  unsigned int i = ((struct Array*)array)->size;
+  if(ras != 0 || las != 0) {
+    *dest = make_c_string("expected 0 arguments");
+    return false;
+  }
+  if(i == 0) {
+    dest->t = NIL;
+  } else {
+    ((struct Array*)array)->size = --i;
+    *dest = ((struct Array*)array)->data[i];
+  }
+  return true;
+}
+
+static bool array_shift(void* array, union Value* ra, unsigned int ras,
+    union Value* la, unsigned int las, union Value* dest) {
+  if(ras != 0 || las != 0) {
+    *dest = make_c_string("expected 0 arguments");
+    return false;
+  }
+  if(((struct Array*)array)->size == 0) {
+    dest->t = NIL;
+  } else {
+    *dest = ((struct Array*)array)->data[0];
+    shift_values(array, -1);
+  }
+  return true;
+}
+
+static bool array_unshift(void* array, union Value* ra, unsigned int ras,
+    union Value* la, unsigned int las, union Value* dest) {
+  unsigned int i = 0;
+  shift_values(array, las + ras);
+  for(i = 0; i < las; ++i) ((struct Array*)array)->data[i] = la[i];
+  for(i = 0; i < ras; ++i) ((struct Array*)array)->data[i + las] = ra[i];
+  dest->t = NIL;
+  return true;
+}
+
+static inline void make_array_object(union Value* v, struct Array** array) {
+  *array = make_array();
+
+  make_object(v);
+
+  set_field(v->object.data, "u_size", 6,
+      make_external_closure(&array_size, *array));
+  set_field(v->object.data, "u_append", 8,
+      make_external_closure(&array_append, *array));
+  set_field(v->object.data, "u_pop", 5,
+      make_external_closure(&array_pop, *array));
+  set_field(v->object.data, "u_shift", 7,
+      make_external_closure(&array_shift, *array));
+  set_field(v->object.data, "u_unshift", 9,
+      make_external_closure(&array_unshift, *array));
+  set_field(v->object.data, "u__7eupdate", 11,
+      make_external_closure(&array_update, *array));
+  set_field(v->object.data, "u__7eindex", 10,
+      make_external_closure(&array_index, *array));
+
+  seal_object(v->object.data);
 }

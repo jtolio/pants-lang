@@ -1,10 +1,17 @@
 todo
- * malloc benchmarking
+ * arbitrary arg sending
+ * right keyword arg reception and sending
+ * right optional args reception and sending
  * wiki pages and docs
+ * malloc benchmarking
  * c primitives
  * pants primitives
- * all argument styles passing
  * all other primitives
+
+language decisions
+ * either reject parsing {|*(left), a1, a2;| null}, or handle
+   {|a1, a2, *(left);| null} and {|*(left), a1, a2;| null} differently
+ * i guess right arguments need the same decision
 
 parser
  * make in_arg and out_arg order more picky in the parser

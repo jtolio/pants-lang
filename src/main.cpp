@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
       continue;
     }
     if(argv[i] == std::string("--help")) {
-      std::cout << "usage: " << argv[0] << " [--skip_prelude]" << std::endl;
+      std::cout << "usage: " << argv[0] << " [--skip-prelude]" << std::endl;
       std::cout << "  source comes in stdin, C comes out stdout" << std::endl;
       return 0;
     }

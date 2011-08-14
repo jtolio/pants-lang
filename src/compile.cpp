@@ -177,10 +177,12 @@ class ValueWriter : public ValueVisitor {
 static void write_callable(std::ostream& os, Callable* func,
     VariableContext* context, NameSetManager* namesets) {
   os << "\n" << func->c_name() << ":\n"
-           "  MIN_RIGHT_ARGS(" << func->right_positional_args.size()
-        << ")\n"
-           "  MIN_LEFT_ARGS(" << func->left_positional_args.size()
-        << ")\n";
+        "  MIN_RIGHT_ARGS(" << func->right_positional_args.size() << ")\n"
+        "  MIN_LEFT_ARGS(" << func->left_positional_args.size() << ")\n";
+  if(!func->right_arbitrary_arg)
+    os << "  MAX_RIGHT_ARGS(" << func->right_positional_args.size() << ")\n";
+  if(!func->left_arbitrary_arg)
+    os << "  MAX_LEFT_ARGS(" << func->left_positional_args.size() << ")\n";
   if(func->function) {
     bool is_mutated(false); // TODO
     context->localDefinition(CONTINUATION);
@@ -209,6 +211,28 @@ static void write_callable(std::ostream& os, Callable* func,
     os << "left_positional_args[" << i << "]";
     if(is_mutated) os << ")";
     os << ";\n";
+  }
+  if(!!func->right_arbitrary_arg) {
+    bool is_mutated(func->right_arbitrary_arg->user_provided); // TODO
+    context->localDefinition(*func->right_arbitrary_arg);
+    os << "  make_array_object(&dest, (struct Array**)&raw_swap);\n"
+          "  append_values(raw_swap, right_positional_args + "
+       << func->right_positional_args.size()
+       << ", right_positional_args_size - "
+       << func->right_positional_args.size() << ");\n"
+          "  " << context->varAccess(*func->right_arbitrary_arg) << " = "
+       << (is_mutated ? "make_cell(dest);\n" : "dest;\n");
+  }
+  if(!!func->left_arbitrary_arg) {
+    bool is_mutated(func->left_arbitrary_arg->user_provided); // TODO
+    context->localDefinition(*func->left_arbitrary_arg);
+    os << "  make_array_object(&dest, (struct Array**)&raw_swap);\n"
+          "  append_values(raw_swap, left_positional_args + "
+       << func->left_positional_args.size()
+       << ", left_positional_args_size - "
+       << func->left_positional_args.size() << ");\n"
+          "  " << context->varAccess(*func->left_arbitrary_arg) << " = "
+       << (is_mutated ? "make_cell(dest);\n" : "dest;\n");
   }
   write_expression(func->expression, os, *context, *namesets);
 }
@@ -272,7 +296,7 @@ class ExpressionWriter : public ExpressionVisitor {
                     call->hidden_object_optional_args[i].key.c_name())
                 << ", "
                 << call->hidden_object_optional_args[i].key.c_name().size()
-                << ", &"
+                << ", "
                 << m_context->valAccess(
                     call->hidden_object_optional_args[i].value)
                 << ");\n";
@@ -320,7 +344,7 @@ class ExpressionWriter : public ExpressionVisitor {
                "    case OBJECT:\n"
                "      if(!set_field(dest.object.data, "
             << to_bytestring(mut->field.c_name()) << ", "
-            << mut->field.c_name().size() << ", &"
+            << mut->field.c_name().size() << ", "
             << m_context->valAccess(mut->value) << ")) {\n"
                "        THROW_ERROR(" << m_context->valAccess(HIDDEN_OBJECT)
             << ", make_c_string(\"object %s sealed!\", "
