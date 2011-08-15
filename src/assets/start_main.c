@@ -29,8 +29,8 @@ int main(int argc, char **argv) {
   globals.c_false.t = BOOLEAN;
   globals.c_false.boolean.value = false;
 
-  globals.c_hidden_object.t = OBJECT;
-  globals.c_hidden_object.object.data = &hidden_object_data;
+  globals.c_hidden__object.t = OBJECT;
+  globals.c_hidden__object.object.data = &hidden_object_data;
   hidden_object_data.sealed = false;
   hidden_object_data.tree = NULL;
 
@@ -49,8 +49,8 @@ int main(int argc, char **argv) {
   DEFINE_BUILTIN(divide)
   DEFINE_BUILTIN(multiply)
   DEFINE_BUILTIN(modulo)
-  DEFINE_BUILTIN(new_object)
-  DEFINE_BUILTIN(seal_object)
+  DEFINE_BUILTIN(new__object)
+  DEFINE_BUILTIN(seal__object)
   DEFINE_BUILTIN(Array)
 
 #undef DEFINE_BUILTIN
@@ -345,7 +345,7 @@ c_modulo:
   continuation.t = NIL;
   CALL_FUNC(dest)
 
-c_new_object:
+c_new__object:
   REQUIRED_FUNCTION(continuation)
   MAX_LEFT_ARGS(0)
   MAX_RIGHT_ARGS(0)
@@ -355,7 +355,7 @@ c_new_object:
   continuation.t = NIL;
   CALL_FUNC(dest);
 
-c_seal_object:
+c_seal__object:
   REQUIRED_FUNCTION(continuation)
   MAX_LEFT_ARGS(0)
   MIN_RIGHT_ARGS(1)
@@ -418,9 +418,9 @@ c_Array:
   dest.closure.func = &&c_Array_unshift;
   set_field(right_positional_args[0].object.data, "u_unshift", 9, &dest);
   dest.closure.func = &&c_Array_update;
-  set_field(right_positional_args[0].object.data, "s_update_0", 10, &dest);
+  set_field(right_positional_args[0].object.data, "u__7eupdate", 11, &dest);
   dest.closure.func = &&c_Array_index;
-  set_field(right_positional_args[0].object.data, "s_index_1", 9, &dest);
+  set_field(right_positional_args[0].object.data, "u__7eindex", 10, &dest);
   seal_object(right_positional_args[0].object.data);
   left_positional_args_size = 0;
   right_positional_args_size = 1;

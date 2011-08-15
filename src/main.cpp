@@ -38,12 +38,6 @@ int main(int argc, char** argv) {
   }
 
   try {
-    // force counters
-    if(UPDATE_FIELD.c_name() != "s_update_0")
-      throw expectation_failure("update field not found!");
-    if(LOOKUP_FIELD.c_name() != "s_index_1")
-      throw expectation_failure("index field not found!");
-
     std::vector<PTR<ast::Expression> > ast;
     bool r = parser::parse(os.str(), ast);
     if(!r) throw expectation_failure("failed parsing!");

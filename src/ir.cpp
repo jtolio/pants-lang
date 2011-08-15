@@ -400,25 +400,17 @@ void pants::ir::Name::generate_varid() {
 }
 
 std::string pants::ir::Name::c_name() const {
-  std::ostringstream s_name;
-  bool sanitized = false;
-  for(unsigned int i = 0; i < name.size(); ++i) {
-    if(isalnum(name[i]) || name[i] == '_')
-      s_name << name[i];
-    else
-      sanitized = true;
-  }
   std::ostringstream os;
-  if(user_provided) {
-    if(sanitized)
-      os << "s_" << s_name.str() << "_" << varid;
-    else
-      os << "u_" << s_name.str();
-  } else {
-    if(sanitized)
-      throw expectation_failure("some compiler_provided variable got "
-          "sanitized!");
-    os << "c_" << s_name.str();
+  os << std::hex;
+  os << (user_provided ? "u_" : "c_");
+  for(unsigned int i = 0; i < name.size(); ++i) {
+    if(isalnum(name[i])) {
+      os << name[i];
+    } else if(name[i] == '_') {
+      os << "__";
+    } else {
+      os << "_" << ((int)name[i]);
+    }
   }
   return os.str();
 }
