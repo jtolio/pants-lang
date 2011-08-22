@@ -17,6 +17,8 @@ void pants::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
   BIND_NAME("seal_object");
   BIND_NAME("if");
   BIND_NAME("print");
+  BIND_NAME("println");
+  BIND_NAME("readln");
 //  BIND_NAME("construct");
 //  BIND_NAME("import");
   BIND_NAME("true");
@@ -47,6 +49,8 @@ void pants::wrap::provided_names(std::set<Name>& names) {
   ADD_NAME("seal_object");
   ADD_NAME("if");
   ADD_NAME("print");
+  ADD_NAME("println");
+  ADD_NAME("readln");
 //  ADD_NAME("construct");
 //  ADD_NAME("import");
   ADD_NAME("add");

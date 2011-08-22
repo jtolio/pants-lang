@@ -1,32 +1,32 @@
 try {
-  print "hello"
+  println "hello"
   try {
-    print "there"
+    println "there"
     throw "ex1"
-    print "notreached"
+    println "notreached"
   } { |e|
-    print "inner-handler" e
+    println "inner-handler" e
     throw (+ e "-2")
   }
-  print "notreached"
+  println "notreached"
 } { |e|
-  print "outer-handler" e
+  println "outer-handler" e
 }
 
-print (try {
+println (try {
   3
 } { |e|
   4
 })
 
-print (try {
+println (try {
   3
   throw 4
 } { |e|
   e
 })
 
-print (try {
+println (try {
   3
   throw "error"
 } { |e|
@@ -36,20 +36,20 @@ print (try {
 try {
   3(4)
 } { |e|
-  print "caught exception! it was:" e
+  println "caught exception! it was:" e
 }
 
 try {
   (+ 4 null)
 } { |e|
-  print "tried adding 4 to null:" e
+  println "tried adding 4 to null:" e
 }
 
 try {
   (+ { "function" } 4.0 )
 } { |e|
-  print "tried adding closure to float:" e
+  println "tried adding closure to float:" e
 }
 
 throw "leave program"
-print "notreached"
+println "notreached"

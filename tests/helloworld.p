@@ -1,5 +1,5 @@
 hello = { |target|
-  print "Hello" (+ target "!")
+  println "Hello" (+ target "!")
 }
 
 hello "world"

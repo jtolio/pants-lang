@@ -1,21 +1,21 @@
 func = {|x, *(y)|
-  print x "*"
-  y @each {|x| print x}
+  println x "*"
+  y @each {|x| println x}
 }
 
 func 1 2 3 4
 
-print.
+println.
 
 func = {|*(left); *(right)|
 
-  print "left:"
-  left @each {|x| print x}
+  println "left:"
+  left @each {|x| println x}
 
-  print "right:"
-  right @each {|x| print x}
+  println "right:"
+  right @each {|x| println x}
 
-  print.
+  println.
 }
 
 func.
@@ -25,23 +25,23 @@ func.
 func "whoa" "nelly" 1 2 3
 
 func = {|x, y, *(left);|
-  print "x:" x
-  print "y:" y
-  left @each {|z| print z}
+  println "x:" x
+  println "y:" y
+  left @each {|z| println z}
 }
 
 1 2 3 4 @func
 
-print "================="
+println "================="
 
 func = {|x, y, z|
-  print x y z
+  println x y z
 }
 
 func(*([1, 2, 3]))
 
 list = [4, 5, 6, 7]
 {|x, y, *(z)|
-  print x y
-  z @each {|x| print x}
+  println x y
+  z @each {|x| println x}
 }(1, *(list))

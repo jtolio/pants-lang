@@ -1,11 +1,11 @@
 myfunc = { |x, y| function {
-  print "x" x
+  println "x" x
   if (< x 10) {
     return y
   }
-  print "y"
+  println "y"
 }}
 
-print "return" myfunc(1,2)
-print.
-print "return" myfunc(10,2)
+println "return" myfunc(1,2)
+println.
+println "return" myfunc(10,2)

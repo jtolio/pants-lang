@@ -7,9 +7,9 @@ outside_func = { |x| function {
   2
 }}
 
-print outside_func(1)
+println outside_func(1)
 
-print.
+println.
 
 outside_func = { |x| function {
   outside_return = freeze(return)
@@ -20,4 +20,4 @@ outside_func = { |x| function {
   2
 }}
 
-print outside_func(1)
+println outside_func(1)

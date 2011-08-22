@@ -1,11 +1,11 @@
 output_list = { |x|
   i = 0
   while { < i x.size() } {
-    print i ":" x[i]
+    println i ":" x[i]
     i := + i 1
   }
 
-  print.
+  println.
 }
 
 test_list = { |x|
@@ -13,29 +13,29 @@ test_list = { |x|
 
   i = - 1
   while { >= i (- x.size()) } {
-    print i ":" x[i]
+    println i ":" x[i]
     i := - i 1
   }
 
-  print.
+  println.
 
   try {
-    print x[- x.size()]
-    print x[- (- x.size()) 1]
+    println x[- x.size()]
+    println x[- (- x.size()) 1]
   } { |e|
-    print "out of range:" e
+    println "out of range:" e
   }
 
-  print.
+  println.
 
   try {
-    print x[- x.size() 1]
-    print x[x.size()]
+    println x[- x.size() 1]
+    println x[x.size()]
   } { |e|
-    print "out of range:" e
+    println "out of range:" e
   }
 
-  print.
+  println.
 }
 
 test_list ["a", "b", "c"]
@@ -54,9 +54,9 @@ x.append(4)
 x.unshift(5)
 output_list(x)
 
-print x.pop()
-print.
+println x.pop()
+println.
 output_list(x)
-print x.shift()
-print.
+println x.shift()
+println.
 output_list(x)

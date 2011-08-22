@@ -3,11 +3,11 @@ obj = construct { |o|
   o.field2 = 4
 }
 
-print obj
-print obj.field1
-print obj.field2
+println obj
+println obj.field1
+println obj.field2
 obj.field1 = 5
-print obj.field1
-print "should make it here"
+println obj.field1
+println "should make it here"
 obj.field3 = 6 # should fail!
-print "shouldn't make it here"
+println "shouldn't make it here"

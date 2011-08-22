@@ -1,8 +1,8 @@
 
-print "hidden object test"
+println "hidden object test"
 
 {
-  print .x
+  println .x
 }(;;x:3)
 
-print .x # should fail
+println .x # should fail

@@ -9,7 +9,7 @@ TEST_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 TEST_EXT = re.compile(r'\.p$')
 COMPILER_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
     "src", "pants"))
-C_COMPILERS = [["clang"], ["gcc"]]
+C_COMPILERS = [["gcc"]] # ["clang"] seems broken or something
 C_LIBRARIES = ["-lgc"]
 
 class Error_(Exception): pass

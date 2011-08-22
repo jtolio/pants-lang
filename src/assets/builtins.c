@@ -32,6 +32,24 @@ static inline void builtin_print(union Value* val, union Value* exception) {
   }
 }
 
+static inline void builtin_readln(union Value* val, union Value* exception) {
+  int errsv = 0;
+  val->t = STRING;
+  val->string.byte_oriented = true;
+  val->string.value = GC_MALLOC(MAX_C_STRING_SIZE);
+  if(fgets(val->string.value, MAX_C_STRING_SIZE, stdin) != NULL) {
+    val->string.value_size = strlen(val->string.value);
+    return;
+  }
+  errsv = errno;
+  if(feof(stdin)) {
+    *exception = make_c_string("end of file");
+    return;
+  }
+  strerror_r(errsv, val->string.value, MAX_C_STRING_SIZE);
+  *exception = *val;
+}
+
 static inline bool builtin_less_than(union Value* val1, union Value* val2,
     union Value* exception) {
   switch(val1->t) {

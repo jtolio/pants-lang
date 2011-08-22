@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <gc/gc.h>
+#include <errno.h>
 
 #define bool char
 #define true 1

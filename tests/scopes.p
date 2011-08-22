@@ -1,39 +1,39 @@
 x = (3)
-print x
-{ |x| print x; x := 4; print x }(2)
-print x
+println x
+{ |x| println x; x := 4; println x }(2)
+println x
 
-print.
+println.
 
 x = 1
-y = { print x }
+y = { println x }
 y.
-print x
+println x
 x := 2
 y.
-print x
+println x
 
-print.
-
-x = 1
-y = { print x }
-y.
-print x
-x = 2
-y.
-print x
-
-print.
+println.
 
 x = 1
-y = ( z = x; { print z } )
+y = { println x }
 y.
-print x
+println x
 x = 2
 y.
-print x
+println x
 
-print.
+println.
+
+x = 1
+y = ( z = x; { println z } )
+y.
+println x
+x = 2
+y.
+println x
+
+println.
 
 z = {
   (
@@ -42,7 +42,7 @@ z = {
   cont 4
 }
 
-print z()
+println z()
 
 z = {
   cont 4
@@ -51,77 +51,77 @@ z = {
   )
 }
 
-print z()
+println z()
 
-print.
+println.
 
 x = 10
 (
   x = 11
 )
-print x
+println x
 
 x = 10
 (
   x := 11
 )
-print x
+println x
 
-print.
+println.
 
 var = 100
-get = { print var }
+get = { println var }
 set = { |val| var := val }
 var = 101
-print var
+println var
 get.
 set 102
-print var
+println var
 get.
 
-print.
+println.
 
 var2 = 200
-get = { print var2 }
+get = { println var2 }
 set = { |val| var2 := val }
 var2 := 201
-print var2
+println var2
 get.
 set 202
-print var2
+println var2
 get.
 
-print.
+println.
 
 recursion = {|x|
   if (< x 10) {
     recursion (+ x 1)
   }
-  print x
+  println x
 }
 recursion 1
 
-print.
+println.
 
 recursion = {|x, y|
   x := y
-  print x
+  println x
   if (< y 10) {
     recursion 1 (+ y 1)
   }
-  print x
+  println x
 }
 recursion 1 1
 
-print.
+println.
 
 x = 3
 test = {
-  print x
+  println x
   x = 4
-  print x
+  println x
 }
 test.
 test.
 
-print.
+println.

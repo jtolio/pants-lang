@@ -1,16 +1,16 @@
 i = 0
 while {< i 10} {
-  print i
+  println i
   i := + i 1
   < i 5
 }
 
-print.
+println.
 
 j = 0
 while {true} {
   j := j +. 1
   if (j <. 2) { continue() }
-  print j
+  println j
   if (3 <. j) { break() }
 }

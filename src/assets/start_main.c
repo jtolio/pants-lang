@@ -44,6 +44,8 @@ int main(int argc, char **argv) {
   globals.c_##name.closure.frame = NULL;
 
   DEFINE_BUILTIN(print)
+  DEFINE_BUILTIN(println)
+  DEFINE_BUILTIN(readln)
   DEFINE_BUILTIN(if)
   DEFINE_BUILTIN(lessthan)
   DEFINE_BUILTIN(equals)
@@ -121,9 +123,29 @@ c_print:
   MAX_LEFT_ARGS(0)
   dest.t = NIL;
   for(i = 0; i < right_positional_args_size; ++i) {
+    if(i > 0) printf(" ");
     builtin_print(&right_positional_args[i], &dest);
     if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
-    printf(" ");
+  }
+  if(right_positional_args_size > 0) {
+    dest = right_positional_args[0];
+  } else {
+    dest.t = NIL;
+  }
+  right_positional_args_size = 1;
+  right_positional_args[0] = dest;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest)
+
+c_println:
+  REQUIRED_FUNCTION(continuation)
+  MAX_LEFT_ARGS(0)
+  dest.t = NIL;
+  for(i = 0; i < right_positional_args_size; ++i) {
+    if(i > 0) printf(" ");
+    builtin_print(&right_positional_args[i], &dest);
+    if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
   }
   printf("\n");
   if(right_positional_args_size > 0) {
@@ -133,6 +155,18 @@ c_print:
   }
   right_positional_args_size = 1;
   right_positional_args[0] = dest;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest)
+
+c_readln:
+  REQUIRED_FUNCTION(continuation)
+  MAX_LEFT_ARGS(0)
+  MAX_RIGHT_ARGS(0)
+  dest.t = NIL;
+  builtin_readln(&right_positional_args[i], &dest);
+  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+  right_positional_args_size = 1;
   dest = continuation;
   continuation.t = NIL;
   CALL_FUNC(dest)
