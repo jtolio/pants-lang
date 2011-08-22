@@ -4,7 +4,7 @@ int main(int argc, char **argv) {
   void* frame = &globals;
   void* raw_swap = NULL;
   union Value dest;
-  unsigned int i;
+  unsigned int i, j;
   union Value initial_right_positional_args[10];
   union Value* right_positional_args = initial_right_positional_args;
   unsigned int right_positional_args_size = 0;

@@ -1,5 +1,6 @@
 todo
- * arbitrary arg sending
+ * type method
+ * arbitrary arg (any enumerable) sending
  * right keyword arg reception and sending
  * right optional args reception and sending
  * wiki pages and docs

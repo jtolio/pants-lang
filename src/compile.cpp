@@ -252,38 +252,70 @@ class ExpressionWriter : public ExpressionVisitor {
         *m_os << "  continuation.t = NIL;\n";
       }
 
-      if(call->right_positional_args.size() > MIN_RIGHT_ARG_HIGHWATER) {
+      *m_os << "  i = 0;\n";
+      if(call->right_positional_args.size() > MIN_RIGHT_ARG_HIGHWATER ||
+          !!call->right_arbitrary_arg) {
+        if(!!call->right_arbitrary_arg) {
+          *m_os << "  get_field("
+                << m_context->valAccess(*call->right_arbitrary_arg)
+                << ".object.data, \"u_size\", 6, &dest);\n";
+          *m_os << "  i = ((struct Array*)dest.closure.env)->size;\n";
+        }
         *m_os << "  if(" << call->right_positional_args.size()
-              << " > right_positional_args_highwater) {\n"
+              << " + i > right_positional_args_highwater) {\n"
                  "    right_positional_args_highwater = "
-              << call->right_positional_args.size() << ";\n"
+              << call->right_positional_args.size() << " + i;\n"
                  "    right_positional_args = GC_MALLOC(sizeof(union Value) * "
-              << call->right_positional_args.size() << ");\n"
+              << call->right_positional_args.size() << " + i);\n"
                  "  }\n";
       }
       *m_os << "  right_positional_args_size = "
-            << call->right_positional_args.size() << ";\n";
+            << call->right_positional_args.size() << " + i;\n";
 
       for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
         *m_os << "  right_positional_args[" << i << "] = "
               << m_context->valAccess(call->right_positional_args[i]) << ";\n";
       }
 
-      if(call->left_positional_args.size() > MIN_LEFT_ARG_HIGHWATER) {
+      if(!!call->right_arbitrary_arg) {
+        *m_os << "  for(j = 0; j < i; ++j) {\n"
+                 "    right_positional_args["
+              << call->right_positional_args.size()
+              << " + j] = ((struct Array*)dest.closure.env)->data[j];\n"
+                 "  }\n";
+      }
+
+      *m_os << "  i = 0;\n";
+      if(call->left_positional_args.size() > MIN_LEFT_ARG_HIGHWATER ||
+          !!call->left_arbitrary_arg) {
+        if(!!call->left_arbitrary_arg) {
+          *m_os << "  get_field("
+                << m_context->valAccess(*call->left_arbitrary_arg)
+                << ".object.data, \"u_size\", 6, &dest);\n";
+          *m_os << "  i = ((struct Array*)dest.closure.env)->size;\n";
+        }
         *m_os << "  if(" << call->left_positional_args.size()
-              << " > left_positional_args_highwater) {\n"
+              << " + i > left_positional_args_highwater) {\n"
                  "    left_positional_args_highwater = "
-              << call->left_positional_args.size() << ";\n"
+              << call->left_positional_args.size() << " + i;\n"
                  "    left_positional_args = GC_MALLOC(sizeof(union Value) * "
-              << call->left_positional_args.size() << ");\n"
+              << call->left_positional_args.size() << " + i);\n"
                  "  }\n";
       }
       *m_os << "  left_positional_args_size = "
-            << call->left_positional_args.size() << ";\n";
+            << call->left_positional_args.size() << " + i;\n";
 
       for(unsigned int i = 0; i < call->left_positional_args.size(); ++i) {
         *m_os << "  left_positional_args[" << i << "] = "
               << m_context->valAccess(call->left_positional_args[i]) << ";\n";
+      }
+
+      if(!!call->left_arbitrary_arg) {
+        *m_os << "  for(j = 0; j < i; ++j) {\n"
+                 "    left_positional_args["
+              << call->left_positional_args.size()
+              << " + j] = ((struct Array*)dest.closure.env)->data[j];\n"
+                 "  }\n";
       }
 
       if(call->hidden_object_optional_args.size() > 0) {

@@ -31,3 +31,17 @@ func = {|x, y, *(left);|
 }
 
 1 2 3 4 @func
+
+print "================="
+
+func = {|x, y, z|
+  print x y z
+}
+
+func(*([1, 2, 3]))
+
+list = [4, 5, 6, 7]
+{|x, y, *(z)|
+  print x y
+  z @each {|x| print x}
+}(1, *(list))
