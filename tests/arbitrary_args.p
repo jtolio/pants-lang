@@ -1,4 +1,4 @@
-func = {|x, *(y)|
+func = {|x, :(y)|
   println x "*"
   y @each {|x| println x}
 }
@@ -7,7 +7,7 @@ func 1 2 3 4
 
 println.
 
-func = {|*(left); *(right)|
+func = {|:(left); :(right)|
 
   println "left:"
   left @each {|x| println x}
@@ -24,7 +24,7 @@ func.
 "hey" "there" @func "dude" "this" "is" "cool"
 func "whoa" "nelly" 1 2 3
 
-func = {|x, y, *(left);|
+func = {|x, y, :(left);|
   println "x:" x
   println "y:" y
   left @each {|z| println z}
@@ -38,10 +38,10 @@ func = {|x, y, z|
   println x y z
 }
 
-func(*([1, 2, 3]))
+func(:([1, 2, 3]))
 
 list = [4, 5, 6, 7]
-{|x, y, *(z)|
+{|x, y, :(z)|
   println x y
   z @each {|x| println x}
-}(1, *(list))
+}(1, :(list))

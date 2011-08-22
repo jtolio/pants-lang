@@ -176,12 +176,12 @@ namespace parser {
           phx::new_<OptionalOutArgument>(qi::_1, qi::_2))];
       optional_out_argument.name("optional out argument");
 
-      arbitrary_out_argument = (S(qi::lit("*(") >> explist >> ")"))[
+      arbitrary_out_argument = (S(qi::lit(":(") >> explist >> ")"))[
           qi::_val = phx::construct<PTR<OutArgument> >(
           phx::new_<ArbitraryOutArgument>(qi::_1))];
       arbitrary_out_argument.name("arbitrary out argument");
 
-      keyword_out_argument = (S(qi::lit("**(") >> explist >> ")"))[
+      keyword_out_argument = (S(qi::lit("::(") >> explist >> ")"))[
           qi::_val = phx::construct<PTR<OutArgument> >(
           phx::new_<KeywordOutArgument>(qi::_1))];
       keyword_out_argument.name("keyword out argument");
@@ -320,12 +320,12 @@ namespace parser {
           phx::new_<OptionalInArgument>(qi::_1, qi::_2))];
       optional_in_argument.name("optional in argument");
 
-      arbitrary_in_argument = (S(qi::lit("*(") >> variable >> ")"))[
+      arbitrary_in_argument = (S(qi::lit(":(") >> variable >> ")"))[
           qi::_val = phx::construct<PTR<InArgument> >(
           phx::new_<ArbitraryInArgument>(qi::_1))];
       arbitrary_in_argument.name("arbitrary in argument");
 
-      keyword_in_argument = (S(qi::lit("**(") >> variable >> ")"))[
+      keyword_in_argument = (S(qi::lit("::(") >> variable >> ")"))[
           qi::_val = phx::construct<PTR<InArgument> >(
           phx::new_<KeywordInArgument>(qi::_1))];
       keyword_in_argument.name("keyword in argument");

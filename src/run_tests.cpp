@@ -222,7 +222,7 @@ public:
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Function(Left(Required()), Right(Required(RequiredInArgument(Variable(a, user_provided)), RequiredInArgument(Variable(b, user_provided))), Optional(OptionalInArgument(Variable(c, user_provided), Application(Term(Value(Integer(3)), Trailers()))), OptionalInArgument(Variable(d, user_provided), Application(Term(Value(Integer(4)), Trailers()))))), Expressions(Application(Term(Value(Integer(0)), Trailers()))))), Trailers()))");
     exps.clear();
-    CPPUNIT_ASSERT(pants::parser::parse("{|a,b,c:3,d:4,*(opt)| 0}", exps));
+    CPPUNIT_ASSERT(pants::parser::parse("{|a,b,c:3,d:4,:(opt)| 0}", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Function(Left(Required()), Right(Required(RequiredInArgument(Variable(a, user_provided)), RequiredInArgument(Variable(b, user_provided))), Optional(OptionalInArgument(Variable(c, user_provided), Application(Term(Value(Integer(3)), Trailers()))), OptionalInArgument(Variable(d, user_provided), Application(Term(Value(Integer(4)), Trailers())))), Arbitrary(Variable(opt, user_provided))), Expressions(Application(Term(Value(Integer(0)), Trailers()))))), Trailers()))");
@@ -254,22 +254,22 @@ public:
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Function(Left(Required(RequiredInArgument(Variable(a, user_provided)), RequiredInArgument(Variable(b, user_provided)))), Right(Required(), Optional()), Expressions(Application(Term(Value(Integer(0)), Trailers()))))), Trailers()))");
     exps.clear();
-    CPPUNIT_ASSERT(pants::parser::parse("{|*(var),a,b,;| 0}", exps));
+    CPPUNIT_ASSERT(pants::parser::parse("{|:(var),a,b,;| 0}", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Function(Left(Required(RequiredInArgument(Variable(a, user_provided)), RequiredInArgument(Variable(b, user_provided))), Arbitrary(Variable(var, user_provided))), Right(Required(), Optional()), Expressions(Application(Term(Value(Integer(0)), Trailers()))))), Trailers()))");
     exps.clear();
-    CPPUNIT_ASSERT(pants::parser::parse("{|*(var),a,b,d;e,f,g:5,h:7,*(j)| 0}", exps));
+    CPPUNIT_ASSERT(pants::parser::parse("{|:(var),a,b,d;e,f,g:5,h:7,:(j)| 0}", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Function(Left(Required(RequiredInArgument(Variable(a, user_provided)), RequiredInArgument(Variable(b, user_provided)), RequiredInArgument(Variable(d, user_provided))), Arbitrary(Variable(var, user_provided))), Right(Required(RequiredInArgument(Variable(e, user_provided)), RequiredInArgument(Variable(f, user_provided))), Optional(OptionalInArgument(Variable(g, user_provided), Application(Term(Value(Integer(5)), Trailers()))), OptionalInArgument(Variable(h, user_provided), Application(Term(Value(Integer(7)), Trailers())))), Arbitrary(Variable(j, user_provided))), Expressions(Application(Term(Value(Integer(0)), Trailers()))))), Trailers()))");
     exps.clear();
-    CPPUNIT_ASSERT(pants::parser::parse("{|*(a);*(b)| 0}", exps));
+    CPPUNIT_ASSERT(pants::parser::parse("{|:(a);:(b)| 0}", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Function(Left(Required(), Arbitrary(Variable(a, user_provided))), Right(Required(), Optional(), Arbitrary(Variable(b, user_provided))), Expressions(Application(Term(Value(Integer(0)), Trailers()))))), Trailers()))");
     exps.clear();
-    CPPUNIT_ASSERT(pants::parser::parse("{|;**(b)| 0}", exps));
+    CPPUNIT_ASSERT(pants::parser::parse("{|;::(b)| 0}", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Function(Left(Required()), Right(Required(), Optional(), Keyword(Variable(b, user_provided))), Expressions(Application(Term(Value(Integer(0)), Trailers()))))), Trailers()))");
@@ -277,7 +277,7 @@ public:
 
   void testListExpansion() {
     std::vector<PTR<pants::ast::Expression> > exps;
-    CPPUNIT_ASSERT(pants::parser::parse("f(thing, *(thing))", exps));
+    CPPUNIT_ASSERT(pants::parser::parse("f(thing, :(thing))", exps));
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(ClosedCall(Left(), Right(RequiredOutArgument(Application(Term(Value(Variable(thing, user_provided)), Trailers()))), ArbitraryOutArgument(Application(Term(Value(Variable(thing, user_provided)), Trailers())))), HiddenObject()))))");

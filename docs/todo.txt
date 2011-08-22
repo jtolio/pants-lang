@@ -10,8 +10,8 @@ todo
  * all other primitives
 
 language decisions
- * either reject parsing {|*(left), a1, a2;| null}, or handle
-   {|a1, a2, *(left);| null} and {|*(left), a1, a2;| null} differently
+ * either reject parsing {|:(left), a1, a2;| null}, or handle
+   {|a1, a2, ::(left);| null} and {|::(left), a1, a2;| null} differently
  * i guess right arguments need the same decision
 
 parser
