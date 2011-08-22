@@ -1,10 +1,10 @@
-myfunc = { |x, y| function {
+myfunc = function { |x, y|
   println "x" x
   if (< x 10) {
     return y
   }
   println "y"
-}}
+}
 
 println "return" myfunc(1,2)
 println.

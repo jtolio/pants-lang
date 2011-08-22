@@ -7,12 +7,13 @@ while = { |test, body|
 }
 break = { .loop-cont false }
 continue = { .loop-cont true }
+loop = { |body| while {true} body }
 
 each = {|iterable; func|
   i = 0; while {< i iterable.size()} { func iterable[i]; i := + i 1 }
 }
 
-function = { |func| func(;;return-cont:cont) }
+function = { |func| { |:(largs);:(rargs)| func(:(largs);:(rargs);return-cont:cont) } }
 return = { |var| .return-cont var }
 
 
@@ -61,7 +62,7 @@ Dictionary = {
 
   tree_root = null
 
-  update = {|n, k, v| function {
+  update = function { |n, k, v|
     if (== k n.key) {
       n.value = v
       return 0
@@ -79,28 +80,28 @@ Dictionary = {
       return 0
     }
     update n.right k v
-  }}
+  }
 
-  index = {|n, k| function {
+  index = function { |n, k|
     if (== n null) { return null }
     if (== k n.key) { return n.value }
     if (< k n.key) { return (index n.left k) }
     return (index n.right k)
-  }}
+  }
 
-  has_key? = {|n, k| function {
+  has_key? = function { |n, k|
     if (== n null) { return false }
     if (== k n.key) { return true }
     if (< k n.key) { return (has_key? n.left k) }
     return (has_key? n.right k)
-  }}
+  }
 
-  each = {|n, f| function {
+  each = function { |n, f|
     if (== n null) { return 0 }
     each n.left f
     f n.key n.value
     each n.right f
-  }}
+  }
 
   # whoa, deletes are complicated
   delete = {|n, k| return = cont
