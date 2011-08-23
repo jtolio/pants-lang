@@ -1,3 +1,13 @@
+# TODO: 'and' and 'or' currently do not support short circuiting.
+and = { |left, right| if left { right } { left } }
+or = { |left, right| if left { left } { right } }
+not = { |val| if val { false } { true } }
+
+<= = { |left, right| (or (< left right) (== left right)) }
+> = { |left, right| (not (<= left right)) }
+>= = { |left, right| (or (> left right) (== left right)) }
+!= = { |left, right| (not (== left right)) }
+
 while = { |test, body|
   if test() {
     if { {body(); true}(;;loop-cont:cont) }() {
@@ -12,19 +22,12 @@ loop = { |body| while {true} body }
 each = {|iterable; func|
   i = 0; while {< i iterable.size()} { func iterable[i]; i := + i 1 }
 }
+each_with_index = {|iterable; func|
+  i = 0; while {< i iterable.size()} { func iterable[i] i; i := + i 1 }
+}
 
 function = { |func| { |:(largs);:(rargs)| func(:(largs);:(rargs);return-cont:cont) } }
 return = { |var| .return-cont var }
-
-
-# TODO: 'and' and 'or' currently do not support short circuiting.
-and = { |left, right| if left { right } { left } }
-or = { |left, right| if left { left } { right } }
-not = { |val| if val { false } { true } }
-
-<= = { |left, right| (or (< left right) (== left right)) }
-> = { |left, right| (not (<= left right)) }
->= = { |left, right| (or (> left right) (== left right)) }
 
 construct = { |func|
   obj = new_object.

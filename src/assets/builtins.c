@@ -43,7 +43,7 @@ static inline void builtin_readln(union Value* val, union Value* exception) {
   }
   errsv = errno;
   if(feof(stdin)) {
-    *exception = make_c_string("end of file");
+    val->t = NIL;
     return;
   }
   strerror_r(errsv, val->string.value, MAX_C_STRING_SIZE);
@@ -194,7 +194,7 @@ static inline bool builtin_equals(union Value* val1, union Value* val2,
     case STRING:
       return val1->string.byte_oriented == val2->string.byte_oriented &&
           safe_strcmp(val1->string.value, val1->string.value_size,
-              val1->string.value, val2->string.value_size) == 0;
+              val2->string.value, val2->string.value_size) == 0;
     default:
       *exception = make_c_string("TODO: unimplemented");
       return false;
