@@ -13,11 +13,15 @@ using namespace pants;
 int main(int argc, char** argv) {
 
   bool include_prelude = true;
+  bool use_gc = true;
 
-  for(int i = 1; i < argc;) {
+  for(int i = 1; i < argc; ++i) {
     if(argv[i] == std::string("--skip-prelude")) {
       include_prelude = false;
-      ++i;
+      continue;
+    }
+    if(argv[i] == std::string("--no-gc")) {
+      use_gc = false;
       continue;
     }
     if(argv[i] == std::string("--help")) {
@@ -55,7 +59,7 @@ int main(int argc, char** argv) {
     ir.clear();
     optimize::cps(cps);
 
-    compile::compile(cps, std::cout);
+    compile::compile(cps, std::cout, use_gc);
   } catch (const std::exception& e) {
     std::cerr << "failure: " << e.what() << std::endl;
     return 1;

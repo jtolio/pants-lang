@@ -398,7 +398,8 @@ static void inline write_expression(PTR<Expression> cps, std::ostream& os,
   cps->accept(&writer);
 }
 
-void pants::compile::compile(PTR<Expression> cps, std::ostream& os) {
+void pants::compile::compile(PTR<Expression> cps, std::ostream& os,
+    bool use_gc) {
 
   std::vector<PTR<cps::Callable> > callables;
   std::set<Name> free_names;
@@ -418,6 +419,7 @@ void pants::compile::compile(PTR<Expression> cps, std::ostream& os) {
     throw expectation_failure(os.str());
   }
 
+  if(use_gc) os << "#define __USE_PANTS_GC\n";
   os << pants::assets::HEADER_C << "\n";
   os << pants::assets::DATA_STRUCTURES_C << "\n";
   os << pants::assets::BUILTINS_C << "\n";

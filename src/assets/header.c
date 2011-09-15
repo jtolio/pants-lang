@@ -2,8 +2,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include <gc/gc.h>
 #include <errno.h>
+
+#ifdef __USE_PANTS_GC
+#include <gc/gc.h>
+#else
+#define GC_MALLOC malloc
+#define GC_INIT() 0
+#endif
 
 #define bool char
 #define true 1

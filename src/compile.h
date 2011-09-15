@@ -7,7 +7,7 @@
 namespace pants {
 namespace compile {
 
-  void compile(PTR<cps::Expression> cps, std::ostream& os);
+  void compile(PTR<cps::Expression> cps, std::ostream& os, bool use_gc);
 
 }}
 
