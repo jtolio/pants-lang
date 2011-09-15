@@ -16,6 +16,7 @@ void pants::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
   BIND_NAME("new_object");
   BIND_NAME("seal_object");
   BIND_NAME("if");
+  BIND_NAME("if_main");
   BIND_NAME("print");
   BIND_NAME("println");
   BIND_NAME("readln");
@@ -48,6 +49,7 @@ void pants::wrap::provided_names(std::set<Name>& names) {
   ADD_NAME("new_object");
   ADD_NAME("seal_object");
   ADD_NAME("if");
+  ADD_NAME("if_main");
   ADD_NAME("print");
   ADD_NAME("println");
   ADD_NAME("readln");

@@ -299,6 +299,16 @@ public:
     CPPUNIT_ASSERT(exps.size() == 1);
     CPPUNIT_ASSERT(exps[0].get());
     CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(OpenCall())), Term(Value(Variable(b, user_provided)), Trailers()), Term(Value(CharString(thing)), Trailers()))");
+    exps.clear();
+    CPPUNIT_ASSERT(pants::parser::parse("f. b\"\"", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(OpenCall())), Term(Value(ByteString()), Trailers()))");
+    exps.clear();
+    CPPUNIT_ASSERT(pants::parser::parse("f. b \"\"", exps));
+    CPPUNIT_ASSERT(exps.size() == 1);
+    CPPUNIT_ASSERT(exps[0].get());
+    CPPUNIT_ASSERT(exps[0]->format() == "Application(Term(Value(Variable(f, user_provided)), Trailers(OpenCall())), Term(Value(Variable(b, user_provided)), Trailers()), Term(Value(CharString()), Trailers()))");
   }
 
   void testParses() {

@@ -143,6 +143,15 @@ static inline union Value make_c_string(char* format, ...) {
   return str;
 }
 
+static inline union Value make_byte_string(char* data, unsigned int size) {
+  union Value str;
+  str.t = STRING;
+  str.string.byte_oriented = true;
+  str.string.value = data;
+  str.string.value_size = size;
+  return str;
+}
+
 // for testing
 static inline void dump_value(union Value val) {
   switch(val.t) {
@@ -153,7 +162,7 @@ static inline void dump_value(union Value val) {
       printf("float: %f\n", val.floating.value);
       break;
     case STRING:
-      printf("string\n");
+      printf("string: %s\n", val.string.value);
       break;
     case OBJECT:
       printf("object\n");

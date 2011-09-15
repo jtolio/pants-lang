@@ -57,6 +57,7 @@ int main(int argc, char **argv) {
   DEFINE_BUILTIN(new__object)
   DEFINE_BUILTIN(seal__object)
   DEFINE_BUILTIN(Array)
+  DEFINE_BUILTIN(if__main)
 
 #undef DEFINE_BUILTIN
 
@@ -95,27 +96,32 @@ int main(int argc, char **argv) {
   CALL_FUNC(dest);
 #define MIN_RIGHT_ARGS(count) \
   if(right_positional_args_size < count) { \
-    THROW_ERROR(hidden_object, make_c_string("function takes at least " #count \
-        " right arguments, %d given.", right_positional_args_size)); \
+    dest = make_c_string("function takes at least %d right arguments, %d " \
+        "given.", count, right_positional_args_size); \
+    THROW_ERROR(hidden_object, dest); \
   }
 #define MAX_RIGHT_ARGS(count) \
   if(right_positional_args_size > count) { \
-    THROW_ERROR(hidden_object, make_c_string("function takes at most " #count \
-        " right arguments, %d given.", right_positional_args_size)); \
+    dest = make_c_string("function takes at most %d right arguments, %d " \
+        "given.", count, right_positional_args_size); \
+    THROW_ERROR(hidden_object, dest); \
   }
 #define MIN_LEFT_ARGS(count) \
   if(left_positional_args_size < count) { \
-    THROW_ERROR(hidden_object, make_c_string("function takes at least " #count \
-        " left arguments, %d given.", left_positional_args_size)); \
+    dest = make_c_string("function takes at least %d left arguments, %d " \
+        "given.", count, left_positional_args_size); \
+    THROW_ERROR(hidden_object, dest); \
   }
 #define MAX_LEFT_ARGS(count) \
   if(left_positional_args_size > count) { \
-    THROW_ERROR(hidden_object, make_c_string("function takes at most " #count \
-        " left arguments, %d given.", left_positional_args_size)); \
+    dest = make_c_string("function takes at most %d left arguments, %d " \
+        "given.", count, left_positional_args_size); \
+    THROW_ERROR(hidden_object, dest); \
   }
 #define REQUIRED_FUNCTION(func) \
   if(func.t != CLOSURE) { \
-    THROW_ERROR(hidden_object, make_c_string("cannot call a non-function!"));\
+    dest = make_c_string("cannot call a non-function!"); \
+    THROW_ERROR(hidden_object, dest);\
   }
 
 c_print:
@@ -458,6 +464,22 @@ c_external__function__call:
   right_positional_args_size = 1;
   dest = continuation;
   continuation.t = NIL;
+  CALL_FUNC(dest);
+
+c_if__main:
+  MAX_LEFT_ARGS(0)
+  MIN_RIGHT_ARGS(1)
+  MAX_RIGHT_ARGS(1)
+  REQUIRED_FUNCTION(right_positional_args[0])
+  continuation = globals.c_continuation;
+  dest = right_positional_args[0];
+  right_positional_args_size = argc;
+  if(right_positional_args_size > right_positional_args_highwater) {
+    right_positional_args = GC_MALLOC(sizeof(union Value) * argc);
+  }
+  for(i = 0; i < argc; ++i) {
+    right_positional_args[i] = make_byte_string(argv[i], strlen(argv[i]));
+  }
   CALL_FUNC(dest);
 
 start:

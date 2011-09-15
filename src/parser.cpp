@@ -257,13 +257,13 @@ namespace parser {
           phx::new_<Float>(qi::_1))];
       floating.name("floating point number");
 
-      charstringvalue = '"' >> +(qi::char_ - '"') >> '"';
+      charstringvalue = '"' >> *(qi::char_ - '"') >> '"';
       charstringvalue.name("character string");
       charstring = charstringvalue[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<CharString>(qi::_1))];
       charstring.name("character string");
 
-      bytestringvalue = "b\"" >> +(qi::char_ - '"') >> '"';
+      bytestringvalue = "b\"" >> *(qi::char_ - '"') >> '"';
       bytestringvalue.name("byte string");
       bytestring = bytestringvalue[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<ByteString>(qi::_1))];
