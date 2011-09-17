@@ -144,7 +144,7 @@ static inline void shift_values(struct Array* array,
   array->size += amount_to_right;
 }
 
-static bool array_size(void* array, struct Array* ra, struct Array* la,
+static bool array_user_size(void* array, struct Array* ra, struct Array* la,
     union Value* dest) {
   if(ra->size != 0 || la->size != 0) {
     *dest = make_c_string("expected 0 arguments");
@@ -155,7 +155,7 @@ static bool array_size(void* array, struct Array* ra, struct Array* la,
   return true;
 }
 
-static bool array_update(void* array, struct Array* ra, struct Array* la,
+static bool array_user_update(void* array, struct Array* ra, struct Array* la,
     union Value* dest) {
   if(ra->size != 2 || la->size != 0) {
     *dest = make_c_string("expected 2 right arguments");
@@ -177,7 +177,7 @@ static bool array_update(void* array, struct Array* ra, struct Array* la,
   return true;
 }
 
-static bool array_index(void* array, struct Array* ra, struct Array* la,
+static bool array_user_index(void* array, struct Array* ra, struct Array* la,
     union Value* dest) {
   if(ra->size != 1 || la->size != 0) {
     *dest = make_c_string("expected 1 right argument");
@@ -198,7 +198,7 @@ static bool array_index(void* array, struct Array* ra, struct Array* la,
   return true;
 }
 
-static bool array_append(void* array, struct Array* ra, struct Array* la,
+static bool array_user_append(void* array, struct Array* ra, struct Array* la,
     union Value* dest) {
   append_values(array, la->data, la->size);
   append_values(array, ra->data, ra->size);
@@ -206,7 +206,7 @@ static bool array_append(void* array, struct Array* ra, struct Array* la,
   return true;
 }
 
-static bool array_pop(void* array, struct Array* ra, struct Array* la,
+static bool array_user_pop(void* array, struct Array* ra, struct Array* la,
     union Value* dest) {
   unsigned int i = ((struct Array*)array)->size;
   if(ra->size != 0 || la->size != 0) {
@@ -222,7 +222,7 @@ static bool array_pop(void* array, struct Array* ra, struct Array* la,
   return true;
 }
 
-static bool array_shift(void* array, struct Array* ra, struct Array* la,
+static bool array_user_shift(void* array, struct Array* ra, struct Array* la,
     union Value* dest) {
   if(ra->size != 0 || la->size != 0) {
     *dest = make_c_string("expected 0 arguments");
@@ -237,7 +237,7 @@ static bool array_shift(void* array, struct Array* ra, struct Array* la,
   return true;
 }
 
-static bool array_unshift(void* array, struct Array* ra, struct Array* la,
+static bool array_user_unshift(void* array, struct Array* ra, struct Array* la,
     union Value* dest) {
   unsigned int i = 0;
   shift_values(array, la->size + ra->size);
@@ -255,19 +255,19 @@ static inline void make_array_object(union Value* v, struct Array** array) {
   make_object(v);
 
   set_field(v->object.data, "u_size", 6,
-      make_external_closure(&array_size, *array));
+      make_external_closure(&array_user_size, *array));
   set_field(v->object.data, "u_append", 8,
-      make_external_closure(&array_append, *array));
+      make_external_closure(&array_user_append, *array));
   set_field(v->object.data, "u_pop", 5,
-      make_external_closure(&array_pop, *array));
+      make_external_closure(&array_user_pop, *array));
   set_field(v->object.data, "u_shift", 7,
-      make_external_closure(&array_shift, *array));
+      make_external_closure(&array_user_shift, *array));
   set_field(v->object.data, "u_unshift", 9,
-      make_external_closure(&array_unshift, *array));
+      make_external_closure(&array_user_unshift, *array));
   set_field(v->object.data, "u__7eupdate", 11,
-      make_external_closure(&array_update, *array));
+      make_external_closure(&array_user_update, *array));
   set_field(v->object.data, "u__7eindex", 10,
-      make_external_closure(&array_index, *array));
+      make_external_closure(&array_user_index, *array));
 
   seal_object(v->object.data);
 }
