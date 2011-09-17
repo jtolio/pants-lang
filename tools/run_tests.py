@@ -11,6 +11,7 @@ COMPILER_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
     "src", "pants"))
 C_COMPILERS = [["gcc"]] # ["clang"] seems broken or something
 C_LIBRARIES = ["-lgc"]
+PANTS_OPTIONS = ["--no-gc"]
 
 class Error_(Exception): pass
 class TestError(Error_): pass
@@ -33,7 +34,8 @@ def translate(source_path):
   in_file = file(source_path)
   fd, path = tempfile.mkstemp(suffix=".c", prefix="test-")
   out_file = os.fdopen(fd, "w")
-  compiler = subprocess.Popen([COMPILER_PATH], stdin=in_file, stdout=out_file)
+  compiler = subprocess.Popen([COMPILER_PATH] + PANTS_OPTIONS, stdin=in_file,
+      stdout=out_file)
   in_file.close()
   out_file.close()
   compiler.communicate()

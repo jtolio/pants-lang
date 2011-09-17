@@ -32,7 +32,7 @@ def generate(dir_name):
     for i, char in enumerate(data):
       if i == 0: body.write("\n  \"")
       body.write("\\x%02x" % ord(char))
-      if i % 19 == 18: body.write("\"\n  \"")
+      if i % 18 == 17: body.write("\"\n  \"")
     body.write("\\x00\";\n\n")
 
 

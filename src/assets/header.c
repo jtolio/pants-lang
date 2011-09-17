@@ -89,9 +89,14 @@ union Value {
   struct Cell cell;
 };
 
+struct Array {
+  unsigned int size;
+  unsigned int highwater;
+  union Value* data;
+};
+
 typedef bool (*ExternalFunction)(void* environment,
-    union Value* right_positional_args, unsigned int right_positional_args_size,
-    union Value* left_positional_args, unsigned int left_positional_args_size,
+    struct Array* right_positional_args, struct Array* left_positional_args,
     union Value* dest);
 
 static inline union Value make_external_closure(ExternalFunction func,

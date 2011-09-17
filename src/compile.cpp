@@ -199,7 +199,7 @@ static void write_callable(std::ostream& os, Callable* func,
     context->localDefinition(func->right_positional_args[i]);
     os << "  " << context->varAccess(func->right_positional_args[i]) << " = ";
     if(is_mutated) os << "make_cell(";
-    os << "right_positional_args[" << i << "]";
+    os << "right_positional_args.data[" << i << "]";
     if(is_mutated) os << ")";
     os << ";\n";
   }
@@ -208,7 +208,7 @@ static void write_callable(std::ostream& os, Callable* func,
     context->localDefinition(func->left_positional_args[i]);
     os << "  " << context->varAccess(func->left_positional_args[i]) << " = ";
     if(is_mutated) os << "make_cell(";
-    os << "left_positional_args[" << i << "]";
+    os << "left_positional_args.data[" << i << "]";
     if(is_mutated) os << ")";
     os << ";\n";
   }
@@ -216,9 +216,9 @@ static void write_callable(std::ostream& os, Callable* func,
     bool is_mutated(func->right_arbitrary_arg->user_provided); // TODO
     context->localDefinition(*func->right_arbitrary_arg);
     os << "  make_array_object(&dest, (struct Array**)&raw_swap);\n"
-          "  append_values(raw_swap, right_positional_args + "
+          "  append_values(raw_swap, right_positional_args.data + "
        << func->right_positional_args.size()
-       << ", right_positional_args_size - "
+       << ", right_positional_args.size - "
        << func->right_positional_args.size() << ");\n"
           "  " << context->varAccess(*func->right_arbitrary_arg) << " = "
        << (is_mutated ? "make_cell(dest);\n" : "dest;\n");
@@ -227,9 +227,9 @@ static void write_callable(std::ostream& os, Callable* func,
     bool is_mutated(func->left_arbitrary_arg->user_provided); // TODO
     context->localDefinition(*func->left_arbitrary_arg);
     os << "  make_array_object(&dest, (struct Array**)&raw_swap);\n"
-          "  append_values(raw_swap, left_positional_args + "
+          "  append_values(raw_swap, left_positional_args.data + "
        << func->left_positional_args.size()
-       << ", left_positional_args_size - "
+       << ", left_positional_args.size - "
        << func->left_positional_args.size() << ");\n"
           "  " << context->varAccess(*func->left_arbitrary_arg) << " = "
        << (is_mutated ? "make_cell(dest);\n" : "dest;\n");
@@ -261,25 +261,21 @@ class ExpressionWriter : public ExpressionVisitor {
                 << ".object.data, \"u_size\", 6, &dest);\n";
           *m_os << "  i = ((struct Array*)dest.closure.env)->size;\n";
         }
-        *m_os << "  if(" << call->right_positional_args.size()
-              << " + i > right_positional_args_highwater) {\n"
-                 "    right_positional_args_highwater = "
-              << call->right_positional_args.size() << " + i;\n"
-                 "    right_positional_args = GC_MALLOC(sizeof(union Value) * "
-              << call->right_positional_args.size() << " + i);\n"
-                 "  }\n";
+        *m_os << "  right_positional_args.size = 0;\n"
+                 "  reserve_space(&right_positional_args, "
+              << call->right_positional_args.size() << " + i);\n";
       }
-      *m_os << "  right_positional_args_size = "
+      *m_os << "  right_positional_args.size = "
             << call->right_positional_args.size() << " + i;\n";
 
       for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
-        *m_os << "  right_positional_args[" << i << "] = "
+        *m_os << "  right_positional_args.data[" << i << "] = "
               << m_context->valAccess(call->right_positional_args[i]) << ";\n";
       }
 
       if(!!call->right_arbitrary_arg) {
         *m_os << "  for(j = 0; j < i; ++j) {\n"
-                 "    right_positional_args["
+                 "    right_positional_args.data["
               << call->right_positional_args.size()
               << " + j] = ((struct Array*)dest.closure.env)->data[j];\n"
                  "  }\n";
@@ -294,25 +290,21 @@ class ExpressionWriter : public ExpressionVisitor {
                 << ".object.data, \"u_size\", 6, &dest);\n";
           *m_os << "  i = ((struct Array*)dest.closure.env)->size;\n";
         }
-        *m_os << "  if(" << call->left_positional_args.size()
-              << " + i > left_positional_args_highwater) {\n"
-                 "    left_positional_args_highwater = "
-              << call->left_positional_args.size() << " + i;\n"
-                 "    left_positional_args = GC_MALLOC(sizeof(union Value) * "
-              << call->left_positional_args.size() << " + i);\n"
-                 "  }\n";
+        *m_os << "  left_positional_args.size = 0;\n"
+                 "  reserve_space(&left_positional_args, "
+              << call->left_positional_args.size() << " + i);\n";
       }
-      *m_os << "  left_positional_args_size = "
+      *m_os << "  left_positional_args.size = "
             << call->left_positional_args.size() << " + i;\n";
 
       for(unsigned int i = 0; i < call->left_positional_args.size(); ++i) {
-        *m_os << "  left_positional_args[" << i << "] = "
+        *m_os << "  left_positional_args.data[" << i << "] = "
               << m_context->valAccess(call->left_positional_args[i]) << ";\n";
       }
 
       if(!!call->left_arbitrary_arg) {
         *m_os << "  for(j = 0; j < i; ++j) {\n"
-                 "    left_positional_args["
+                 "    left_positional_args.data["
               << call->left_positional_args.size()
               << " + j] = ((struct Array*)dest.closure.env)->data[j];\n"
                  "  }\n";
