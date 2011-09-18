@@ -10,11 +10,13 @@ struct ObjectTree {
 struct ObjectData {
   bool sealed;
   struct ObjectTree* tree;
+  unsigned int size;
 };
 
 static inline void initialize_object(struct ObjectData* data) {
   data->sealed = false;
   data->tree = NULL;
+  data->size = 0;
 }
 
 static inline void make_object(union Value* v) {
@@ -51,6 +53,7 @@ static inline bool copy_object(union Value* o1, union Value* o2) {
   if(o1->t != OBJECT) return false;
   make_object(o2);
   _copy_object(o1->object.data->tree, &o2->object.data->tree, NULL);
+  o2->object.data->size = o1->object.data->size;
   return true;
 }
 
@@ -59,11 +62,12 @@ static inline void seal_object(struct ObjectData* data) {
 }
 
 static bool _set_field(struct ObjectTree** tree, char* key,
-    unsigned int key_size, union Value* value, bool sealed,
+    unsigned int key_size, union Value* value, struct ObjectData* data,
     struct ObjectTree* parent) {
   if(*tree == NULL) {
-    if(sealed) return false;
+    if(data->sealed) return false;
     *tree = new_tree_node(key, key_size, value, parent);
+    ++(data->size);
     return true;
   }
   switch (safe_strcmp(key, key_size, (*tree)->key, (*tree)->key_size)) {
@@ -71,15 +75,15 @@ static bool _set_field(struct ObjectTree** tree, char* key,
       (*tree)->value = *value;
       return true;
     case -1:
-      return _set_field(&(*tree)->left, key, key_size, value, sealed, *tree);
+      return _set_field(&(*tree)->left, key, key_size, value, data, *tree);
     default:
-      return _set_field(&(*tree)->right, key, key_size, value, sealed, *tree);
+      return _set_field(&(*tree)->right, key, key_size, value, data, *tree);
   }
 }
 
 static inline bool set_field(struct ObjectData* data, char* key,
     unsigned int key_size, union Value value) {
-  return _set_field(&data->tree, key, key_size, &value, data->sealed, NULL);
+  return _set_field(&data->tree, key, key_size, &value, data, NULL);
 }
 
 static bool _get_field(struct ObjectTree* tree, char* key,
