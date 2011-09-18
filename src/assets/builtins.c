@@ -1,3 +1,131 @@
+static bool array_user_size(void* array, struct Array* ra, struct Array* la,
+    union Value* dest) {
+  if(ra->size != 0 || la->size != 0) {
+    *dest = make_c_string("expected 0 arguments");
+    return false;
+  }
+  dest->t = INTEGER;
+  dest->integer.value = ((struct Array*)array)->size;
+  return true;
+}
+
+static bool array_user_update(void* array, struct Array* ra, struct Array* la,
+    union Value* dest) {
+  if(ra->size != 2 || la->size != 0) {
+    *dest = make_c_string("expected 2 right arguments");
+    return false;
+  }
+  if(ra->data[0].t != INTEGER) {
+    *dest = make_c_string("array indexing must be done with an integer");
+    return false;
+  }
+  if(ra->data[0].integer.value < 0)
+    ra->data[0].integer.value += ((struct Array*)array)->size;
+  if(ra->data[0].integer.value >= ((struct Array*)array)->size ||
+      ra->data[0].integer.value < 0) {
+    *dest = make_c_string("array index out of bounds!");
+    return false;
+  }
+  ((struct Array*)array)->data[ra->data[0].integer.value] = ra->data[1];
+  *dest = ra->data[1];
+  return true;
+}
+
+static bool array_user_index(void* array, struct Array* ra, struct Array* la,
+    union Value* dest) {
+  if(ra->size != 1 || la->size != 0) {
+    *dest = make_c_string("expected 1 right argument");
+    return false;
+  }
+  if(ra->data[0].t != INTEGER) {
+    *dest = make_c_string("array indexing must be done with an integer");
+    return false;
+  }
+  if(ra->data[0].integer.value < 0)
+    ra->data[0].integer.value += ((struct Array*)array)->size;
+  if(ra->data[0].integer.value >= ((struct Array*)array)->size ||
+      ra->data[0].integer.value < 0) {
+    *dest = make_c_string("array index out of bounds!");
+    return false;
+  }
+  *dest = ((struct Array*)array)->data[ra->data[0].integer.value];
+  return true;
+}
+
+static bool array_user_append(void* array, struct Array* ra, struct Array* la,
+    union Value* dest) {
+  append_values(array, la->data, la->size);
+  append_values(array, ra->data, ra->size);
+  dest->t = NIL;
+  return true;
+}
+
+static bool array_user_pop(void* array, struct Array* ra, struct Array* la,
+    union Value* dest) {
+  unsigned int i = ((struct Array*)array)->size;
+  if(ra->size != 0 || la->size != 0) {
+    *dest = make_c_string("expected 0 arguments");
+    return false;
+  }
+  if(i == 0) {
+    dest->t = NIL;
+  } else {
+    ((struct Array*)array)->size = --i;
+    *dest = ((struct Array*)array)->data[i];
+  }
+  return true;
+}
+
+static bool array_user_shift(void* array, struct Array* ra, struct Array* la,
+    union Value* dest) {
+  if(ra->size != 0 || la->size != 0) {
+    *dest = make_c_string("expected 0 arguments");
+    return false;
+  }
+  if(((struct Array*)array)->size == 0) {
+    dest->t = NIL;
+  } else {
+    *dest = ((struct Array*)array)->data[0];
+    shift_values(array, -1);
+  }
+  return true;
+}
+
+static bool array_user_unshift(void* array, struct Array* ra, struct Array* la,
+    union Value* dest) {
+  unsigned int i = 0;
+  shift_values(array, la->size + ra->size);
+  for(i = 0; i < la->size; ++i)
+      ((struct Array*)array)->data[i] = la->data[i];
+  for(i = 0; i < ra->size; ++i)
+      ((struct Array*)array)->data[i + la->size] = ra->data[i];
+  dest->t = NIL;
+  return true;
+}
+
+static inline void make_array_object(union Value* v, struct Array** array) {
+  *array = make_array();
+
+  make_object(v);
+
+  set_field(v->object.data, (struct ByteArray){"u_size", 6},
+      make_external_closure(&array_user_size, *array));
+  set_field(v->object.data, (struct ByteArray){"u_append", 8},
+      make_external_closure(&array_user_append, *array));
+  set_field(v->object.data, (struct ByteArray){"u_pop", 5},
+      make_external_closure(&array_user_pop, *array));
+  set_field(v->object.data, (struct ByteArray){"u_shift", 7},
+      make_external_closure(&array_user_shift, *array));
+  set_field(v->object.data, (struct ByteArray){"u_unshift", 9},
+      make_external_closure(&array_user_unshift, *array));
+  set_field(v->object.data, (struct ByteArray){"u__7eupdate", 11},
+      make_external_closure(&array_user_update, *array));
+  set_field(v->object.data, (struct ByteArray){"u__7eindex", 10},
+      make_external_closure(&array_user_index, *array));
+
+  seal_object(v->object.data);
+}
+
 static inline void builtin_print(union Value* val, union Value* exception) {
   switch(val->t) {
     case INTEGER:
@@ -17,7 +145,7 @@ static inline void builtin_print(union Value* val, union Value* exception) {
       printf("null");
       break;
     case STRING:
-      printf("%s", val->string.value);
+      printf("%s", val->string.value.data);
       break;
 
     case CLOSURE:
@@ -36,9 +164,9 @@ static inline void builtin_readln(union Value* val, union Value* exception) {
   int errsv = 0;
   val->t = STRING;
   val->string.byte_oriented = true;
-  val->string.value = GC_MALLOC(MAX_C_STRING_SIZE);
-  if(fgets(val->string.value, MAX_C_STRING_SIZE, stdin) != NULL) {
-    val->string.value_size = strlen(val->string.value);
+  val->string.value.data = GC_MALLOC(MAX_C_STRING_SIZE);
+  if(fgets(val->string.value.data, MAX_C_STRING_SIZE, stdin) != NULL) {
+    val->string.value.size = strlen(val->string.value.data);
     return;
   }
   errsv = errno;
@@ -46,7 +174,7 @@ static inline void builtin_readln(union Value* val, union Value* exception) {
     val->t = NIL;
     return;
   }
-  strerror_r(errsv, val->string.value, MAX_C_STRING_SIZE);
+  strerror_r(errsv, val->string.value.data, MAX_C_STRING_SIZE);
   *exception = *val;
 }
 
@@ -135,8 +263,7 @@ static inline bool builtin_less_than(union Value* val1, union Value* val2,
               return true;
           if(val1->string.byte_oriented != val2->string.byte_oriented)
               return false;
-          return safe_strcmp(val1->string.value, val1->string.value_size,
-              val2->string.value, val2->string.value_size) < 0;
+          return safe_strcmp(val1->string.value, val2->string.value) < 0;
         case OBJECT: return true;
         default:
           *exception = make_c_string("unknown type!");
@@ -193,8 +320,7 @@ static inline bool builtin_equals(union Value* val1, union Value* val2,
       return val1->object.data == val2->object.data;
     case STRING:
       return val1->string.byte_oriented == val2->string.byte_oriented &&
-          safe_strcmp(val1->string.value, val1->string.value_size,
-              val2->string.value, val2->string.value_size) == 0;
+          safe_strcmp(val1->string.value, val2->string.value) == 0;
     default:
       *exception = make_c_string("TODO: unimplemented");
       return false;
@@ -260,13 +386,13 @@ static inline void builtin_add(union Value* val1, union Value* val2,
           }
           unsigned int value_size;
           char* value;
-          value_size = val1->string.value_size + val2->string.value_size;
+          value_size = val1->string.value.size + val2->string.value.size;
           value = GC_MALLOC(sizeof(char) * value_size);
-          memcpy(value, val1->string.value, val1->string.value_size);
-          memcpy(value + val1->string.value_size, val2->string.value,
-              val2->string.value_size);
-          rv->string.value = value;
-          rv->string.value_size = value_size;
+          memcpy(value, val1->string.value.data, val1->string.value.size);
+          memcpy(value + val1->string.value.size, val2->string.value.data,
+              val2->string.value.size);
+          rv->string.value.data = value;
+          rv->string.value.size = value_size;
           rv->t = STRING;
           rv->string.byte_oriented = val1->string.byte_oriented;
           return;

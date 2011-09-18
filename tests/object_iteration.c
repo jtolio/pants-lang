@@ -10,8 +10,8 @@
 
 void dump_tree(struct ObjectTree* tree) {
   printf("tree: pointer: %p\n", tree);
-  printf(".     key: %s\n", tree->key);
-  printf(".     key_size: %d\n", tree->key_size);
+  printf(".     key: %s\n", tree->key.data);
+  printf(".     key_size: %d\n", tree->key.size);
   printf(".     integer_value: %lld\n", tree->value.integer.value);
   printf(".     left: %p\n", tree->left);
   printf(".     right: %p\n", tree->right);
@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
 
   value.t = INTEGER;
   value.integer.value = 42;
-  assert(set_field(&object, "jtfield", 7, value));
+  assert(set_field(&object, (struct ByteArray){"jtfield", 7}, value));
 
   initialize_object_iterator(&it, &object);
   assert(!object_iterator_complete(&it));
@@ -50,13 +50,13 @@ int main(int argc, char** argv) {
 
   value.t = INTEGER;
   value.integer.value = 6141;
-  assert(set_field(&object, "field1", 6, value));
+  assert(set_field(&object, (struct ByteArray){"field1", 6}, value));
   value.t = INTEGER;
   value.integer.value = 14677;
-  assert(set_field(&object, "field3", 6, value));
+  assert(set_field(&object, (struct ByteArray){"field3", 6}, value));
   value.t = INTEGER;
   value.integer.value = 46131;
-  assert(set_field(&object, "field2", 6, value));
+  assert(set_field(&object, (struct ByteArray){"field2", 6}, value));
 
   // dump_object(&object);
 

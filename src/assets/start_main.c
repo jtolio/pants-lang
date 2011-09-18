@@ -13,6 +13,9 @@ int main(int argc, char **argv) {
   struct ObjectData keyword_args;
   struct ObjectIterator it;
 
+  // This strategy imposes a right argument limit of 64
+  unsigned long long named_slots;
+
   EXTERNAL_FUNCTION_LABEL = &&c_external__function__call;
 
   GC_INIT();
@@ -65,7 +68,7 @@ int main(int argc, char **argv) {
   dest.closure.func = &&ho_throw;
   dest.closure.env = NULL;
   dest.closure.frame = NULL;
-  set_field(&hidden_object_data, "u_throw", 7, dest);
+  set_field(&hidden_object_data, (struct ByteArray){"u_throw", 7}, dest);
 
   seal_object(&hidden_object_data);
 
@@ -86,7 +89,9 @@ int main(int argc, char **argv) {
 #define THROW_ERROR(current_hidden_object, val) \
   right_positional_args.size = 1; \
   right_positional_args.data[0] = val; \
-  if(!get_field(current_hidden_object.object.data, "u_throw", 7, &dest)) { \
+  initialize_object(&keyword_args); \
+  if(!get_field(current_hidden_object.object.data, \
+      (struct ByteArray){"u_throw", 7}, &dest)) { \
     FATAL_ERROR("no throw method registered!", globals.c_null); \
   } \
   if(dest.t != CLOSURE) { \
@@ -125,7 +130,6 @@ int main(int argc, char **argv) {
   }
 #define NO_KEYWORD_ARGUMENTS \
   if(keyword_args.tree != NULL) { \
-    initialize_object(&keyword_args); \
     dest = make_c_string("no keyword arguments supported for this builtin!"); \
     THROW_ERROR(hidden_object, dest); \
   }

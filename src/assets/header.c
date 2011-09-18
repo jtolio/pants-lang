@@ -43,11 +43,15 @@ struct Float {
   double value;
 };
 
+struct ByteArray {
+  char* data;
+  unsigned int size;
+};
+
 struct String {
   enum ValueTag t;
   bool byte_oriented;
-  char* value;
-  unsigned int value_size;
+  struct ByteArray value;
 };
 
 struct ObjectData;
@@ -117,16 +121,15 @@ static inline union Value make_cell(union Value val) {
   return v;
 }
 
-static inline int safe_strcmp(char* str1, unsigned int str1_size, char* str2,
-    unsigned int str2_size) {
+static inline int safe_strcmp(struct ByteArray str1, struct ByteArray str2) {
   unsigned int i;
-  unsigned int cmp_size = (str1_size > str2_size) ? str2_size : str1_size;
+  unsigned int cmp_size = (str1.size > str2.size) ? str2.size : str1.size;
   for(i = 0; i < cmp_size; ++i) {
-    if(str1[i] < str2[i]) return -1;
-    if(str1[i] > str2[i]) return 1;
+    if(str1.data[i] < str2.data[i]) return -1;
+    if(str1.data[i] > str2.data[i]) return 1;
   }
-  if(str1_size < str2_size) return -1;
-  if(str1_size > str2_size) return 1;
+  if(str1.size < str2.size) return -1;
+  if(str1.size > str2.size) return 1;
   return 0;
 }
 
@@ -137,17 +140,17 @@ static inline union Value make_c_string(char* format, ...) {
   static unsigned int truncated_message_size = 0;
   str.t = STRING;
   str.string.byte_oriented = false;
-  str.string.value = GC_MALLOC(MAX_C_STRING_SIZE);
+  str.string.value.data = GC_MALLOC(MAX_C_STRING_SIZE);
   va_start(args, format);
-  str.string.value_size = vsnprintf(str.string.value, MAX_C_STRING_SIZE, format,
-      args);
+  str.string.value.size = vsnprintf(str.string.value.data, MAX_C_STRING_SIZE,
+      format, args);
   va_end(args);
-  if(str.string.value_size >= MAX_C_STRING_SIZE) {
+  if(str.string.value.size >= MAX_C_STRING_SIZE) {
     if(truncated_message_size == 0)
       truncated_message_size = strlen(C_STRING_TRUNCATED_MESSAGE);
-    str.string.value_size = MAX_C_STRING_SIZE - 1;
+    str.string.value.size = MAX_C_STRING_SIZE - 1;
     for(i = 0; i < truncated_message_size; ++i) {
-      str.string.value[MAX_C_STRING_SIZE - truncated_message_size + i]
+      str.string.value.data[MAX_C_STRING_SIZE - truncated_message_size + i]
           = C_STRING_TRUNCATED_MESSAGE[i];
     }
   }
@@ -158,8 +161,8 @@ static inline union Value make_byte_string(char* data, unsigned int size) {
   union Value str;
   str.t = STRING;
   str.string.byte_oriented = true;
-  str.string.value = data;
-  str.string.value_size = size;
+  str.string.value.data = data;
+  str.string.value.size = size;
   return str;
 }
 
@@ -173,7 +176,7 @@ static inline void dump_value(union Value val) {
       printf("float: %f\n", val.floating.value);
       break;
     case STRING:
-      printf("string: %s\n", val.string.value);
+      printf("string: %s\n", val.string.value.data);
       break;
     case OBJECT:
       printf("object\n");

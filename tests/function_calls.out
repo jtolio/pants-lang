@@ -1,0 +1,28 @@
+3 1 2
+3 4 5
+2 1
+2 4
+3
+1
+
+1 2 3 4
+e:
+5 6 7 8
+
+1 2 3 4
+e: 5 6 7 8
+(error: field u_e not found!) (error: field u_f not found!) (error: field u_g not found!) (error: field u_h not found!)
+
+1 2 4 5
+e:
+(error: field u_e not found!) (error: field u_f not found!) (error: field u_g not found!) (error: field u_h not found!)
+
+1 2 3 5
+e:
+(error: field u_e not found!) (error: field u_f not found!) (error: field u_g not found!) (error: field u_h not found!)
+
+3 1 4 10
+e:
+(error: field u_e not found!) 7 (error: field u_g not found!) 6
+
+return code: 0

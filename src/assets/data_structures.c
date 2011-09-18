@@ -1,6 +1,5 @@
 struct ObjectTree {
-  char* key;
-  unsigned int key_size;
+  struct ByteArray key;
   union Value value;
   struct ObjectTree* left;
   struct ObjectTree* right;
@@ -25,12 +24,11 @@ static inline void make_object(union Value* v) {
   initialize_object(v->object.data);
 }
 
-static inline struct ObjectTree* new_tree_node(char* key, unsigned int key_size,
+static inline struct ObjectTree* new_tree_node(struct ByteArray key,
     union Value* value, struct ObjectTree* parent) {
   struct ObjectTree* t;
   t = GC_MALLOC(sizeof(struct ObjectTree));
   t->key = key;
-  t->key_size = key_size;
   t->value = *value;
   t->left = NULL;
   t->right = NULL;
@@ -44,7 +42,7 @@ static void _copy_object(struct ObjectTree* t1, struct ObjectTree** t2,
     *t2 = NULL;
     return;
   }
-  *t2 = new_tree_node(t1->key, t1->key_size, &t1->value, t2_parent);
+  *t2 = new_tree_node(t1->key, &t1->value, t2_parent);
   _copy_object(t1->right, &(*t2)->left, *t2);
   _copy_object(t1->right, &(*t2)->right, *t2);
 }
@@ -61,48 +59,47 @@ static inline void seal_object(struct ObjectData* data) {
   data->sealed = true;
 }
 
-static bool _set_field(struct ObjectTree** tree, char* key,
-    unsigned int key_size, union Value* value, struct ObjectData* data,
-    struct ObjectTree* parent) {
+static bool _set_field(struct ObjectTree** tree, struct ByteArray key,
+    union Value* value, struct ObjectData* data, struct ObjectTree* parent) {
   if(*tree == NULL) {
     if(data->sealed) return false;
-    *tree = new_tree_node(key, key_size, value, parent);
+    *tree = new_tree_node(key, value, parent);
     ++(data->size);
     return true;
   }
-  switch (safe_strcmp(key, key_size, (*tree)->key, (*tree)->key_size)) {
+  switch (safe_strcmp(key, (*tree)->key)) {
     case 0:
       (*tree)->value = *value;
       return true;
     case -1:
-      return _set_field(&(*tree)->left, key, key_size, value, data, *tree);
+      return _set_field(&(*tree)->left, key, value, data, *tree);
     default:
-      return _set_field(&(*tree)->right, key, key_size, value, data, *tree);
+      return _set_field(&(*tree)->right, key, value, data, *tree);
   }
 }
 
-static inline bool set_field(struct ObjectData* data, char* key,
-    unsigned int key_size, union Value value) {
-  return _set_field(&data->tree, key, key_size, &value, data, NULL);
+static inline bool set_field(struct ObjectData* data, struct ByteArray key,
+    union Value value) {
+  return _set_field(&data->tree, key, &value, data, NULL);
 }
 
-static bool _get_field(struct ObjectTree* tree, char* key,
-    unsigned int key_size, union Value* value) {
+static bool _get_field(struct ObjectTree* tree, struct ByteArray key,
+    union Value* value) {
   if(tree == NULL) return false;
-  switch (safe_strcmp(key, key_size, tree->key, tree->key_size)) {
+  switch (safe_strcmp(key, tree->key)) {
     case 0:
       *value = tree->value;
       return true;
     case -1:
-      return _get_field(tree->left, key, key_size, value);
+      return _get_field(tree->left, key, value);
     default:
-      return _get_field(tree->right, key, key_size, value);
+      return _get_field(tree->right, key, value);
   }
 }
 
-static inline bool get_field(struct ObjectData* data, char* key,
-    unsigned int key_size, union Value* value) {
-  return _get_field(data->tree, key, key_size, value);
+static inline bool get_field(struct ObjectData* data, struct ByteArray key,
+    union Value* value) {
+  return _get_field(data->tree, key, value);
 }
 
 struct ObjectIterator {
@@ -212,130 +209,14 @@ static inline void shift_values(struct Array* array,
   array->size += amount_to_right;
 }
 
-static bool array_user_size(void* array, struct Array* ra, struct Array* la,
-    union Value* dest) {
-  if(ra->size != 0 || la->size != 0) {
-    *dest = make_c_string("expected 0 arguments");
-    return false;
-  }
-  dest->t = INTEGER;
-  dest->integer.value = ((struct Array*)array)->size;
-  return true;
-}
-
-static bool array_user_update(void* array, struct Array* ra, struct Array* la,
-    union Value* dest) {
-  if(ra->size != 2 || la->size != 0) {
-    *dest = make_c_string("expected 2 right arguments");
-    return false;
-  }
-  if(ra->data[0].t != INTEGER) {
-    *dest = make_c_string("array indexing must be done with an integer");
-    return false;
-  }
-  if(ra->data[0].integer.value < 0)
-    ra->data[0].integer.value += ((struct Array*)array)->size;
-  if(ra->data[0].integer.value >= ((struct Array*)array)->size ||
-      ra->data[0].integer.value < 0) {
-    *dest = make_c_string("array index out of bounds!");
-    return false;
-  }
-  ((struct Array*)array)->data[ra->data[0].integer.value] = ra->data[1];
-  *dest = ra->data[1];
-  return true;
-}
-
-static bool array_user_index(void* array, struct Array* ra, struct Array* la,
-    union Value* dest) {
-  if(ra->size != 1 || la->size != 0) {
-    *dest = make_c_string("expected 1 right argument");
-    return false;
-  }
-  if(ra->data[0].t != INTEGER) {
-    *dest = make_c_string("array indexing must be done with an integer");
-    return false;
-  }
-  if(ra->data[0].integer.value < 0)
-    ra->data[0].integer.value += ((struct Array*)array)->size;
-  if(ra->data[0].integer.value >= ((struct Array*)array)->size ||
-      ra->data[0].integer.value < 0) {
-    *dest = make_c_string("array index out of bounds!");
-    return false;
-  }
-  *dest = ((struct Array*)array)->data[ra->data[0].integer.value];
-  return true;
-}
-
-static bool array_user_append(void* array, struct Array* ra, struct Array* la,
-    union Value* dest) {
-  append_values(array, la->data, la->size);
-  append_values(array, ra->data, ra->size);
-  dest->t = NIL;
-  return true;
-}
-
-static bool array_user_pop(void* array, struct Array* ra, struct Array* la,
-    union Value* dest) {
-  unsigned int i = ((struct Array*)array)->size;
-  if(ra->size != 0 || la->size != 0) {
-    *dest = make_c_string("expected 0 arguments");
-    return false;
-  }
-  if(i == 0) {
-    dest->t = NIL;
-  } else {
-    ((struct Array*)array)->size = --i;
-    *dest = ((struct Array*)array)->data[i];
-  }
-  return true;
-}
-
-static bool array_user_shift(void* array, struct Array* ra, struct Array* la,
-    union Value* dest) {
-  if(ra->size != 0 || la->size != 0) {
-    *dest = make_c_string("expected 0 arguments");
-    return false;
-  }
-  if(((struct Array*)array)->size == 0) {
-    dest->t = NIL;
-  } else {
-    *dest = ((struct Array*)array)->data[0];
-    shift_values(array, -1);
-  }
-  return true;
-}
-
-static bool array_user_unshift(void* array, struct Array* ra, struct Array* la,
-    union Value* dest) {
+static inline unsigned int binary_search(struct ByteArray key,
+    struct ByteArray* key_array, unsigned int key_count) {
+  // TODO
   unsigned int i = 0;
-  shift_values(array, la->size + ra->size);
-  for(i = 0; i < la->size; ++i)
-      ((struct Array*)array)->data[i] = la->data[i];
-  for(i = 0; i < ra->size; ++i)
-      ((struct Array*)array)->data[i + la->size] = ra->data[i];
-  dest->t = NIL;
-  return true;
-}
-
-static inline void make_array_object(union Value* v, struct Array** array) {
-  *array = make_array();
-
-  make_object(v);
-
-  set_field(v->object.data, "u_size", 6,
-      make_external_closure(&array_user_size, *array));
-  set_field(v->object.data, "u_append", 8,
-      make_external_closure(&array_user_append, *array));
-  set_field(v->object.data, "u_pop", 5,
-      make_external_closure(&array_user_pop, *array));
-  set_field(v->object.data, "u_shift", 7,
-      make_external_closure(&array_user_shift, *array));
-  set_field(v->object.data, "u_unshift", 9,
-      make_external_closure(&array_user_unshift, *array));
-  set_field(v->object.data, "u__7eupdate", 11,
-      make_external_closure(&array_user_update, *array));
-  set_field(v->object.data, "u__7eindex", 10,
-      make_external_closure(&array_user_index, *array));
-
-  seal_object(v->object.data);
+  for(; i < key_count; ++i) {
+    if(safe_strcmp(key, key_array[i]) == 0) {
+      return i;
+    }
+  }
+  return key_count;
 }

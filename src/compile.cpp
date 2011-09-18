@@ -112,9 +112,9 @@ class ValueWriter : public ValueVisitor {
             << m_context->valAccess(HIDDEN_OBJECT) <<
                ", make_c_string(\"TODO: fields\"));\n"
                "    case OBJECT:\n"
-               "      if(!get_field(dest.object.data, "
+               "      if(!get_field(dest.object.data, (struct ByteArray){"
             << to_bytestring(field->field.c_name()) << ", "
-            << field->field.c_name().size() << ", &dest)) {\n"
+            << field->field.c_name().size() << "}, &dest)) {\n"
                "        THROW_ERROR("
             << m_context->valAccess(HIDDEN_OBJECT) <<
                ", make_c_string(\"field %s not found!\", "
@@ -136,8 +136,9 @@ class ValueWriter : public ValueVisitor {
       *m_os << "  dest.t = STRING;\n"
                "  dest.string.byte_oriented = "
             << (str->byte_oriented ? "true" : "false") << ";\n"
-               "  dest.string.value = " << to_bytestring(str->value) << ";\n"
-               "  dest.string.value_size = " << str->value.size() << ";\n";
+               "  dest.string.value.data = " << to_bytestring(str->value)
+            << ";\n"
+               "  dest.string.value.size = " << str->value.size() << ";\n";
       m_lastval = "dest";
     }
     void visit(Float* floating) {
@@ -176,15 +177,17 @@ class ValueWriter : public ValueVisitor {
 
 static void write_callable(std::ostream& os, Callable* func,
     VariableContext* context, NameSetManager* namesets) {
-  os << "\n" << func->c_name() << ":\n"
-        "  MIN_RIGHT_ARGS(" << func->right_positional_args.size() << ")\n"
-        "  MIN_LEFT_ARGS(" << func->left_positional_args.size() << ")\n";
-  if(!func->right_arbitrary_arg)
-    os << "  MAX_RIGHT_ARGS(" << func->right_positional_args.size() << ")\n";
-  if(!func->left_arbitrary_arg)
-    os << "  MAX_LEFT_ARGS(" << func->left_positional_args.size() << ")\n";
-  os << "  NO_KEYWORD_ARGUMENTS\n"; // TODO
+  // TODO: don't generate code we know we don't need!
+  //   * don't generate keyword argument stuff for non-functions or functions
+  //     with no right arguments.
+  //   * don't deal with keyword arguments if none are passed in
+  //   * don't require slot checking for arguments with default values.
+
+  // set up callable's address
+  os << "\n" << func->c_name() << ":\n";
   if(func->function) {
+    // if it's actually a function, we want to save off the current
+    // continuation, hidden object, and make a frame
     context->localDefinition(CONTINUATION);
     context->localDefinition(HIDDEN_OBJECT);
     os << "  frame = GC_MALLOC(sizeof(struct nameset_" << context->frameID()
@@ -192,12 +195,150 @@ static void write_callable(std::ostream& os, Callable* func,
           "  " << context->varAccess(CONTINUATION) << " = continuation;\n"
           "  " << context->varAccess(HIDDEN_OBJECT) << " = hidden_object;\n";
   }
+
+  // were we given a right keyword argument? make space so we can add any
+  // overflow keyword arguments if necessary
+  if(!!func->right_keyword_arg) {
+    bool is_mutated(func->right_keyword_arg->user_provided); // TODO
+    context->localDefinition(*func->right_keyword_arg);
+    os << "  make_object(&dest);\n"
+          "  " << context->varAccess(*func->right_keyword_arg) << " = "
+       << (is_mutated ? "make_cell(dest);\n" : "dest;\n");
+  }
+
+  // alright, go through and find all the names and positions of possible
+  // keyword arguments. note that they only can live on the right side.
+  std::map<Name, unsigned int> right_argument_slots;
+  for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
+    if(right_argument_slots.find(func->right_positional_args[i]) !=
+        right_argument_slots.end()) {
+      // hopefully this has already been checked earlier in the compilation
+      // stack. TODO: check and make sure
+      throw pants::expectation_failure("argument name collision");
+    }
+    right_argument_slots[func->right_positional_args[i]] = i;
+  }
+  for(unsigned int i = 0; i < func->right_optional_args.size(); ++i) {
+    if(right_argument_slots.find(func->right_optional_args[i].key) !=
+        right_argument_slots.end()) {
+      // hopefully this has already been checked earlier in the compilation
+      // stack. TODO: check and make sure
+      throw pants::expectation_failure("argument name collision");
+    }
+    right_argument_slots[func->right_optional_args[i].key] = i +
+        func->right_positional_args.size();
+  }
+
+  // we're using a 64 bit unsigned integer to keep track of right argument
+  // slots, so, we can't go over 64. TODO: actually make the limit 64 and not
+  // 63.
+  if(right_argument_slots.size() >= 64)
+    throw pants::expectation_failure("too many right arguments");
+
+  // if we have any possible named arguments, let's deal with them
+  os << "  named_slots = (1 << right_positional_args.size) - 1;\n"
+        "  for(initialize_object_iterator(&it, &keyword_args);\n"
+        "      !object_iterator_complete(&it);\n"
+        "      object_iterator_step(&it)) {\n"
+        "    j = " << right_argument_slots.size() << ";\n"
+        "    i = binary_search(object_iterator_current_node(&it)->key,\n"
+        "        (struct ByteArray[]){";
+  for(std::map<Name, unsigned int>::iterator it(
+      right_argument_slots.begin()); it != right_argument_slots.end();
+      ++it) {
+    if(it != right_argument_slots.begin()) os << ", ";
+    os << "(struct ByteArray){" << to_bytestring(it->first.c_name())
+       << ", " << it->first.c_name().size() << "}";
+  }
+  os << "}, " << right_argument_slots.size() << ");\n"
+        "    switch(i) {\n"
+        "      default: break;\n";
+  {
+    unsigned int i = 0;
+    for(std::map<Name, unsigned int>::iterator it(
+        right_argument_slots.begin()); it != right_argument_slots.end();
+        ++it, ++i) {
+      os << "      case " << i << ": j = " << it->second << "; break;\n";
+    }
+  }
+  os << "    }\n"
+        "    if(j == " << right_argument_slots.size() << ") {\n";
+  if(!!func->right_keyword_arg) {
+    os << "      set_field("
+       << context->valAccess(*func->right_keyword_arg) << ".object.data, "
+          "object_iterator_current_node(&it)->key, "
+          "object_iterator_current_node(&it)->value);\n"
+          "      continue;\n";
+  } else {
+    os << "      THROW_ERROR("
+       << context->valAccess(HIDDEN_OBJECT) <<
+          ", make_c_string(\"argument %s unknown!\", "
+          "object_iterator_current_node(&it)->key.data));\n";
+  }
+  os << "    }\n"
+        "    if(named_slots & (1 << j)) {\n"
+        "      THROW_ERROR("
+     << context->valAccess(HIDDEN_OBJECT) <<
+        ", make_c_string(\"argument %s already provided!\", "
+        "object_iterator_current_node(&it)->key.data));\n"
+        "    }\n"
+        "    named_slots |= (1 << j);\n"
+        "    right_positional_args.data[j] = "
+        "object_iterator_current_node(&it)->value;\n"
+        "  }\n"
+        "  initialize_object(&keyword_args);\n";
+
+  // okay, now we have all of the provided and named arguments in slots, let's
+  // throw in default values for anything still missing. we
+  for(unsigned int i = 0; i < func->right_optional_args.size(); ++i) {
+    os << "  if(!(named_slots & (1 << "
+       << i + func->right_positional_args.size() << "))) {\n"
+          "    right_positional_args.data["
+       << i + func->right_positional_args.size() << "] = "
+       << context->valAccess(func->right_optional_args[i].value) << ";\n"
+       << "    named_slots |= (1 << "
+       << i + func->right_positional_args.size() << ");\n"
+       << "  }\n";
+  }
+
+  // let's seal the keyword object
+  if(!!func->right_keyword_arg) {
+    os << "  seal_object(" << context->valAccess(*func->right_keyword_arg)
+       << ".object.data);\n";
+  }
+
+  // left arguments are easy to check if we got enough, let's check those.
+  os << "  MIN_LEFT_ARGS(" << func->left_positional_args.size() << ")\n";
+
+  // check right arguments, make sure we got everything.
+  os << "  if((~named_slots) & ((1 << "
+     << right_argument_slots.size() << ") - 1)) {\n"
+        "    THROW_ERROR(" << context->valAccess(HIDDEN_OBJECT) << ", "
+        "make_c_string(\"argument missing!\"));\n"
+        "  }\n"
+        "  if(right_positional_args.size < " << right_argument_slots.size()
+     << ") {\n"
+        "    right_positional_args.size = " << right_argument_slots.size()
+     << ";\n"
+        "  }\n";
+
+  // okay, let's actually take our slots and fill in the real arguments
   for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
     bool is_mutated(func->right_positional_args[i].user_provided); // TODO
     context->localDefinition(func->right_positional_args[i]);
     os << "  " << context->varAccess(func->right_positional_args[i]) << " = ";
     if(is_mutated) os << "make_cell(";
     os << "right_positional_args.data[" << i << "]";
+    if(is_mutated) os << ")";
+    os << ";\n";
+  }
+  for(unsigned int i = 0; i < func->right_optional_args.size(); ++i) {
+    bool is_mutated(func->right_optional_args[i].key.user_provided); // TODO
+    context->localDefinition(func->right_optional_args[i].key);
+    os << "  " << context->varAccess(func->right_optional_args[i].key) << " = ";
+    if(is_mutated) os << "make_cell(";
+    os << "right_positional_args.data["
+       << i + func->right_positional_args.size() << "]";
     if(is_mutated) os << ")";
     os << ";\n";
   }
@@ -210,16 +351,19 @@ static void write_callable(std::ostream& os, Callable* func,
     if(is_mutated) os << ")";
     os << ";\n";
   }
+
+  // okay, any overflow arguments go into an array
   if(!!func->right_arbitrary_arg) {
     bool is_mutated(func->right_arbitrary_arg->user_provided); // TODO
     context->localDefinition(*func->right_arbitrary_arg);
     os << "  make_array_object(&dest, (struct Array**)&raw_swap);\n"
           "  append_values(raw_swap, right_positional_args.data + "
-       << func->right_positional_args.size()
-       << ", right_positional_args.size - "
-       << func->right_positional_args.size() << ");\n"
+       << right_argument_slots.size() << ", right_positional_args.size - "
+       << right_argument_slots.size() << ");\n"
           "  " << context->varAccess(*func->right_arbitrary_arg) << " = "
        << (is_mutated ? "make_cell(dest);\n" : "dest;\n");
+  } else {
+    os << "  MAX_RIGHT_ARGS(" << right_argument_slots.size() << ")\n";
   }
   if(!!func->left_arbitrary_arg) {
     bool is_mutated(func->left_arbitrary_arg->user_provided); // TODO
@@ -231,7 +375,11 @@ static void write_callable(std::ostream& os, Callable* func,
        << func->left_positional_args.size() << ");\n"
           "  " << context->varAccess(*func->left_arbitrary_arg) << " = "
        << (is_mutated ? "make_cell(dest);\n" : "dest;\n");
+  } else {
+    os << "  MAX_LEFT_ARGS(" << func->left_positional_args.size() << ")\n";
   }
+
+  // k, we should be set, let's run the function
   write_expression(func->expression, os, *context, *namesets);
 }
 
@@ -250,18 +398,44 @@ class ExpressionWriter : public ExpressionVisitor {
         *m_os << "  continuation.t = NIL;\n";
       }
 
+      if(!!call->right_keyword_arg) {
+        *m_os << "  for(initialize_object_iterator(&it, "
+              << m_context->valAccess(*call->right_keyword_arg)
+              << ".object.data);\n"
+                 "      !object_iterator_complete(&it);\n"
+                 "      object_iterator_step(&it)) {\n"
+                 "    set_field(&keyword_args,\n"
+                 "              object_iterator_current_node(&it)->key,\n"
+                 "              object_iterator_current_node(&it)->value);\n"
+                 "  }\n";
+      }
+      if(call->right_optional_args.size() > 0) {
+        for(unsigned int i = 0; i < call->right_optional_args.size(); ++i) {
+          *m_os << "  set_field(&keyword_args, (struct ByteArray){"
+                << to_bytestring(
+                    call->right_optional_args[i].key.c_name())
+                << ", "
+                << call->right_optional_args[i].key.c_name().size()
+                << "}, "
+                << m_context->valAccess(call->right_optional_args[i].value)
+                << ");\n";
+        }
+      }
+
       *m_os << "  i = 0;\n";
-      if(call->right_positional_args.size() > MIN_RIGHT_ARG_HIGHWATER ||
-          !!call->right_arbitrary_arg) {
+      if(call->right_positional_args.size() + call->right_optional_args.size() >
+          MIN_RIGHT_ARG_HIGHWATER || !!call->right_arbitrary_arg ||
+          !!call->right_keyword_arg) {
         if(!!call->right_arbitrary_arg) {
           *m_os << "  get_field("
                 << m_context->valAccess(*call->right_arbitrary_arg)
-                << ".object.data, \"u_size\", 6, &dest);\n";
-          *m_os << "  i = ((struct Array*)dest.closure.env)->size;\n";
+                << ".object.data, (struct ByteArray){\"u_size\", 6}, &dest);\n";
+          *m_os << "  i += ((struct Array*)dest.closure.env)->size;\n";
         }
         *m_os << "  right_positional_args.size = 0;\n"
                  "  reserve_space(&right_positional_args, "
-              << call->right_positional_args.size() << " + i);\n";
+              << call->right_positional_args.size() << " + i + "
+                 "keyword_args.size);\n";
       }
       *m_os << "  right_positional_args.size = "
             << call->right_positional_args.size() << " + i;\n";
@@ -285,7 +459,7 @@ class ExpressionWriter : public ExpressionVisitor {
         if(!!call->left_arbitrary_arg) {
           *m_os << "  get_field("
                 << m_context->valAccess(*call->left_arbitrary_arg)
-                << ".object.data, \"u_size\", 6, &dest);\n";
+                << ".object.data, (struct ByteArray){\"u_size\", 6}, &dest);\n";
           *m_os << "  i = ((struct Array*)dest.closure.env)->size;\n";
         }
         *m_os << "  left_positional_args.size = 0;\n"
@@ -308,42 +482,17 @@ class ExpressionWriter : public ExpressionVisitor {
                  "  }\n";
       }
 
-      if(!!call->right_keyword_arg) {
-        *m_os << "  for(initialize_object_iterator(&it, "
-              << m_context->valAccess(*call->right_keyword_arg)
-              << ".object.data);\n"
-                 "      !object_iterator_complete(&it);\n"
-                 "      object_iterator_step(&it)) {\n"
-                 "    set_field(keyword_args,\n"
-                 "              object_iterator_current_node(&it)->key,\n"
-                 "              object_iterator_current_node(&it)->key_size,\n"
-                 "              object_iterator_current_node(&it)->value);\n"
-                 "  }\n";
-      }
-      if(call->right_optional_args.size() > 0) {
-        for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
-          *m_os << "  set_field(keyword_args, "
-                << to_bytestring(
-                    call->right_optional_args[i].key.c_name())
-                << ", "
-                << call->right_optional_args[i].key.c_name().size()
-                << ", "
-                << m_context->valAccess(call->right_optional_args[i].value)
-                << ");\n";
-        }
-      }
-
       if(call->hidden_object_optional_args.size() > 0) {
         *m_os << "  copy_object(&" << m_context->valAccess(HIDDEN_OBJECT)
               << ", &hidden_object);\n";
         for(unsigned int i = 0; i < call->hidden_object_optional_args.size();
             ++i) {
-          *m_os << "  set_field(hidden_object.object.data, "
+          *m_os << "  set_field(hidden_object.object.data, (struct ByteArray){"
                 << to_bytestring(
                     call->hidden_object_optional_args[i].key.c_name())
                 << ", "
                 << call->hidden_object_optional_args[i].key.c_name().size()
-                << ", "
+                << "}, "
                 << m_context->valAccess(
                     call->hidden_object_optional_args[i].value)
                 << ");\n";
@@ -389,9 +538,9 @@ class ExpressionWriter : public ExpressionVisitor {
                "      THROW_ERROR(" << m_context->valAccess(HIDDEN_OBJECT)
             << ", make_c_string(\"not an object!\"));\n"
                "    case OBJECT:\n"
-               "      if(!set_field(dest.object.data, "
+               "      if(!set_field(dest.object.data, (struct ByteArray){"
             << to_bytestring(mut->field.c_name()) << ", "
-            << mut->field.c_name().size() << ", "
+            << mut->field.c_name().size() << "}, "
             << m_context->valAccess(mut->value) << ")) {\n"
                "        THROW_ERROR(" << m_context->valAccess(HIDDEN_OBJECT)
             << ", make_c_string(\"object %s sealed!\", "
