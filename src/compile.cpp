@@ -5,7 +5,7 @@
 using namespace pants::cps;
 
 #define MIN_RIGHT_ARG_HIGHWATER 10
-#define MIN_LEFT_ARG_HIGHWATER 2
+#define MIN_LEFT_ARG_HIGHWATER 10
 
 class VariableContext {
 public:
@@ -183,16 +183,14 @@ static void write_callable(std::ostream& os, Callable* func,
     os << "  MAX_RIGHT_ARGS(" << func->right_positional_args.size() << ")\n";
   if(!func->left_arbitrary_arg)
     os << "  MAX_LEFT_ARGS(" << func->left_positional_args.size() << ")\n";
+  os << "  NO_KEYWORD_ARGUMENTS\n"; // TODO
   if(func->function) {
-    bool is_mutated(false); // TODO
     context->localDefinition(CONTINUATION);
     context->localDefinition(HIDDEN_OBJECT);
     os << "  frame = GC_MALLOC(sizeof(struct nameset_" << context->frameID()
        << "));\n"
-          "  " << context->varAccess(CONTINUATION) << " = "
-       << (is_mutated ? "make_cell(continuation);\n" : "continuation;\n")
-       << "  " << context->varAccess(HIDDEN_OBJECT) << " = "
-       << (is_mutated ? "make_cell(hidden_object);\n" : "hidden_object;\n");
+          "  " << context->varAccess(CONTINUATION) << " = continuation;\n"
+          "  " << context->varAccess(HIDDEN_OBJECT) << " = hidden_object;\n";
   }
   for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
     bool is_mutated(func->right_positional_args[i].user_provided); // TODO
@@ -308,6 +306,31 @@ class ExpressionWriter : public ExpressionVisitor {
               << call->left_positional_args.size()
               << " + j] = ((struct Array*)dest.closure.env)->data[j];\n"
                  "  }\n";
+      }
+
+      if(!!call->right_keyword_arg) {
+        *m_os << "  for(initialize_object_iterator(&it, "
+              << m_context->valAccess(*call->right_keyword_arg)
+              << ".object.data);\n"
+                 "      !object_iterator_complete(&it);\n"
+                 "      object_iterator_step(&it)) {\n"
+                 "    set_field(keyword_args,\n"
+                 "              object_iterator_current_node(&it)->key,\n"
+                 "              object_iterator_current_node(&it)->key_size,\n"
+                 "              object_iterator_current_node(&it)->value);\n"
+                 "  }\n";
+      }
+      if(call->right_optional_args.size() > 0) {
+        for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
+          *m_os << "  set_field(keyword_args, "
+                << to_bytestring(
+                    call->right_optional_args[i].key.c_name())
+                << ", "
+                << call->right_optional_args[i].key.c_name().size()
+                << ", "
+                << m_context->valAccess(call->right_optional_args[i].value)
+                << ");\n";
+        }
       }
 
       if(call->hidden_object_optional_args.size() > 0) {

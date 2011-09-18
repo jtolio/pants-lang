@@ -5,17 +5,21 @@ int main(int argc, char **argv) {
   void* raw_swap = NULL;
   union Value dest;
   unsigned int i, j;
-  union Value initial_right_positional_args[10];
-  union Value initial_left_positional_args[2];
-  struct Array right_positional_args = {0, 10, initial_right_positional_args};
-  struct Array left_positional_args = {0, 2, initial_left_positional_args};
+  struct Array right_positional_args;
+  struct Array left_positional_args;
   union Value continuation;
   union Value hidden_object;
   struct ObjectData hidden_object_data;
+  struct ObjectData keyword_args;
+  struct ObjectIterator it;
 
   EXTERNAL_FUNCTION_LABEL = &&c_external__function__call;
 
   GC_INIT();
+
+  initialize_array(&right_positional_args);
+  initialize_array(&left_positional_args);
+  initialize_object(&keyword_args);
 
   globals.c_continuation.t = CLOSURE;
   globals.c_continuation.closure.func = &&c_halt;
@@ -117,12 +121,19 @@ int main(int argc, char **argv) {
 #define REQUIRED_FUNCTION(func) \
   if(func.t != CLOSURE) { \
     dest = make_c_string("cannot call a non-function!"); \
-    THROW_ERROR(hidden_object, dest);\
+    THROW_ERROR(hidden_object, dest); \
+  }
+#define NO_KEYWORD_ARGUMENTS \
+  if(keyword_args.tree != NULL) { \
+    initialize_object(&keyword_args); \
+    dest = make_c_string("no keyword arguments supported for this builtin!"); \
+    THROW_ERROR(hidden_object, dest); \
   }
 
 c_print:
   REQUIRED_FUNCTION(continuation)
   MAX_LEFT_ARGS(0)
+  NO_KEYWORD_ARGUMENTS
   dest.t = NIL;
   for(i = 0; i < right_positional_args.size; ++i) {
     if(i > 0) printf(" ");
@@ -143,6 +154,7 @@ c_print:
 c_println:
   REQUIRED_FUNCTION(continuation)
   MAX_LEFT_ARGS(0)
+  NO_KEYWORD_ARGUMENTS
   dest.t = NIL;
   for(i = 0; i < right_positional_args.size; ++i) {
     if(i > 0) printf(" ");
@@ -165,6 +177,7 @@ c_readln:
   REQUIRED_FUNCTION(continuation)
   MAX_LEFT_ARGS(0)
   MAX_RIGHT_ARGS(0)
+  NO_KEYWORD_ARGUMENTS
   dest.t = NIL;
   builtin_readln(&right_positional_args.data[i], &dest);
   if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
@@ -175,6 +188,7 @@ c_readln:
 
 c_if:
   REQUIRED_FUNCTION(continuation)
+  NO_KEYWORD_ARGUMENTS
   dest.t = NIL;
   if(left_positional_args.size == 1 && right_positional_args.size == 1) {
     if(builtin_istrue(&right_positional_args.data[0], &dest)) {
@@ -212,6 +226,7 @@ c_if:
 
 c_lessthan:
   REQUIRED_FUNCTION(continuation)
+  NO_KEYWORD_ARGUMENTS
   dest.t = NIL;
   if(left_positional_args.size == 1 && right_positional_args.size == 1) {
     right_positional_args.data[0].boolean.value = builtin_less_than(
@@ -233,6 +248,7 @@ c_lessthan:
 
 c_equals:
   REQUIRED_FUNCTION(continuation)
+  NO_KEYWORD_ARGUMENTS
   dest.t = NIL;
   if(left_positional_args.size == 1 && right_positional_args.size == 1) {
     right_positional_args.data[0].boolean.value = builtin_equals(
@@ -260,6 +276,7 @@ c_equals:
 
 c_add:
   REQUIRED_FUNCTION(continuation)
+  NO_KEYWORD_ARGUMENTS
   if(left_positional_args.size + right_positional_args.size == 0) {
     MIN_RIGHT_ARGS(1)
   }
@@ -292,6 +309,7 @@ c_add:
 
 c_multiply:
   REQUIRED_FUNCTION(continuation)
+  NO_KEYWORD_ARGUMENTS
   if(left_positional_args.size + right_positional_args.size == 0) {
     MIN_RIGHT_ARGS(1)
   }
@@ -324,6 +342,7 @@ c_multiply:
 
 c_subtract:
   REQUIRED_FUNCTION(continuation)
+  NO_KEYWORD_ARGUMENTS
   dest.t = NIL;
   if(right_positional_args.size == 1) {
     MAX_LEFT_ARGS(1)
@@ -349,6 +368,7 @@ c_subtract:
 
 c_divide:
   REQUIRED_FUNCTION(continuation)
+  NO_KEYWORD_ARGUMENTS
   dest.t = NIL;
   if(left_positional_args.size == 1 && right_positional_args.size == 1) {
     builtin_divide(&left_positional_args.data[0],
@@ -369,6 +389,7 @@ c_divide:
 
 c_modulo:
   REQUIRED_FUNCTION(continuation)
+  NO_KEYWORD_ARGUMENTS
   dest.t = NIL;
   if(left_positional_args.size == 1 && right_positional_args.size == 1) {
     builtin_modulo(&left_positional_args.data[0],
@@ -389,6 +410,7 @@ c_modulo:
 
 c_new__object:
   REQUIRED_FUNCTION(continuation)
+  NO_KEYWORD_ARGUMENTS
   MAX_LEFT_ARGS(0)
   MAX_RIGHT_ARGS(0)
   right_positional_args.size = 1;
@@ -399,6 +421,7 @@ c_new__object:
 
 c_seal__object:
   REQUIRED_FUNCTION(continuation)
+  NO_KEYWORD_ARGUMENTS
   MAX_LEFT_ARGS(0)
   MIN_RIGHT_ARGS(1)
   MAX_RIGHT_ARGS(1)
@@ -414,6 +437,7 @@ c_seal__object:
 
 ho_throw:
   MAX_LEFT_ARGS(0)
+  NO_KEYWORD_ARGUMENTS
   MAX_RIGHT_ARGS(1)
   MIN_RIGHT_ARGS(1)
   printf("Exception thrown!\n => ");
@@ -425,6 +449,7 @@ ho_throw:
 
 c_halt:
   MAX_LEFT_ARGS(0)
+  NO_KEYWORD_ARGUMENTS
   MAX_RIGHT_ARGS(1)
   MIN_RIGHT_ARGS(1)
   switch(right_positional_args.data[0].t) {
@@ -442,6 +467,7 @@ c_halt:
 
 c_Array:
   MAX_LEFT_ARGS(0)
+  NO_KEYWORD_ARGUMENTS
   REQUIRED_FUNCTION(continuation)
   make_array_object(&dest, (struct Array**)&env);
   append_values(env, right_positional_args.data, right_positional_args.size);
@@ -454,6 +480,7 @@ c_Array:
 
 c_external__function__call:
   REQUIRED_FUNCTION(continuation)
+  NO_KEYWORD_ARGUMENTS
   if(!((ExternalFunction)frame)(env, &right_positional_args,
       &left_positional_args, &dest)) {
     THROW_ERROR(hidden_object, dest);
@@ -470,6 +497,7 @@ c_if__main:
   MIN_RIGHT_ARGS(1)
   MAX_RIGHT_ARGS(1)
   REQUIRED_FUNCTION(right_positional_args.data[0])
+  NO_KEYWORD_ARGUMENTS
   continuation = globals.c_continuation;
   dest = right_positional_args.data[0];
   right_positional_args.size = 0;

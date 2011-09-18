@@ -6,8 +6,9 @@ import os, re, subprocess, tempfile, sys, threading, Queue, traceback
 
 TEST_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
     "tests"))
-TEST_EXT = re.compile(r'\.p$')
-COMPILER_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
+PANTS_TEST_EXT = re.compile(r'\.p$')
+C_TEST_EXT = re.compile(r'\.c$')
+PANTS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
     "src", "pants"))
 C_COMPILERS = [["gcc"]] # ["clang"] seems broken or something
 C_LIBRARIES = ["-lgc"]
@@ -22,19 +23,27 @@ def find_tests(explicit_tests):
     explicit_tests = set(explicit_tests)
     filter_tests = True
   for filename in os.listdir(TEST_DIR):
-    if not TEST_EXT.search(filename): continue
-    testname = TEST_EXT.sub('', filename)
-    if os.path.exists(os.path.join(TEST_DIR, "%s.out" % testname)) and (
-        not filter_tests or testname in explicit_tests):
-      yield (os.path.join(TEST_DIR, filename),
-             os.path.join(TEST_DIR, "%s.out" % testname),
-             testname)
+    if PANTS_TEST_EXT.search(filename):
+      testname = PANTS_TEST_EXT.sub('', filename)
+      if os.path.exists(os.path.join(TEST_DIR, "%s.out" % testname)) and (
+          not filter_tests or testname in explicit_tests):
+        yield (os.path.join(TEST_DIR, filename),
+               os.path.join(TEST_DIR, "%s.out" % testname),
+               testname,
+               True)
+    if C_TEST_EXT.search(filename):
+      testname = C_TEST_EXT.sub('', filename)
+      if not filter_tests or testname in explicit_tests:
+        yield (os.path.join(TEST_DIR, filename),
+               None,
+               testname,
+               False)
 
 def translate(source_path):
   in_file = file(source_path)
   fd, path = tempfile.mkstemp(suffix=".c", prefix="test-")
   out_file = os.fdopen(fd, "w")
-  compiler = subprocess.Popen([COMPILER_PATH] + PANTS_OPTIONS, stdin=in_file,
+  compiler = subprocess.Popen([PANTS_PATH] + PANTS_OPTIONS, stdin=in_file,
       stdout=out_file)
   in_file.close()
   out_file.close()
@@ -46,30 +55,40 @@ def translate(source_path):
 def clean_up(output):
   return '\n'.join((x.strip() for x in output.strip().split('\n')))
 
-def run_test(compiler, source, output, testname):
+def run_test(compiler, source, output, testname, needs_translation):
   errors = []
   try:
-    c_source = translate(source)
+    if needs_translation: source = translate(source)
     try:
-      subprocess.check_call(compiler + ["-o", c_source[:-2], c_source] +
+      subprocess.check_call(compiler + ["-o", source[:-2], source] +
           C_LIBRARIES)
-      binary = subprocess.Popen([c_source[:-2]], stdout=subprocess.PIPE)
+      binary = subprocess.Popen([source[:-2]], stdout=subprocess.PIPE)
       binary_output = clean_up(binary.communicate()[0] + ("\nreturn code: %d" %
           binary.returncode))
-      expected_output = clean_up(file(output).read())
-      if binary_output != expected_output:
-        errors.append("\n".join((
-            "test %s" % source,
-            "============== Expected:",
-            expected_output,
-            "============== Received:",
-            binary_output,
-            "",
-            "output mismatch for test %s" % testname)))
-        raise TestError, "output mismatch for test %s" % testname
+      if output is not None:
+        expected_output = clean_up(file(output).read())
+        if binary_output != expected_output:
+          errors.append("\n".join((
+              "test %s" % source,
+              "============== Expected:",
+              expected_output,
+              "============== Received:",
+              binary_output,
+              "",
+              "output mismatch for test %s" % testname)))
+          raise TestError, "output mismatch for test %s" % testname
+      else:
+        if binary.returncode != 0:
+          errors.append("\n".join((
+              "test %s" % source,
+              "============== Output:",
+              binary_output,
+              ""
+              "unexpected returncode for test %s" % testname)))
+          raise TestError, "unexpected returncode for test %s" % testname
     finally:
-      os.unlink(c_source[:-2])
-      os.unlink(c_source)
+      os.unlink(source[:-2])
+      if needs_translation: os.unlink(source)
   except Exception, e:
     errors.append("FAILURE on test %s: %s\n%s" % (testname, e,
         traceback.format_exc()))
@@ -92,8 +111,9 @@ def run_tests(explicit_tests, parallelism):
   job_queue = Queue.Queue()
   errors = Queue.Queue()
   for compiler in C_COMPILERS:
-    for source, output, testname in find_tests(explicit_tests):
-      job_queue.put((compiler, source, output, testname))
+    for source, output, testname, needs_translation in \
+        find_tests(explicit_tests):
+      job_queue.put((compiler, source, output, testname, needs_translation))
       total_tests += 1
   threads = [threading.Thread(target=worker, args=(job_queue, errors))
       for _ in xrange(parallelism)]

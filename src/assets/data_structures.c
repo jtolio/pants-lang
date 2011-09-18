@@ -4,6 +4,7 @@ struct ObjectTree {
   union Value value;
   struct ObjectTree* left;
   struct ObjectTree* right;
+  struct ObjectTree* parent;
 };
 
 struct ObjectData {
@@ -11,15 +12,19 @@ struct ObjectData {
   struct ObjectTree* tree;
 };
 
+static inline void initialize_object(struct ObjectData* data) {
+  data->sealed = false;
+  data->tree = NULL;
+}
+
 static inline void make_object(union Value* v) {
   v->t = OBJECT;
   v->object.data = GC_MALLOC(sizeof(struct ObjectData));
-  v->object.data->sealed = false;
-  v->object.data->tree = NULL;
+  initialize_object(v->object.data);
 }
 
 static inline struct ObjectTree* new_tree_node(char* key, unsigned int key_size,
-    union Value* value) {
+    union Value* value, struct ObjectTree* parent) {
   struct ObjectTree* t;
   t = GC_MALLOC(sizeof(struct ObjectTree));
   t->key = key;
@@ -27,23 +32,25 @@ static inline struct ObjectTree* new_tree_node(char* key, unsigned int key_size,
   t->value = *value;
   t->left = NULL;
   t->right = NULL;
+  t->parent = parent;
   return t;
 }
 
-static void _copy_object(struct ObjectTree* t1, struct ObjectTree** t2) {
+static void _copy_object(struct ObjectTree* t1, struct ObjectTree** t2,
+    struct ObjectTree* t2_parent) {
   if(t1 == NULL) {
     *t2 = NULL;
     return;
   }
-  *t2 = new_tree_node(t1->key, t1->key_size, &t1->value);
-  _copy_object(t1->right, &(*t2)->left);
-  _copy_object(t1->right, &(*t2)->right);
+  *t2 = new_tree_node(t1->key, t1->key_size, &t1->value, t2_parent);
+  _copy_object(t1->right, &(*t2)->left, *t2);
+  _copy_object(t1->right, &(*t2)->right, *t2);
 }
 
 static inline bool copy_object(union Value* o1, union Value* o2) {
   if(o1->t != OBJECT) return false;
   make_object(o2);
-  _copy_object(o1->object.data->tree, &o2->object.data->tree);
+  _copy_object(o1->object.data->tree, &o2->object.data->tree, NULL);
   return true;
 }
 
@@ -52,10 +59,11 @@ static inline void seal_object(struct ObjectData* data) {
 }
 
 static bool _set_field(struct ObjectTree** tree, char* key,
-    unsigned int key_size, union Value* value, bool sealed) {
+    unsigned int key_size, union Value* value, bool sealed,
+    struct ObjectTree* parent) {
   if(*tree == NULL) {
     if(sealed) return false;
-    *tree = new_tree_node(key, key_size, value);
+    *tree = new_tree_node(key, key_size, value, parent);
     return true;
   }
   switch (safe_strcmp(key, key_size, (*tree)->key, (*tree)->key_size)) {
@@ -63,15 +71,15 @@ static bool _set_field(struct ObjectTree** tree, char* key,
       (*tree)->value = *value;
       return true;
     case -1:
-      return _set_field(&(*tree)->left, key, key_size, value, sealed);
+      return _set_field(&(*tree)->left, key, key_size, value, sealed, *tree);
     default:
-      return _set_field(&(*tree)->right, key, key_size, value, sealed);
+      return _set_field(&(*tree)->right, key, key_size, value, sealed, *tree);
   }
 }
 
 static inline bool set_field(struct ObjectData* data, char* key,
     unsigned int key_size, union Value value) {
-  return _set_field(&data->tree, key, key_size, &value, data->sealed);
+  return _set_field(&data->tree, key, key_size, &value, data->sealed, NULL);
 }
 
 static bool _get_field(struct ObjectTree* tree, char* key,
@@ -93,12 +101,68 @@ static inline bool get_field(struct ObjectData* data, char* key,
   return _get_field(data->tree, key, key_size, value);
 }
 
-static inline struct Array* make_array() {
-  struct Array* array;
-  array = GC_MALLOC(sizeof(struct Array));
+struct ObjectIterator {
+  struct ObjectTree* current_node;
+  bool complete;
+};
+
+static inline struct ObjectTree* object_iterator_current_node(
+    struct ObjectIterator* it) {
+  return it->current_node;
+}
+
+static inline bool object_iterator_complete(struct ObjectIterator* it) {
+  return it->complete;
+}
+
+static inline void object_iterator_step(struct ObjectIterator* it) {
+  // if you're on a node, you can assume both of your subtrees are complete.
+  // so, the next node of a given node is defined thusly:
+  //  if your parent is null you're done.
+  //  if you are a left descendant of your parent, then the next node is your
+  //  parent's right child's leftmost descendant, assuming there is one.
+  //  otherwise, your parent is the next node.
+
+  if(it->current_node == NULL || it->current_node->parent == NULL) {
+    it->complete = true;
+    return;
+  }
+  if(it->current_node == it->current_node->parent->right ||
+      it->current_node->parent->right == NULL) {
+    it->current_node = it->current_node->parent;
+    return;
+  }
+  it->current_node = it->current_node->parent->right;
+  while(it->current_node->left != NULL || it->current_node->right != NULL) {
+    it->current_node = it->current_node->left != NULL ?
+        it->current_node->left : it->current_node->right;
+  }
+}
+
+static inline void initialize_object_iterator(struct ObjectIterator* it,
+    struct ObjectData* data) {
+  if(data->tree == NULL) {
+    it->complete = true;
+    return;
+  }
+  it->current_node = data->tree;
+  it->complete = false;
+  while(it->current_node->left != NULL || it->current_node->right != NULL) {
+    it->current_node = it->current_node->left != NULL ?
+        it->current_node->left : it->current_node->right;
+  }
+}
+
+static inline void initialize_array(struct Array* array) {
   array->size = 0;
   array->highwater = MIN_ARRAY_SIZE;
   array->data = GC_MALLOC(sizeof(union Value) * MIN_ARRAY_SIZE);
+}
+
+static inline struct Array* make_array() {
+  struct Array* array;
+  array = GC_MALLOC(sizeof(struct Array));
+  initialize_array(array);
   return array;
 }
 
