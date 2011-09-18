@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
   DEFINE_BUILTIN(new__object)
   DEFINE_BUILTIN(seal__object)
   DEFINE_BUILTIN(Array)
-  DEFINE_BUILTIN(if__main)
+  DEFINE_BUILTIN(register__main)
 
 #undef DEFINE_BUILTIN
 
@@ -492,7 +492,7 @@ c_external__function__call:
   continuation.t = NIL;
   CALL_FUNC(dest);
 
-c_if__main:
+c_register__main:
   MAX_LEFT_ARGS(0)
   MIN_RIGHT_ARGS(1)
   MAX_RIGHT_ARGS(1)
