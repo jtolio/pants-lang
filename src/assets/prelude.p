@@ -31,8 +31,9 @@ return = { |var| .return-cont var }
 
 construct = { |func|
   obj = new_object.
-  rv = func obj
+  func obj
   seal_object obj
+  obj
 }
 # TODO: actually clear this out of the scope or something
 new_object = null
