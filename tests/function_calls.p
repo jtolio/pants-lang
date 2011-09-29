@@ -1,8 +1,13 @@
+call_wrapper = {|call|
+  {|:(largs);:(rargs),::(kwargs)| call(:(largs); :(rargs),::(kwargs)) }
+}
+
 func1 = {|a,b,c|
   println a b c
 }
 
 func1(b:1,c:2,a:3)
+call_wrapper(func1)(b:1,c:2,a:3)
 
 func2 = {|a,b,:(c)|
   print a b
@@ -15,20 +20,25 @@ func2 = {|a,b,:(c)|
 }
 
 func2(3,4,5)
+call_wrapper(func2)(3,4,5)
 func2(b:1, a:2)
+call_wrapper(func2)(b:1, a:2)
 
 func3 = {|::(d)|
   println d.a d.c
 }
 
 func3(c:4, a:2)
+call_wrapper(func3)(c:4, a:2)
 
 func4 = {|a:3|
   println a
 }
 
 func4.
+call_wrapper(func4).
 func4 1
+call_wrapper(func4) 1
 
 safe_println = {|:(thunks)|
   thunks @each {|thunk|
@@ -59,3 +69,29 @@ func5(1,2,3,4,5,6,7,8)
 func5(1,2)
 func5(1,2,3)
 func5(d:10,a:3,b:1,h:6,f:7)
+call_wrapper(func5)(a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8)
+call_wrapper(func5)(1,2,3,4,5,6,7,8)
+call_wrapper(func5)(1,2)
+call_wrapper(func5)(1,2,3)
+call_wrapper(func5)(d:10,a:3,b:1,h:6,f:7)
+
+println.
+
+times = {|count;func|
+  i = 0
+  loop {
+    break @if (== i count)
+    func i
+    i := + i 1
+  }
+}
+list = []
+100 @times {|i| list.append i }
+
+func2(1000, :(list))
+call_wrapper(func2)(1000, :(list))
+
+func6 = {|b,c,d;e,f,g|
+  println b c d e f g
+}
+5 8 9 @call_wrapper(func6) 3 2 7

@@ -236,7 +236,13 @@ static void write_callable(std::ostream& os, Callable* func,
     throw pants::expectation_failure("too many right arguments");
 
   // if we have any possible named arguments, let's deal with them
-  os << "  named_slots = (1 << right_positional_args.size) - 1;\n"
+  os << "  if(right_positional_args.size > " << right_argument_slots.size()
+     << ") {\n"
+        "    named_slots = " << ((1 << right_argument_slots.size()) - 1)
+     << ";\n"
+        "  } else {\n"
+        "    named_slots = (1 << right_positional_args.size) - 1;\n"
+        "  }\n"
         "  for(initialize_object_iterator(&it, &keyword_args);\n"
         "      !object_iterator_complete(&it);\n"
         "      object_iterator_step(&it)) {\n"
