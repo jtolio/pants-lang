@@ -273,6 +273,12 @@ public:
       outfunc->left_positional_args.push_back(ir::PositionalInArgument(
           ir::Name(infunc->left_required_args[i].name)));
     }
+    outfunc->left_optional_args.reserve(infunc->left_optional_args.size());
+    for(unsigned int i = 0; i < infunc->left_optional_args.size(); ++i) {
+      infunc->left_optional_args[i].application->accept(this);
+      outfunc->left_optional_args.push_back(ir::OptionalInArgument(
+          ir::Name(infunc->left_optional_args[i].name), *m_lastval));
+    }
     if(!!infunc->left_arbitrary_arg)
       outfunc->left_arbitrary_arg = ir::ArbitraryInArgument(
           ir::Name(infunc->left_arbitrary_arg->name));

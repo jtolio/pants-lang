@@ -220,6 +220,7 @@ namespace ir {
     std::vector<PTR<Expression> > expressions;
     Name lastval;
     std::vector<PositionalInArgument> left_positional_args;
+    std::vector<OptionalInArgument> left_optional_args;
     boost::optional<ArbitraryInArgument> left_arbitrary_arg;
     std::vector<PositionalInArgument> right_positional_args;
     std::vector<OptionalInArgument> right_optional_args;

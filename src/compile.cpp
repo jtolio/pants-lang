@@ -235,6 +235,9 @@ static void write_callable(std::ostream& os, Callable* func,
   if(right_argument_slots.size() >= 64)
     throw pants::expectation_failure("too many right arguments");
 
+  if(func->left_optional_args.size() > 0)
+    throw pants::expectation_failure("TODO: left optional arguments");
+
   // if we have any possible named arguments, let's deal with them
   os << "  if(right_positional_args.size > " << right_argument_slots.size()
      << ") {\n"

@@ -159,6 +159,7 @@ namespace cps {
     Callable(bool function_) : varid(m_varcount++), function(function_) {}
     PTR<Expression> expression;
     std::vector<Name> left_positional_args;
+    std::vector<Definition> left_optional_args;
     boost::optional<Name> left_arbitrary_arg;
     std::vector<Name> right_positional_args;
     std::vector<Definition> right_optional_args;

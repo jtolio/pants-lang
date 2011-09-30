@@ -216,6 +216,7 @@ namespace ast {
     Function(const boost::optional<InArgList>& args_,
         const std::vector<PTR<Expression> >& expressions_);
     std::vector<RequiredInArgument> left_required_args;
+    std::vector<OptionalInArgument> left_optional_args;
     boost::optional<ArbitraryInArgument> left_arbitrary_arg;
     std::vector<RequiredInArgument> right_required_args;
     std::vector<OptionalInArgument> right_optional_args;

@@ -195,6 +195,13 @@ public:
       new_func->left_positional_args.push_back(
           old_func->left_positional_args[i].variable);
     }
+    new_func->left_optional_args.reserve(
+        old_func->left_optional_args.size());
+    for(unsigned int i = 0; i < old_func->left_optional_args.size(); ++i) {
+      new_func->left_optional_args.push_back(cps::Definition(
+          old_func->left_optional_args[i].variable,
+          old_func->left_optional_args[i].defaultval));
+    }
     if(!!old_func->left_arbitrary_arg) {
       new_func->left_arbitrary_arg =
           old_func->left_arbitrary_arg.get().variable;
@@ -358,6 +365,8 @@ void cps::Callable::arg_names(std::set<cps::Name>& names) {
   std::set<cps::Name> args;
   for(unsigned int i = 0; i < left_positional_args.size(); ++i)
     add_unique_name(args, left_positional_args[i]);
+  for(unsigned int i = 0; i < left_optional_args.size(); ++i)
+    add_unique_name(args, left_optional_args[i].key);
   if(!!left_arbitrary_arg) add_unique_name(args, left_arbitrary_arg.get());
   for(unsigned int i = 0; i < right_positional_args.size(); ++i)
     add_unique_name(args, right_positional_args[i]);
@@ -383,6 +392,8 @@ void cps::Callable::free_names(std::set<cps::Name>& names) {
   for(std::set<Name>::iterator it(new_names.begin());
       it != new_names.end(); ++it)
     names.insert(*it);
+  for(unsigned int i = 0; i < left_optional_args.size(); ++i)
+    names.insert(left_optional_args[i].value);
   for(unsigned int i = 0; i < right_optional_args.size(); ++i)
     names.insert(right_optional_args[i].value);
 }

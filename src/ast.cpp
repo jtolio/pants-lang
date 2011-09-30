@@ -249,8 +249,8 @@ pants::ast::Function::Function(const boost::optional<InArgList>& args_,
         throw pants::expectation_failure("left keyword argument not "
             "supported");
       } else if(dynamic_cast<OptionalInArgument*>(left_args[i].get())) {
-        throw pants::expectation_failure("left optional argument not "
-            "supported");
+        left_optional_args.push_back(
+            *((OptionalInArgument*)left_args[i].get()));
       } else {
         throw pants::expectation_failure("unknown argument type");
       }
