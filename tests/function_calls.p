@@ -79,8 +79,7 @@ println.
 
 times = {|count;func|
   i = 0
-  loop {
-    break @if (== i count)
+  while {!= i count} {
     func i
     i := + i 1
   }

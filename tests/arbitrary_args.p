@@ -24,15 +24,15 @@ func.
 "hey" "there" @func "dude" "this" "is" "cool"
 func "whoa" "nelly" 1 2 3
 
-func = {|x, y, :(left);|
+func = {|:(left), x, y;|
+  left @each {|z| println z}
   println "x:" x
   println "y:" y
-  left @each {|z| println z}
 }
 
 1 2 3 4 @func
 
-println "================="
+println "---------------"
 
 func = {|x, y, z|
   println x y z

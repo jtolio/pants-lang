@@ -128,9 +128,10 @@ class ValueWriter : public ValueVisitor {
       m_lastval = m_context->valAccess(var->variable);
     }
     void visit(Integer* integer) {
-      *m_os << "  dest.t = INTEGER;\n"
-               "  dest.integer.value = " << integer->value << ";\n";
-      m_lastval = "dest";
+      std::ostringstream os;
+      os << "(union Value){.integer = (struct Integer){INTEGER, "
+         << integer->value << "}}";
+      m_lastval = os.str();
     }
     void visit(String* str) {
       *m_os << "  dest.t = STRING;\n"
@@ -142,9 +143,10 @@ class ValueWriter : public ValueVisitor {
       m_lastval = "dest";
     }
     void visit(Float* floating) {
-      *m_os << "  dest.t = FLOAT;\n"
-               "  dest.floating.value = " << floating->value << ";\n";
-      m_lastval = "dest";
+      std::ostringstream os;
+      os << "(union Value){.floating = (struct Float){FLOAT, "
+         << floating->value << "}}";
+      m_lastval = os.str();
     }
     void visit(Callable* func) {
       std::set<Name> free_names;
@@ -179,7 +181,7 @@ static void write_callable(std::ostream& os, Callable* func,
     VariableContext* context, NameSetManager* namesets) {
   // TODO: don't generate code we know we don't need!
   //   * don't generate keyword argument stuff for non-functions or functions
-  //     with no right arguments.
+  //     with no arguments.
   //   * don't deal with keyword arguments if none are passed in
   //   * don't require slot checking for arguments with default values.
 
@@ -208,70 +210,112 @@ static void write_callable(std::ostream& os, Callable* func,
 
   // alright, go through and find all the names and positions of possible
   // keyword arguments. note that they only can live on the right side.
-  std::map<Name, unsigned int> right_argument_slots;
+  std::map<Name, std::pair<unsigned int, unsigned int> > argument_slots;
   for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
-    if(right_argument_slots.find(func->right_positional_args[i]) !=
-        right_argument_slots.end()) {
+    if(argument_slots.find(func->right_positional_args[i]) !=
+        argument_slots.end()) {
       // hopefully this has already been checked earlier in the compilation
       // stack. TODO: check and make sure
       throw pants::expectation_failure("argument name collision");
     }
-    right_argument_slots[func->right_positional_args[i]] = i;
+    argument_slots[func->right_positional_args[i]].first = i;
+    argument_slots[func->right_positional_args[i]].second = 1;
   }
   for(unsigned int i = 0; i < func->right_optional_args.size(); ++i) {
-    if(right_argument_slots.find(func->right_optional_args[i].key) !=
-        right_argument_slots.end()) {
+    if(argument_slots.find(func->right_optional_args[i].key) !=
+        argument_slots.end()) {
       // hopefully this has already been checked earlier in the compilation
       // stack. TODO: check and make sure
       throw pants::expectation_failure("argument name collision");
     }
-    right_argument_slots[func->right_optional_args[i].key] = i +
+    argument_slots[func->right_optional_args[i].key].first = i +
         func->right_positional_args.size();
+    argument_slots[func->right_optional_args[i].key].second = 1;
   }
+  for(unsigned int i = 0; i < func->left_positional_args.size(); ++i) {
+    if(argument_slots.find(func->left_positional_args[i]) !=
+        argument_slots.end()) {
+      // hopefully this has already been checked earlier in the compilation
+      // stack. TODO: check and make sure
+      throw pants::expectation_failure("argument name collision");
+    }
+    argument_slots[func->left_positional_args[i]].first =
+        func->left_positional_args.size() - i - 1;
+    argument_slots[func->left_positional_args[i]].second = 0;
+  }
+  for(unsigned int i = 0; i < func->left_optional_args.size(); ++i) {
+    if(argument_slots.find(func->left_optional_args[i].key) !=
+        argument_slots.end()) {
+      // hopefully this has already been checked earlier in the compilation
+      // stack. TODO: check and make sure
+      throw pants::expectation_failure("argument name collision");
+    }
+    argument_slots[func->left_optional_args[i].key].first =
+        func->left_optional_args.size() - i - 1
+        + func->left_positional_args.size();
+    argument_slots[func->left_optional_args[i].key].second = 0;
+  }
+  unsigned int right_argument_slots =
+      func->right_positional_args.size() + func->right_optional_args.size();
+  unsigned int left_argument_slots =
+      func->left_positional_args.size() + func->left_optional_args.size();
 
-  // we're using a 64 bit unsigned integer to keep track of right argument
-  // slots, so, we can't go over 64. TODO: actually make the limit 64 and not
-  // 63.
-  if(right_argument_slots.size() >= 64)
+  // we're using a 64 bit unsigned integer to keep track of argument slots, so,
+  // we can't go over 64. TODO: actually make the limit 64 and not 63.
+  if(right_argument_slots >= 64)
     throw pants::expectation_failure("too many right arguments");
-
-  if(func->left_optional_args.size() > 0)
-    throw pants::expectation_failure("TODO: left optional arguments");
+  if(left_argument_slots >= 64)
+    throw pants::expectation_failure("too many left arguments");
 
   // if we have any possible named arguments, let's deal with them
-  os << "  if(right_positional_args.size > " << right_argument_slots.size()
+  os << "  if(right_positional_args.size > " << right_argument_slots
      << ") {\n"
-        "    named_slots = " << ((1 << right_argument_slots.size()) - 1)
+        "    named_slots[1] = " << ((1 << right_argument_slots) - 1)
      << ";\n"
         "  } else {\n"
-        "    named_slots = (1 << right_positional_args.size) - 1;\n"
+        "    named_slots[1] = (1 << right_positional_args.size) - 1;\n"
         "  }\n"
+        "  if(left_positional_args.size > " << left_argument_slots
+     << ") {\n"
+        "    named_slots[0] = " << ((1 << left_argument_slots) - 1)
+     << ";\n"
+        "  } else {\n"
+        "    named_slots[0] = (1 << left_positional_args.size) - 1;\n"
+        "  }\n"
+//   It's the caller's responsibility to make sure there's enough space for all
+//   the right argument slots (named arguments can be assumed by the caller to
+//   be right arguments)
+//        "  reserve_space(&right_positional_args, " << right_argument_slots
+//     << ");\n"
+        "  reserve_space(&left_positional_args, " << left_argument_slots
+     << ");\n"
         "  for(initialize_object_iterator(&it, &keyword_args);\n"
         "      !object_iterator_complete(&it);\n"
         "      object_iterator_step(&it)) {\n"
-        "    j = " << right_argument_slots.size() << ";\n"
+        "    j = " << argument_slots.size() << ";\n"
         "    i = binary_search(object_iterator_current_node(&it)->key,\n"
         "        (struct ByteArray[]){";
-  for(std::map<Name, unsigned int>::iterator it(
-      right_argument_slots.begin()); it != right_argument_slots.end();
+  for(std::map<Name, std::pair<unsigned int, unsigned int> >::iterator it(
+      argument_slots.begin()); it != argument_slots.end();
       ++it) {
-    if(it != right_argument_slots.begin()) os << ", ";
+    if(it != argument_slots.begin()) os << ", ";
     os << "(struct ByteArray){" << to_bytestring(it->first.c_name())
        << ", " << it->first.c_name().size() << "}";
   }
-  os << "}, " << right_argument_slots.size() << ");\n"
+  os << "}, " << argument_slots.size() << ");\n"
         "    switch(i) {\n"
         "      default: break;\n";
   {
     unsigned int i = 0;
-    for(std::map<Name, unsigned int>::iterator it(
-        right_argument_slots.begin()); it != right_argument_slots.end();
+    for(std::map<Name, std::pair<unsigned int, unsigned int> >::iterator it(
+        argument_slots.begin()); it != argument_slots.end();
         ++it, ++i) {
-      os << "      case " << i << ": j = " << it->second << "; break;\n";
+      os << "      case " << i << ": j = " << it->second.first << "; "
+            "i = " << it->second.second << "; break;\n";
     }
   }
   os << "    }\n"
-        "    if(j == " << right_argument_slots.size() << ") {\n";
+        "    if(j == " << argument_slots.size() << ") {\n";
   if(!!func->right_keyword_arg) {
     os << "      set_field("
        << context->valAccess(*func->right_keyword_arg) << ".object.data, "
@@ -285,28 +329,44 @@ static void write_callable(std::ostream& os, Callable* func,
           "object_iterator_current_node(&it)->key.data));\n";
   }
   os << "    }\n"
-        "    if(named_slots & (1 << j)) {\n"
+        "    if(named_slots[i] & (1 << j)) {\n"
         "      THROW_ERROR("
      << context->valAccess(HIDDEN_OBJECT) <<
         ", make_c_string(\"argument %s already provided!\", "
         "object_iterator_current_node(&it)->key.data));\n"
         "    }\n"
-        "    named_slots |= (1 << j);\n"
-        "    right_positional_args.data[j] = "
+        "    named_slots[i] |= (1 << j);\n"
+        "    if(i == 0) {\n"
+        "      left_positional_args.data[j] = "
         "object_iterator_current_node(&it)->value;\n"
+        "    } else {\n"
+        "      right_positional_args.data[j] = "
+        "object_iterator_current_node(&it)->value;\n"
+        "    }\n"
         "  }\n"
         "  initialize_object(&keyword_args);\n";
 
   // okay, now we have all of the provided and named arguments in slots, let's
-  // throw in default values for anything still missing. we
+  // throw in default values for anything still missing.
   for(unsigned int i = 0; i < func->right_optional_args.size(); ++i) {
-    os << "  if(!(named_slots & (1 << "
+    os << "  if(!(named_slots[1] & (1 << "
        << i + func->right_positional_args.size() << "))) {\n"
           "    right_positional_args.data["
        << i + func->right_positional_args.size() << "] = "
        << context->valAccess(func->right_optional_args[i].value) << ";\n"
-       << "    named_slots |= (1 << "
+       << "    named_slots[1] |= (1 << "
        << i + func->right_positional_args.size() << ");\n"
+       << "  }\n";
+  }
+  for(unsigned int i = 0; i < func->left_optional_args.size(); ++i) {
+    os << "  if(!(named_slots[0] & (1 << "
+       << i + func->left_positional_args.size() << "))) {\n"
+          "    left_positional_args.data["
+       << i + func->left_positional_args.size() << "] = "
+       << context->valAccess(func->left_optional_args[
+          func->left_optional_args.size() - i - 1].value) << ";\n"
+       << "    named_slots[0] |= (1 << "
+       << i + func->left_positional_args.size() << ");\n"
        << "  }\n";
   }
 
@@ -316,18 +376,25 @@ static void write_callable(std::ostream& os, Callable* func,
        << ".object.data);\n";
   }
 
-  // left arguments are easy to check if we got enough, let's check those.
-  os << "  MIN_LEFT_ARGS(" << func->left_positional_args.size() << ")\n";
-
-  // check right arguments, make sure we got everything.
-  os << "  if((~named_slots) & ((1 << "
-     << right_argument_slots.size() << ") - 1)) {\n"
+  // check and make sure we got everything.
+  os << "  if((~(named_slots[1])) & ((1 << "
+     << right_argument_slots << ") - 1)) {\n"
         "    THROW_ERROR(" << context->valAccess(HIDDEN_OBJECT) << ", "
         "make_c_string(\"argument missing!\"));\n"
         "  }\n"
-        "  if(right_positional_args.size < " << right_argument_slots.size()
+        "  if(right_positional_args.size < " << right_argument_slots
      << ") {\n"
-        "    right_positional_args.size = " << right_argument_slots.size()
+        "    right_positional_args.size = " << right_argument_slots
+     << ";\n"
+        "  }\n"
+        "  if((~(named_slots[0])) & ((1 << "
+     << left_argument_slots << ") - 1)) {\n"
+        "    THROW_ERROR(" << context->valAccess(HIDDEN_OBJECT) << ", "
+        "make_c_string(\"argument missing!\"));\n"
+        "  }\n"
+        "  if(left_positional_args.size < " << left_argument_slots
+     << ") {\n"
+        "    left_positional_args.size = " << left_argument_slots
      << ";\n"
         "  }\n";
 
@@ -356,7 +423,19 @@ static void write_callable(std::ostream& os, Callable* func,
     context->localDefinition(func->left_positional_args[i]);
     os << "  " << context->varAccess(func->left_positional_args[i]) << " = ";
     if(is_mutated) os << "make_cell(";
-    os << "left_positional_args.data[" << i << "]";
+    os << "left_positional_args.data["
+       << (func->left_positional_args.size() - i - 1) << "]";
+    if(is_mutated) os << ")";
+    os << ";\n";
+  }
+  for(unsigned int i = 0; i < func->left_optional_args.size(); ++i) {
+    bool is_mutated(func->left_optional_args[i].key.user_provided); // TODO
+    context->localDefinition(func->left_optional_args[i].key);
+    os << "  " << context->varAccess(func->left_optional_args[i].key) << " = ";
+    if(is_mutated) os << "make_cell(";
+    os << "left_positional_args.data["
+       << ((func->left_optional_args.size() - i - 1) +
+           func->left_positional_args.size()) << "]";
     if(is_mutated) os << ")";
     os << ";\n";
   }
@@ -367,25 +446,30 @@ static void write_callable(std::ostream& os, Callable* func,
     context->localDefinition(*func->right_arbitrary_arg);
     os << "  make_array_object(&dest, (struct Array**)&raw_swap);\n"
           "  append_values(raw_swap, right_positional_args.data + "
-       << right_argument_slots.size() << ", right_positional_args.size - "
-       << right_argument_slots.size() << ");\n"
+       << right_argument_slots << ", right_positional_args.size - "
+       << right_argument_slots << ");\n"
           "  " << context->varAccess(*func->right_arbitrary_arg) << " = "
        << (is_mutated ? "make_cell(dest);\n" : "dest;\n");
   } else {
-    os << "  MAX_RIGHT_ARGS(" << right_argument_slots.size() << ")\n";
+    os << "  MAX_RIGHT_ARGS(" << right_argument_slots << ")\n";
   }
   if(!!func->left_arbitrary_arg) {
     bool is_mutated(func->left_arbitrary_arg->user_provided); // TODO
     context->localDefinition(*func->left_arbitrary_arg);
     os << "  make_array_object(&dest, (struct Array**)&raw_swap);\n"
-          "  append_values(raw_swap, left_positional_args.data + "
-       << func->left_positional_args.size()
-       << ", left_positional_args.size - "
-       << func->left_positional_args.size() << ");\n"
+          "  reserve_space(raw_swap, left_positional_args.size - "
+       << left_argument_slots << ");\n"
+          "  for(i = 0; i < left_positional_args.size - "
+       << left_argument_slots << "; ++i) {\n"
+          "    ((struct Array*)raw_swap)->data[i] = left_positional_args.data["
+          "left_positional_args.size - i - 1];\n"
+          "  }\n"
+          "  ((struct Array*)raw_swap)->size = left_positional_args.size - "
+       << left_argument_slots << ";\n"
           "  " << context->varAccess(*func->left_arbitrary_arg) << " = "
        << (is_mutated ? "make_cell(dest);\n" : "dest;\n");
   } else {
-    os << "  MAX_LEFT_ARGS(" << func->left_positional_args.size() << ")\n";
+    os << "  MAX_LEFT_ARGS(" << left_argument_slots << ")\n";
   }
 
   // k, we should be set, let's run the function
@@ -478,17 +562,18 @@ class ExpressionWriter : public ExpressionVisitor {
       *m_os << "  left_positional_args.size = "
             << call->left_positional_args.size() << " + i;\n";
 
-      for(unsigned int i = 0; i < call->left_positional_args.size(); ++i) {
-        *m_os << "  left_positional_args.data[" << i << "] = "
-              << m_context->valAccess(call->left_positional_args[i]) << ";\n";
-      }
-
       if(!!call->left_arbitrary_arg) {
         *m_os << "  for(j = 0; j < i; ++j) {\n"
                  "    left_positional_args.data["
-              << call->left_positional_args.size()
-              << " + j] = ((struct Array*)dest.closure.env)->data[j];\n"
+                 "left_positional_args.size - j - 1] = "
+                 "((struct Array*)dest.closure.env)->data[j];\n"
                  "  }\n";
+      }
+
+      for(unsigned int i = 0; i < call->left_positional_args.size(); ++i) {
+        *m_os << "  left_positional_args.data[" << i << "] = "
+              << m_context->valAccess(call->left_positional_args[
+                 call->left_positional_args.size() - i - 1]) << ";\n";
       }
 
       if(call->hidden_object_optional_args.size() > 0) {

@@ -13,8 +13,8 @@ int main(int argc, char **argv) {
   struct ObjectData keyword_args;
   struct ObjectIterator it;
 
-  // This strategy imposes a right argument limit of 64
-  unsigned long long named_slots;
+  // This strategy imposes an argument limit of 64
+  unsigned long long named_slots[2] = {0, 0};
 
   EXTERNAL_FUNCTION_LABEL = &&c_external__function__call;
 
