@@ -1,6 +1,6 @@
 #!../tools/script_wrapper.sh ../src/pants
 
-quicksort = function { |list|
+quicksort = function { |return, list|
   if (<= list.size() 1) { return list }
   left_side = []
   right_side = []

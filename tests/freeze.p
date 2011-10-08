@@ -1,3 +1,10 @@
+function = {|func|
+  {|:(largs); :(rargs), ::(kwargs)|
+    func(:(largs); :(rargs), ::(kwargs); return-cont:cont)
+  }
+}
+return = {|var| .return-cont var}
+
 outside_func = function { |x|
   outside_return = return
   inside_func = function { |y|

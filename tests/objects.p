@@ -1,7 +1,7 @@
-obj = construct { |o|
+obj = (constructor { |o|
   o.field1 = 3
   o.field2 = 4
-}
+})()
 
 println obj
 println obj.field1
