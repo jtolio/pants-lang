@@ -45,7 +45,7 @@ v = ["hello", "mr", "sam"]
 output_list v
 v[2] = "fox"
 output_list v
-v[2] = "poopypants"
+v[2] = "moriarty"
 output_list v
 
 x = []

@@ -12,7 +12,7 @@ PANTS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
     "src", "pants"))
 C_COMPILERS = [["gcc"]] # ["clang"] seems broken or something
 C_LIBRARIES = ["-lgc"]
-PANTS_OPTIONS = ["--no-gc"]
+PANTS_OPTIONS = [] #"--no-gc"]
 
 class Error_(Exception): pass
 class TestError(Error_): pass

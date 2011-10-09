@@ -43,7 +43,7 @@ static void _copy_object(struct ObjectTree* t1, struct ObjectTree** t2,
     return;
   }
   *t2 = new_tree_node(t1->key, &t1->value, t2_parent);
-  _copy_object(t1->right, &(*t2)->left, *t2);
+  _copy_object(t1->left, &(*t2)->left, *t2);
   _copy_object(t1->right, &(*t2)->right, *t2);
 }
 

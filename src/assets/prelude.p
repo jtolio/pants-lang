@@ -28,10 +28,6 @@ unless = {|lblock:null; test, rblock:null|
   } { if test { null } lblock }
 }
 
-assert = {|test, message:"assertion failed"|
-  { throw message } @unless test
-}
-
 while = {|test, body|
   if test() {
     if {{ body(); true }(;;loop-cont:cont)}() {
@@ -47,6 +43,14 @@ function = {|func|
   {|:(largs); :(rargs), ::(kwargs)| func(:(largs); cont, :(rargs), ::(kwargs))}
 }
 
+assert = {|test, message:"assertion failed"|
+  { throw message } @unless test
+}
+assert-raises = function {|return, thunk, expected, message:"assertion failed"|
+  try thunk {|e| assert (== e expected) message; return null}
+  throw message
+}
+
 each = {|:(iterables); func|
   i = 0
   while {< i iterables.size()} {
@@ -58,31 +62,41 @@ each = {|:(iterables); func|
     i := + i 1
   }
 }
-each_with_index = {|:(iterables); func|
+each-with-index = {|:(iterables); func|
   i = 0; each(:(iterables); {|thing| func thing i; i := + i 1 })
+}
+
+fold = {|:(iterables); func|
+  result = null
+  one = false
+  each(:(iterables); {|thing|
+    if one {
+      result := func result thing
+    } {
+      result := thing
+      one := true
+    }
+  })
+  result
 }
 
 # TODO: 'and' and 'or' currently do not support short circuiting.
 and = function {|:(l); return, :(r)|
-  l r @each {|thing| { return thing } @unless thing }
-  true
-}
+  [true] l r @fold {|x, y| if x {y} {return x}}}
 or = function {|:(l); return, :(r)|
-  l r @each {|thing| { return thing } @if thing }
-  false
-}
+  [false] l r @fold {|x, y| if x {return x} {y}}}
 not = {|val| if val { false } { true }}
 
+throws = function {|return, thunk| try thunk {|e| return true}; false }
+safe = {|thunk| not throws(thunk)}
+
 binary_function = {|func|
-  {|:(largs); arg, :(rargs)|
-    if (< 0 largs.size()) {
-      assert (== largs.size() 1) "only one left argument expected"
-      assert (== rargs.size() 0) "one left and two right arguments unexpected"
-      func largs[0] arg
-    } {
-      assert (== rargs.size() 1) "only two right arguments expected"
-      func arg rargs[0]
-    }
+  {|:(largs); :(rargs)|
+    # TODO: array concatenation plz
+    args = []
+    largs rargs @each {|x| args.append x}
+    assert (== args.size() 2) "exactly two arguments expected"
+    func args[0] args[1]
   }
 }
 

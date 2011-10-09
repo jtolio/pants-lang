@@ -1,4 +1,4 @@
-int main(int argc, char **argv) {
+int gc_main(int argc, char **argv) {
   struct nameset_1 globals;
   void* env = NULL;
   void* frame = &globals;
@@ -17,8 +17,6 @@ int main(int argc, char **argv) {
   unsigned long long named_slots[2] = {0, 0};
 
   EXTERNAL_FUNCTION_LABEL = &&c_external__function__call;
-
-  GC_INIT();
 
   initialize_array(&right_positional_args);
   initialize_array(&left_positional_args);
