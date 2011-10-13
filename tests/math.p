@@ -1,3 +1,5 @@
+# PANTS OPTIONS: --skip-prelude
+
 println (3 /. 4)
 println (10 /. 2)
 println (- 1)

@@ -1,3 +1,39 @@
+# PANTS OPTIONS: --skip-prelude
+
+freeze = {|func|
+  k = null; sub_k = null; sub_arg = null
+  if {k := cont; false}() { sub_k func(sub_arg) }
+  {|arg| sub_k := cont; sub_arg := arg; k true }
+}
+
+try = {|body, handler|
+  k = cont; h = freeze handler
+  throw_dynamic_var.call {|e| k h(e)} body
+}
+throw = {|e| throw_dynamic_var.get() e}
+
+while = {|test, body|
+  if test() {
+    body()
+    while test body
+  }
+}
+
+each = {|:(iterables); func|
+  i = 0
+  while {< i iterables.size()} {
+    j = 0
+    while {< j iterables[i].size()} {
+      func iterables[i][j]
+      j := + j 1
+    }
+    i := + i 1
+  }
+}
+
+not = {|val| if val { false } { true }}
+!= = { |left, right| (not (== left right)) }
+
 call_wrapper = {|call|
   {|:(largs);:(rargs),::(kwargs)| call(:(largs); :(rargs),::(kwargs)) }
 }

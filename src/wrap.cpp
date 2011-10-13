@@ -13,6 +13,8 @@ void pants::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
 
 //  BIND_NAME_VAL(DICT_CONSTRUCTOR, Name("Dictionary", false));
   BIND_NAME_VAL(ARRAY_CONSTRUCTOR, Name("Array", false));
+  BIND_NAME("DynamicVar");
+  BIND_NAME("throw_dynamic_var");
   BIND_NAME("new_object");
   BIND_NAME("seal_object");
   BIND_NAME("if");
@@ -46,6 +48,8 @@ void pants::wrap::provided_names(std::set<Name>& names) {
 
 //  ADD_NAME("Dictionary");
   ADD_NAME("Array");
+  ADD_NAME("DynamicVar");
+  ADD_NAME("throw_dynamic_var");
   ADD_NAME("new_object");
   ADD_NAME("seal_object");
   ADD_NAME("if");
@@ -69,5 +73,5 @@ void pants::wrap::provided_names(std::set<Name>& names) {
 
   names.insert(NULL_VALUE);
   names.insert(CONTINUATION);
-  names.insert(HIDDEN_OBJECT);
+  names.insert(DYNAMIC_VARS);
 }

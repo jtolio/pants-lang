@@ -15,7 +15,7 @@ namespace ast {
   struct ArbitraryInArgument; struct KeywordInArgument;
   struct RequiredOutArgument; struct OptionalOutArgument;
   struct ArbitraryOutArgument; struct KeywordOutArgument;
-  struct OpenCall; struct ClosedCall; struct Field; struct HiddenObjectField;
+  struct OpenCall; struct ClosedCall; struct Field;
 
   struct AstVisitor {
     virtual void visit(Term*) = 0;
@@ -35,7 +35,6 @@ namespace ast {
     virtual void visit(ClosedCall*) = 0;
     virtual void visit(Field*) = 0;
     virtual void visit(Index*) = 0;
-    virtual void visit(HiddenObjectField*) = 0;
   };
 
   struct Expression {
@@ -154,13 +153,6 @@ namespace ast {
     void accept(AstVisitor* visitor) { visitor->visit(this); }
   };
 
-  struct HiddenObjectField : public Value {
-    HiddenObjectField(const std::string& name_) : name(name_) {}
-    std::string format() const;
-    std::string name;
-    void accept(AstVisitor* visitor) { visitor->visit(this); }
-  };
-
   struct DictDefinition {
     PTR<Expression> key;
     PTR<Expression> value;
@@ -262,15 +254,10 @@ namespace ast {
   struct ClosedCall : public ValueModifier {
     ClosedCall() {}
     ClosedCall(const std::vector<PTR<OutArgument> >& right_args_)
-      { init(std::vector<PTR<OutArgument> >(), right_args_,
-          std::vector<PTR<OutArgument> >()); }
+      { init(std::vector<PTR<OutArgument> >(), right_args_); }
     ClosedCall(const std::vector<PTR<OutArgument> >& left_args_,
                const std::vector<PTR<OutArgument> >& right_args_)
-      { init(left_args_, right_args_, std::vector<PTR<OutArgument> >()); }
-    ClosedCall(const std::vector<PTR<OutArgument> >& left_args_,
-               const std::vector<PTR<OutArgument> >& right_args_,
-               const std::vector<PTR<OutArgument> >& hidden_object_args_)
-      { init(left_args_, right_args_, hidden_object_args_); }
+      { init(left_args_, right_args_); }
 
     std::vector<RequiredOutArgument> left_required_args;
     boost::optional<ArbitraryOutArgument> left_arbitrary_arg;
@@ -278,14 +265,12 @@ namespace ast {
     std::vector<OptionalOutArgument> right_optional_args;
     boost::optional<ArbitraryOutArgument> right_arbitrary_arg;
     boost::optional<KeywordOutArgument> right_keyword_arg;
-    std::vector<OptionalOutArgument> hidden_object_optional_args;
 
     std::string format() const;
     void accept(AstVisitor* visitor) { visitor->visit(this); }
     private: void init(
       const std::vector<PTR<OutArgument> >& left_args_,
-      const std::vector<PTR<OutArgument> >& right_args_,
-      const std::vector<PTR<OutArgument> >& hidden_object_args_);
+      const std::vector<PTR<OutArgument> >& right_args_);
 
   };
 

@@ -1,9 +1,10 @@
+function_dynamic_var = DynamicVar()
 function = {|func|
   {|:(largs); :(rargs), ::(kwargs)|
-    func(:(largs); :(rargs), ::(kwargs); return-cont:cont)
+    function_dynamic_var.call cont { func(:(largs); :(rargs), ::(kwargs)) }
   }
 }
-return = {|var| .return-cont var}
+return = {|var| function_dynamic_var.get() var}
 
 outside_func = function { |x|
   outside_return = return

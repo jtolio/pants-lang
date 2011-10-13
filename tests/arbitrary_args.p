@@ -1,3 +1,24 @@
+# PANTS OPTIONS: --skip-prelude
+
+while = {|test, body|
+  if test() {
+    body()
+    while test body
+  }
+}
+
+each = {|:(iterables); func|
+  i = 0
+  while {< i iterables.size()} {
+    j = 0
+    while {< j iterables[i].size()} {
+      func iterables[i][j]
+      j := + j 1
+    }
+    i := + i 1
+  }
+}
+
 func = {|x, :(y)|
   println x "*"
   y @each {|x| println x}

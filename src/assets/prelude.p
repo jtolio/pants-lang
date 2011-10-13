@@ -10,33 +10,45 @@ constructor = {|func|
 new_object = null
 seal_object = null
 
-freeze = {|macro|
-  k = null; sub_k = null; sub_arg = null
-  if {k := cont; false}() { sub_k macro(sub_arg) }
-  {|arg| sub_k := cont; sub_arg := arg; k true }
+freeze = {|func|
+  k = null; sub_k = null; sub_largs = null; sub_rargs = null; sub_kwargs = null;
+  if {k := cont; false}() {
+    sub_k func(:(sub_largs); :(sub_rargs), ::(sub_kwargs))
+  }
+  {|:(largs); :(rargs), ::(kwargs)|
+    sub_k := cont
+    sub_largs := largs
+    sub_rargs := rargs
+    sub_kwargs := kwargs
+    k true
+  }
 }
 
 try = {|body, handler|
-  exception-cont = cont
-  exception-handler = freeze handler
-  body(;;throw:{|e| exception-cont exception-handler(e)})
+  k = cont; h = freeze handler
+  throw_dynamic_var.call {|e| k h(e)} body
 }
-throw = {|e| .throw e}
+throw = {|e| throw_dynamic_var.get() e}
+# TODO: actually clear this out of the scope or something
+throw_dynamic_var = null
 
 unless = {|lblock:null; test, rblock:null|
   if (== lblock null) { if test { null } rblock
   } { if test { null } lblock }
 }
 
+while_dynamic_var = DynamicVar()
 while = {|test, body|
   if test() {
-    if {{ body(); true }(;;loop-cont:cont)}() {
+    if { while_dynamic_var.call cont { body(); true } }() {
       while test body
     }
   }
 }
-break = { .loop-cont false }
-continue = { .loop-cont true }
+break = { while_dynamic_var.get() false }
+continue = { while_dynamic_var.get() true }
+# TODO: actually clear this out of the scope or something
+while_dynamic_var = null
 loop = {|body| while {true} body }
 
 function = {|func|

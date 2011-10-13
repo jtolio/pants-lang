@@ -8,13 +8,14 @@ int gc_main(int argc, char **argv) {
   struct Array right_positional_args;
   struct Array left_positional_args;
   union Value continuation;
-  union Value hidden_object;
-  struct ObjectData hidden_object_data;
+  union Value dynamic_vars;
+  struct ObjectData dynamic_vars_data;
   struct ObjectData keyword_args;
   struct ObjectIterator it;
 
   // This strategy imposes an argument limit of 64
   unsigned long long named_slots[2] = {0, 0};
+  unsigned long long dynamic_var_counter = 0;
 
   EXTERNAL_FUNCTION_LABEL = &&c_external__function__call;
 
@@ -33,10 +34,9 @@ int gc_main(int argc, char **argv) {
   globals.c_false.t = BOOLEAN;
   globals.c_false.boolean.value = false;
 
-  globals.c_hidden__object.t = OBJECT;
-  globals.c_hidden__object.object.data = &hidden_object_data;
-  hidden_object_data.sealed = false;
-  hidden_object_data.tree = NULL;
+  globals.c_dynamic__vars.t = OBJECT;
+  globals.c_dynamic__vars.object.data = &dynamic_vars_data;
+  initialize_object(&dynamic_vars_data);
 
 #define DEFINE_BUILTIN(name) \
   globals.c_##name.t = CLOSURE; \
@@ -58,21 +58,31 @@ int gc_main(int argc, char **argv) {
   DEFINE_BUILTIN(new__object)
   DEFINE_BUILTIN(seal__object)
   DEFINE_BUILTIN(Array)
+  DEFINE_BUILTIN(DynamicVar)
   DEFINE_BUILTIN(register__main)
 
 #undef DEFINE_BUILTIN
 
+  continuation.t = CLOSURE;
+  continuation.closure.env = env;
+  continuation.closure.frame = frame;
+  continuation.closure.func = &&finish_setup;
+  dynamic_vars.t = NIL;
+
+  goto c_DynamicVar;
+
+finish_setup:
+  globals.c_throw__dynamic__var = right_positional_args.data[0];
+  right_positional_args.size = 0;
+  dynamic_vars = globals.c_dynamic__vars;
   dest.t = CLOSURE;
-  dest.closure.func = &&ho_throw;
   dest.closure.env = NULL;
   dest.closure.frame = NULL;
-  set_field(&hidden_object_data, (struct ByteArray){"u_throw", 7}, dest);
-
-  seal_object(&hidden_object_data);
-
+  dest.closure.func = &&ho_throw;
+  set_field(dynamic_vars.object.data, *((
+      struct ByteArray*)globals.c_throw__dynamic__var.object.data->env), dest);
+  seal_object(dynamic_vars.object.data);
   dest.t = NIL;
-  continuation.t = NIL;
-  hidden_object.t = NIL;
 
   goto start;
 
@@ -84,12 +94,13 @@ int gc_main(int argc, char **argv) {
   env = callable.closure.env; \
   frame = callable.closure.frame; \
   goto *callable.closure.func;
-#define THROW_ERROR(current_hidden_object, val) \
+#define THROW_ERROR(current_dynamic_vars, val) \
   right_positional_args.size = 1; \
   right_positional_args.data[0] = val; \
   initialize_object(&keyword_args); \
-  if(!get_field(current_hidden_object.object.data, \
-      (struct ByteArray){"u_throw", 7}, &dest)) { \
+  if(!get_field(current_dynamic_vars.object.data, \
+      *((struct ByteArray*)globals.c_throw__dynamic__var.object.data->env), \
+      &dest)) { \
     FATAL_ERROR("no throw method registered!", globals.c_null); \
   } \
   if(dest.t != CLOSURE) { \
@@ -101,35 +112,35 @@ int gc_main(int argc, char **argv) {
   if(right_positional_args.size < count) { \
     dest = make_c_string("function takes at least %d right arguments, %d " \
         "given.", count, right_positional_args.size); \
-    THROW_ERROR(hidden_object, dest); \
+    THROW_ERROR(dynamic_vars, dest); \
   }
 #define MAX_RIGHT_ARGS(count) \
   if(right_positional_args.size > count) { \
     dest = make_c_string("function takes at most %d right arguments, %d " \
         "given.", count, right_positional_args.size); \
-    THROW_ERROR(hidden_object, dest); \
+    THROW_ERROR(dynamic_vars, dest); \
   }
 #define MIN_LEFT_ARGS(count) \
   if(left_positional_args.size < count) { \
     dest = make_c_string("function takes at least %d left arguments, %d " \
         "given.", count, left_positional_args.size); \
-    THROW_ERROR(hidden_object, dest); \
+    THROW_ERROR(dynamic_vars, dest); \
   }
 #define MAX_LEFT_ARGS(count) \
   if(left_positional_args.size > count) { \
     dest = make_c_string("function takes at most %d left arguments, %d " \
         "given.", count, left_positional_args.size); \
-    THROW_ERROR(hidden_object, dest); \
+    THROW_ERROR(dynamic_vars, dest); \
   }
 #define REQUIRED_FUNCTION(func) \
   if(func.t != CLOSURE) { \
     dest = make_c_string("cannot call a non-function!"); \
-    THROW_ERROR(hidden_object, dest); \
+    THROW_ERROR(dynamic_vars, dest); \
   }
 #define NO_KEYWORD_ARGUMENTS \
   if(keyword_args.tree != NULL) { \
     dest = make_c_string("no keyword arguments supported for this builtin!"); \
-    THROW_ERROR(hidden_object, dest); \
+    THROW_ERROR(dynamic_vars, dest); \
   }
 
 c_print:
@@ -140,7 +151,7 @@ c_print:
   for(i = 0; i < right_positional_args.size; ++i) {
     if(i > 0) printf(" ");
     builtin_print(&right_positional_args.data[i], &dest);
-    if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+    if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
   }
   if(right_positional_args.size > 0) {
     dest = right_positional_args.data[0];
@@ -161,7 +172,7 @@ c_println:
   for(i = 0; i < right_positional_args.size; ++i) {
     if(i > 0) printf(" ");
     builtin_print(&right_positional_args.data[i], &dest);
-    if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+    if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
   }
   printf("\n");
   if(right_positional_args.size > 0) {
@@ -182,7 +193,7 @@ c_readln:
   NO_KEYWORD_ARGUMENTS
   dest.t = NIL;
   builtin_readln(&right_positional_args.data[i], &dest);
-  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+  if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
   right_positional_args.size = 1;
   dest = continuation;
   continuation.t = NIL;
@@ -199,7 +210,7 @@ c_if:
       left_positional_args.size = 0;
       CALL_FUNC(left_positional_args.data[0]);
     }
-    if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+    if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
     left_positional_args.size = 0;
     right_positional_args.data[0].t = NIL;
     dest = continuation;
@@ -214,7 +225,7 @@ c_if:
     right_positional_args.size = 0;
     CALL_FUNC(right_positional_args.data[1])
   }
-  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+  if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
   if(right_positional_args.size == 3) {
     REQUIRED_FUNCTION(right_positional_args.data[2])
     right_positional_args.size = 0;
@@ -240,7 +251,7 @@ c_lessthan:
     right_positional_args.data[0].boolean.value = builtin_less_than(
         &right_positional_args.data[0], &right_positional_args.data[1], &dest);
   }
-  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+  if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
   right_positional_args.data[0].t = BOOLEAN;
   left_positional_args.size = 0;
   right_positional_args.size = 1;
@@ -262,13 +273,13 @@ c_equals:
         &right_positional_args.data[0], &right_positional_args.data[1], &dest);
     for(i = 2; i < right_positional_args.size &&
         right_positional_args.data[0].boolean.value; ++i) {
-      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+      if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
       right_positional_args.data[0].boolean.value = builtin_equals(
           &right_positional_args.data[1], &right_positional_args.data[i],
           &dest);
     }
   }
-  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+  if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
   right_positional_args.data[0].t = BOOLEAN;
   left_positional_args.size = 0;
   right_positional_args.size = 1;
@@ -287,12 +298,12 @@ c_add:
     for(i = 1; i < left_positional_args.size; ++i) {
       builtin_add(&left_positional_args.data[0], &left_positional_args.data[i],
           &left_positional_args.data[0], &dest);
-      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+      if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
     }
     for(i = 0; i < right_positional_args.size; ++i) {
       builtin_add(&left_positional_args.data[0], &right_positional_args.data[i],
           &left_positional_args.data[0], &dest);
-      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+      if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
     }
     right_positional_args.data[0] = left_positional_args.data[0];
   } else {
@@ -300,7 +311,7 @@ c_add:
       builtin_add(&right_positional_args.data[0],
           &right_positional_args.data[i], &right_positional_args.data[0],
           &dest);
-      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+      if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
     }
   }
   left_positional_args.size = 0;
@@ -320,12 +331,12 @@ c_multiply:
     for(i = 1; i < left_positional_args.size; ++i) {
       builtin_multiply(&left_positional_args.data[0],
           &left_positional_args.data[i], &left_positional_args.data[0], &dest);
-      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+      if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
     }
     for(i = 0; i < right_positional_args.size; ++i) {
       builtin_multiply(&left_positional_args.data[0],
           &right_positional_args.data[i], &left_positional_args.data[0], &dest);
-      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+      if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
     }
     right_positional_args.data[0] = left_positional_args.data[0];
   } else {
@@ -333,7 +344,7 @@ c_multiply:
       builtin_multiply(&right_positional_args.data[0],
           &right_positional_args.data[i], &right_positional_args.data[0],
           &dest);
-      if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+      if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
     }
   }
   left_positional_args.size = 0;
@@ -361,7 +372,7 @@ c_subtract:
     builtin_subtract(&right_positional_args.data[0],
         &right_positional_args.data[1], &right_positional_args.data[0], &dest);
   }
-  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+  if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
   left_positional_args.size = 0;
   right_positional_args.size = 1;
   dest = continuation;
@@ -382,7 +393,7 @@ c_divide:
     builtin_divide(&right_positional_args.data[0],
         &right_positional_args.data[1], &right_positional_args.data[0], &dest);
   }
-  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+  if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
   left_positional_args.size = 0;
   right_positional_args.size = 1;
   dest = continuation;
@@ -403,7 +414,7 @@ c_modulo:
     builtin_modulo(&right_positional_args.data[0],
         &right_positional_args.data[1], &right_positional_args.data[0], &dest);
   }
-  if(dest.t != NIL) { THROW_ERROR(hidden_object, dest); }
+  if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
   left_positional_args.size = 0;
   right_positional_args.size = 1;
   dest = continuation;
@@ -429,7 +440,8 @@ c_seal__object:
   MAX_RIGHT_ARGS(1)
   switch(right_positional_args.data[0].t) {
     default:
-      THROW_ERROR(hidden_object, make_c_string("cannot seal non-object!"));
+      dest = make_c_string("cannot seal non-object!");
+      THROW_ERROR(dynamic_vars, dest);
     case OBJECT:
       seal_object(right_positional_args.data[0].object.data);
   }
@@ -480,12 +492,64 @@ c_Array:
   continuation.t = NIL;
   CALL_FUNC(dest);
 
+c_DynamicVar:
+  MAX_LEFT_ARGS(0)
+  MAX_RIGHT_ARGS(0)
+  NO_KEYWORD_ARGUMENTS
+  REQUIRED_FUNCTION(continuation)
+  right_positional_args.size = 1;
+  make_object(&right_positional_args.data[0]);
+  dest.t = CLOSURE;
+  dest.closure.frame = NULL;
+  dest.closure.env = make_key(dynamic_var_counter++);
+  dest.closure.func = &&c_DynamicVar_call;
+  set_field(right_positional_args.data[0].object.data,
+      (struct ByteArray){"u_call", 6}, dest);
+  dest.closure.func = &&c_DynamicVar_get;
+  set_field(right_positional_args.data[0].object.data,
+      (struct ByteArray){"u_get", 5}, dest);
+  seal_object(right_positional_args.data[0].object.data);
+  right_positional_args.data[0].object.data->env = dest.closure.env;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest);
+
+c_DynamicVar_get:
+  MAX_LEFT_ARGS(0)
+  MAX_RIGHT_ARGS(0)
+  NO_KEYWORD_ARGUMENTS
+  REQUIRED_FUNCTION(continuation)
+  right_positional_args.size = 1;
+  if(!(get_field(dynamic_vars.object.data, *((struct ByteArray*)env),
+      &right_positional_args.data[0]))) {
+    dest = make_c_string("dynamic variable missing!");
+    THROW_ERROR(dynamic_vars, dest);
+  }
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest)
+
+c_DynamicVar_call:
+  MAX_LEFT_ARGS(0)
+  MIN_RIGHT_ARGS(2)
+  MAX_RIGHT_ARGS(2)
+  NO_KEYWORD_ARGUMENTS
+  REQUIRED_FUNCTION(continuation)
+  copy_object(&dynamic_vars, &dest);
+  set_field(dest.object.data, *((struct ByteArray*)env),
+      right_positional_args.data[0]);
+  seal_object(dest.object.data);
+  dynamic_vars = dest;
+  dest = right_positional_args.data[1];
+  right_positional_args.size = 0;
+  CALL_FUNC(dest)
+
 c_external__function__call:
   REQUIRED_FUNCTION(continuation)
   NO_KEYWORD_ARGUMENTS
   if(!((ExternalFunction)frame)(env, &right_positional_args,
       &left_positional_args, &dest)) {
-    THROW_ERROR(hidden_object, dest);
+    THROW_ERROR(dynamic_vars, dest);
   }
   right_positional_args.data[0] = dest;
   right_positional_args.size = 1;

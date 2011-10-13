@@ -199,3 +199,16 @@ static inline void dump_value(union Value val) {
       break;
   }
 }
+
+static struct ByteArray* make_key(unsigned long long id) {
+  struct ByteArray* key = GC_MALLOC(sizeof(struct ByteArray) +
+      sizeof(unsigned long long) + 1);
+  unsigned int i = 0;
+  key->data = ((void*)key) + sizeof(struct ByteArray);
+  do {
+    key->data[i++] = id % 256;
+  } while ((id >>= 8) > 0);
+  key->data[i] = 0;
+  key->size = i;
+  return key;
+}

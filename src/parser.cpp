@@ -33,14 +33,12 @@ namespace parser {
     qi::rule<Iterator, PTR<ValueModifier>()> rightopencall;
     qi::rule<Iterator, PTR<ValueModifier>()> closedcall_right;
     qi::rule<Iterator, PTR<ValueModifier>()> closedcall_left;
-    qi::rule<Iterator, PTR<ValueModifier>()> closedcall_hidden;
     qi::rule<Iterator, PTR<ValueModifier>()> index;
     qi::rule<Iterator, PTR<ValueModifier>()> field;
     qi::rule<Iterator, PTR<Value>()> value;
     qi::rule<Iterator, PTR<Value>()> subexpression;
     qi::rule<Iterator, PTR<Value>()> function;
     qi::rule<Iterator, PTR<Value>()> valvariable;
-    qi::rule<Iterator, PTR<Value>()> hiddenobjectfield;
     qi::rule<Iterator, Variable()> variable;
     qi::rule<Iterator, PTR<Value>()> integer;
     qi::rule<Iterator, PTR<Value>()> bytestring;
@@ -148,10 +146,10 @@ namespace parser {
       term.name("term");
 
       trailer = rightopencall | index | field | closedcall_right |
-          closedcall_left | closedcall_hidden;
+          closedcall_left;
       trailer.name("value trailer");
 
-      header = qi::char_("@")[
+      header = qi::char_("@.")[
           qi::_val = phx::construct<PTR<ValueModifier> >(
           phx::new_<OpenCall>())];
       header.name("open call header");
@@ -204,12 +202,6 @@ namespace parser {
           phx::new_<ClosedCall>(qi::_1, qi::_2))];
       closedcall_left.name("left and right args closed call trailer");
 
-      closedcall_hidden = (qi::lit("(") >> S(out_arguments >> ';' >>
-          out_arguments >> ';' >> out_arguments >> ")"))[qi::_val =
-          phx::construct<PTR<ValueModifier> >(phx::new_<ClosedCall>(qi::_1,
-          qi::_2, qi::_3))];
-      closedcall_hidden.name("full closed call trailer");
-
       index = (qi::lit("[") >> S(explist >>
           qi::lit("]")))[qi::_val = phx::construct<PTR<ValueModifier> >(
           phx::new_<Index>(qi::_1))];
@@ -228,8 +220,7 @@ namespace parser {
             | charstring
             | floating
             | dictionary
-            | array
-            | hiddenobjectfield;
+            | array;
       value.name("value");
 
       subexpression = (qi::lit("(") >> S(
@@ -243,11 +234,6 @@ namespace parser {
       valvariable = identifier[qi::_val = phx::construct<PTR<Value> >(
           phx::new_<Variable>(qi::_1))];
       valvariable.name("variable value");
-
-      hiddenobjectfield = qi::lit(".") >> identifier[
-          qi::_val = phx::construct<PTR<Value> >(
-          phx::new_<HiddenObjectField>(qi::_1))];
-      hiddenobjectfield.name("hidden object variable value");
 
       integer = (qi::long_long >> !( qi::lit(".") >> qi::char_(digits)))[
           qi::_val = phx::construct<PTR<Value> >(phx::new_<Integer>(qi::_1))];

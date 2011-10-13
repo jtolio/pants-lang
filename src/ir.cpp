@@ -111,14 +111,6 @@ public:
     *m_lastval = ir::Name(*var);
   }
 
-  void visit(ast::HiddenObjectField* field) {
-    ir::Name val(gensym());
-    m_ir->push_back(PTR<ir::Expression>(new ir::Assignment(val,
-        PTR<ir::Value>(new ir::Field(HIDDEN_OBJECT, ir::Name(field->name,
-        true))), true)));
-    *m_lastval = val;
-  }
-
   void visit(ast::SubExpression* subexp) {
     PTR<ir::Function> scope(new ir::Function(NULL_VALUE));
     ConversionVisitor subvisitor(&scope->expressions, &scope->lastval,
@@ -350,15 +342,6 @@ public:
       visit(&subexp);
       outcall->right_keyword_arg = ir::KeywordOutArgument(*m_lastval);
     }
-    outcall->hidden_object_optional_args.reserve(
-        incall->hidden_object_optional_args.size());
-    for(unsigned int i = 0; i < incall->hidden_object_optional_args.size();
-        ++i) {
-      incall->hidden_object_optional_args[i].application->accept(this);
-      outcall->hidden_object_optional_args.push_back(
-          ir::OptionalOutArgument(ir::Name(
-          incall->hidden_object_optional_args[i].name), *m_lastval));
-    }
     ir::Name name(gensym());
     m_ir->push_back(PTR<ir::Expression>(new ir::ReturnValue(
         name, outcall)));
@@ -572,13 +555,6 @@ std::string pants::ir::Call::format(unsigned int indent_level) const {
   if(!!right_keyword_arg) {
     if(comma_needed) os << ", ";
     os << right_keyword_arg.get().format(indent_level+2);
-  }
-  os << "), HiddenObject(";
-  comma_needed = false;
-  for(unsigned int i = 0; i < hidden_object_optional_args.size(); ++i) {
-    if(comma_needed) os << ", ";
-    os << hidden_object_optional_args[i].format(indent_level+2);
-    comma_needed = true;
   }
   os << "))";
   return os.str();

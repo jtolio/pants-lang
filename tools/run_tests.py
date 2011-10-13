@@ -12,7 +12,8 @@ PANTS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
     "src", "pants"))
 C_COMPILERS = [["gcc"]] # ["clang"] seems broken or something
 C_LIBRARIES = ["-lgc"]
-PANTS_OPTIONS = [] #"--no-gc"]
+PANTS_OPTIONS = []
+PANTS_OPTIONS_HEADER = "# PANTS OPTIONS: "
 
 class Error_(Exception): pass
 class TestError(Error_): pass
@@ -41,10 +42,15 @@ def find_tests(explicit_tests):
 
 def translate(source_path):
   in_file = file(source_path)
+  first_line = in_file.readline().strip()
+  in_file.seek(0, 0)
+  file_specific_options = []
+  if first_line.find(PANTS_OPTIONS_HEADER) == 0:
+    file_specific_options = first_line[len(PANTS_OPTIONS_HEADER):].split(' ')
   fd, path = tempfile.mkstemp(suffix=".c", prefix="test-")
   out_file = os.fdopen(fd, "w")
-  compiler = subprocess.Popen([PANTS_PATH] + PANTS_OPTIONS, stdin=in_file,
-      stdout=out_file)
+  compiler = subprocess.Popen([PANTS_PATH] + PANTS_OPTIONS +
+      file_specific_options, stdin=in_file, stdout=out_file)
   in_file.close()
   out_file.close()
   compiler.communicate()

@@ -47,14 +47,6 @@ std::string cps::Call::format(unsigned int indent_level) const {
     if(comma_needed) os << ",\n" << indent(indent_level+2);
     os << right_keyword_arg.get().format(indent_level+2);
   }
-  os << "),\n" << indent(indent_level+1) << "HiddenObject(\n"
-     << indent(indent_level+2);
-  comma_needed = false;
-  for(unsigned int i = 0; i < hidden_object_optional_args.size(); ++i) {
-    if(comma_needed) os << ",\n" << indent(indent_level+2);
-    os << hidden_object_optional_args[i].format(indent_level+2);
-    comma_needed = true;
-  }
   os << ")";
   if(continuation.get())
     os << ",\n" << indent(indent_level+1) << "Cont("
@@ -281,14 +273,6 @@ public:
       call->right_keyword_arg =
           rv->term->right_keyword_arg.get().variable;
     }
-    call->hidden_object_optional_args.reserve(
-        rv->term->hidden_object_optional_args.size());
-    for(unsigned int i = 0; i < rv->term->hidden_object_optional_args.size();
-        ++i) {
-      call->hidden_object_optional_args.push_back(cps::Definition(
-          rv->term->hidden_object_optional_args[i].key,
-          rv->term->hidden_object_optional_args[i].variable));
-    }
     PTR<cps::Callable> continuation(new cps::Callable(false));
     continuation->right_positional_args.push_back(rv->assignee);
     continuation->expression = *out_ir;
@@ -346,12 +330,10 @@ void cps::Call::free_names(std::set<Name>& names) {
     names.insert(right_positional_args[i]);
   for(unsigned int i = 0; i < right_optional_args.size(); ++i)
     names.insert(right_optional_args[i].value);
-  for(unsigned int i = 0; i < hidden_object_optional_args.size(); ++i)
-    names.insert(hidden_object_optional_args[i].value);
   if(!!right_arbitrary_arg) names.insert(right_arbitrary_arg.get());
   if(!!right_keyword_arg) names.insert(right_keyword_arg.get());
   free_names_in_values(continuation, names);
-  names.insert(HIDDEN_OBJECT);
+  names.insert(DYNAMIC_VARS);
 }
 
 static inline void add_unique_name(std::set<cps::Name>& names,
@@ -375,7 +357,7 @@ void cps::Callable::arg_names(std::set<cps::Name>& names) {
   if(!!right_arbitrary_arg) add_unique_name(args, right_arbitrary_arg.get());
   if(!!right_keyword_arg) add_unique_name(args, right_keyword_arg.get());
   if(function) {
-    add_unique_name(args, HIDDEN_OBJECT);
+    add_unique_name(args, DYNAMIC_VARS);
     add_unique_name(args, CONTINUATION);
   }
   for(std::set<Name>::iterator it(args.begin()); it != args.end(); ++it)

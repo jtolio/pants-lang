@@ -1,3 +1,5 @@
+# PANTS OPTIONS: --skip-prelude
+
 func = { |x|
  k = cont
  if (< x 10) {

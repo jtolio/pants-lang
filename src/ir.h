@@ -9,10 +9,10 @@
 #define DICT_CONSTRUCTOR  ::pants::ir::Name("Dictionary", true)
 #define ARRAY_CONSTRUCTOR ::pants::ir::Name("Array", true)
 #define NULL_VALUE        ::pants::ir::Name("null", false)
-#define HIDDEN_OBJECT     ::pants::ir::Name("hidden_object", false)
 #define CONTINUATION      ::pants::ir::Name("continuation", false)
 #define RETURN            ::pants::ir::Name("cont", true)
 #define THROW             ::pants::ir::Name("throw", true)
+#define DYNAMIC_VARS      ::pants::ir::Name("dynamic_vars", false)
 #define GENSYM_PREFIX     "ir_"
 
 namespace pants {
@@ -176,7 +176,6 @@ namespace ir {
     std::vector<OptionalOutArgument> right_optional_args;
     boost::optional<ArbitraryOutArgument> right_arbitrary_arg;
     boost::optional<KeywordOutArgument> right_keyword_arg;
-    std::vector<OptionalOutArgument> hidden_object_optional_args;
     std::string format(unsigned int indent_level) const;
   };
 

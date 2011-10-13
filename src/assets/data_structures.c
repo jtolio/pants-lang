@@ -10,12 +10,14 @@ struct ObjectData {
   bool sealed;
   struct ObjectTree* tree;
   unsigned int size;
+  void* env;
 };
 
 static inline void initialize_object(struct ObjectData* data) {
   data->sealed = false;
   data->tree = NULL;
   data->size = 0;
+  data->env = NULL;
 }
 
 static inline void make_object(union Value* v) {

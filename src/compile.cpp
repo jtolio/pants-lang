@@ -109,14 +109,14 @@ class ValueWriter : public ValueVisitor {
                "  switch(dest.t) {\n"
                "    default:\n"
                "      THROW_ERROR("
-            << m_context->valAccess(HIDDEN_OBJECT) <<
+            << m_context->valAccess(DYNAMIC_VARS) <<
                ", make_c_string(\"TODO: fields\"));\n"
                "    case OBJECT:\n"
                "      if(!get_field(dest.object.data, (struct ByteArray){"
             << to_bytestring(field->field.c_name()) << ", "
             << field->field.c_name().size() << "}, &dest)) {\n"
                "        THROW_ERROR("
-            << m_context->valAccess(HIDDEN_OBJECT) <<
+            << m_context->valAccess(DYNAMIC_VARS) <<
                ", make_c_string(\"field %s not found!\", "
             << to_bytestring(field->field.c_name()) << "));\n"
                "      }\n"
@@ -189,13 +189,13 @@ static void write_callable(std::ostream& os, Callable* func,
   os << "\n" << func->c_name() << ":\n";
   if(func->function) {
     // if it's actually a function, we want to save off the current
-    // continuation, hidden object, and make a frame
+    // continuation, dynamic vars, and make a frame
     context->localDefinition(CONTINUATION);
-    context->localDefinition(HIDDEN_OBJECT);
+    context->localDefinition(DYNAMIC_VARS);
     os << "  frame = GC_MALLOC(sizeof(struct nameset_" << context->frameID()
        << "));\n"
           "  " << context->varAccess(CONTINUATION) << " = continuation;\n"
-          "  " << context->varAccess(HIDDEN_OBJECT) << " = hidden_object;\n";
+          "  " << context->varAccess(DYNAMIC_VARS) << " = dynamic_vars;\n";
   }
 
   // were we given a right keyword argument? make space so we can add any
@@ -324,14 +324,14 @@ static void write_callable(std::ostream& os, Callable* func,
           "      continue;\n";
   } else {
     os << "      THROW_ERROR("
-       << context->valAccess(HIDDEN_OBJECT) <<
+       << context->valAccess(DYNAMIC_VARS) <<
           ", make_c_string(\"argument %s unknown!\", "
           "object_iterator_current_node(&it)->key.data));\n";
   }
   os << "    }\n"
         "    if(named_slots[i] & (1 << j)) {\n"
         "      THROW_ERROR("
-     << context->valAccess(HIDDEN_OBJECT) <<
+     << context->valAccess(DYNAMIC_VARS) <<
         ", make_c_string(\"argument %s already provided!\", "
         "object_iterator_current_node(&it)->key.data));\n"
         "    }\n"
@@ -379,7 +379,7 @@ static void write_callable(std::ostream& os, Callable* func,
   // check and make sure we got everything.
   os << "  if((~(named_slots[1])) & ((1 << "
      << right_argument_slots << ") - 1)) {\n"
-        "    THROW_ERROR(" << context->valAccess(HIDDEN_OBJECT) << ", "
+        "    THROW_ERROR(" << context->valAccess(DYNAMIC_VARS) << ", "
         "make_c_string(\"argument missing!\"));\n"
         "  }\n"
         "  if(right_positional_args.size < " << right_argument_slots
@@ -389,7 +389,7 @@ static void write_callable(std::ostream& os, Callable* func,
         "  }\n"
         "  if((~(named_slots[0])) & ((1 << "
      << left_argument_slots << ") - 1)) {\n"
-        "    THROW_ERROR(" << context->valAccess(HIDDEN_OBJECT) << ", "
+        "    THROW_ERROR(" << context->valAccess(DYNAMIC_VARS) << ", "
         "make_c_string(\"argument missing!\"));\n"
         "  }\n"
         "  if(left_positional_args.size < " << left_argument_slots
@@ -576,29 +576,11 @@ class ExpressionWriter : public ExpressionVisitor {
                  call->left_positional_args.size() - i - 1]) << ";\n";
       }
 
-      if(call->hidden_object_optional_args.size() > 0) {
-        *m_os << "  copy_object(&" << m_context->valAccess(HIDDEN_OBJECT)
-              << ", &hidden_object);\n";
-        for(unsigned int i = 0; i < call->hidden_object_optional_args.size();
-            ++i) {
-          *m_os << "  set_field(hidden_object.object.data, (struct ByteArray){"
-                << to_bytestring(
-                    call->hidden_object_optional_args[i].key.c_name())
-                << ", "
-                << call->hidden_object_optional_args[i].key.c_name().size()
-                << "}, "
-                << m_context->valAccess(
-                    call->hidden_object_optional_args[i].value)
-                << ");\n";
-        }
-        *m_os << "  seal_object(hidden_object.object.data);\n";
-      } else {
-        *m_os << "  hidden_object = " << m_context->valAccess(HIDDEN_OBJECT)
-              << ";\n";
-      }
-      *m_os << "  dest = " << m_context->valAccess(call->callable) << ";\n"
+      *m_os << "  dynamic_vars = " << m_context->valAccess(DYNAMIC_VARS)
+            << ";\n"
+               "  dest = " << m_context->valAccess(call->callable) << ";\n"
                "  if(dest.t != CLOSURE) {\n"
-               "    THROW_ERROR(" << m_context->valAccess(HIDDEN_OBJECT)
+               "    THROW_ERROR(" << m_context->valAccess(DYNAMIC_VARS)
             << ", make_c_string(\"cannot call a non-function!\"));\n"
                "  }\n"
                "  CALL_FUNC(dest)\n";
@@ -629,14 +611,14 @@ class ExpressionWriter : public ExpressionVisitor {
       *m_os << "  dest = " << m_context->valAccess(mut->object) << ";\n"
                "  switch(dest.t) {\n"
                "    default:\n"
-               "      THROW_ERROR(" << m_context->valAccess(HIDDEN_OBJECT)
+               "      THROW_ERROR(" << m_context->valAccess(DYNAMIC_VARS)
             << ", make_c_string(\"not an object!\"));\n"
                "    case OBJECT:\n"
                "      if(!set_field(dest.object.data, (struct ByteArray){"
             << to_bytestring(mut->field.c_name()) << ", "
             << mut->field.c_name().size() << "}, "
             << m_context->valAccess(mut->value) << ")) {\n"
-               "        THROW_ERROR(" << m_context->valAccess(HIDDEN_OBJECT)
+               "        THROW_ERROR(" << m_context->valAccess(DYNAMIC_VARS)
             << ", make_c_string(\"object %s sealed!\", "
             << to_bytestring(mut->object.c_name()) << "));\n"
                "      }\n"

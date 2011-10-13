@@ -54,12 +54,6 @@ std::string pants::ast::Variable::format() const {
   return os.str();
 }
 
-std::string pants::ast::HiddenObjectField::format() const {
-  std::ostringstream os;
-  os << "HiddenObjectField(" << name << ")";
-  return os.str();
-}
-
 pants::ast::SubExpression::SubExpression(const std::vector<PTR<Expression> >&
     expressions_) {
   expressions.reserve(expressions_.size());
@@ -349,8 +343,7 @@ std::string pants::ast::Index::format() const {
 
 void pants::ast::ClosedCall::init(
     const std::vector<PTR<OutArgument> >& left_args_,
-    const std::vector<PTR<OutArgument> >& right_args_,
-    const std::vector<PTR<OutArgument> >& hidden_object_args_) {
+    const std::vector<PTR<OutArgument> >& right_args_) {
   left_required_args.reserve(left_args_.size());
   for(unsigned int i = 0; i < left_args_.size(); ++i) {
     if(!left_args_[i].get()) continue;
@@ -398,30 +391,6 @@ void pants::ast::ClosedCall::init(
       throw pants::expectation_failure("unknown argument type");
     }
   }
-
-  hidden_object_optional_args.reserve(hidden_object_args_.size());
-  for(unsigned int i = 0; i < hidden_object_args_.size(); ++i) {
-    if(!hidden_object_args_[i].get()) continue;
-    if(dynamic_cast<OptionalOutArgument*>(
-        hidden_object_args_[i].get())) {
-      hidden_object_optional_args.push_back(
-          *((OptionalOutArgument*)hidden_object_args_[i].get()));
-    } else if(dynamic_cast<KeywordOutArgument*>(
-        hidden_object_args_[i].get())) {
-      throw pants::expectation_failure("hidden object keyword argument not "
-          "supported");
-    } else if(dynamic_cast<ArbitraryOutArgument*>(
-        hidden_object_args_[i].get())) {
-      throw pants::expectation_failure("hidden object arbitrary argument not "
-          "supported");
-    } else if(dynamic_cast<RequiredOutArgument*>(
-        hidden_object_args_[i].get())) {
-      throw pants::expectation_failure("hidden object positional argument "
-          "not supported");
-    } else {
-      throw pants::expectation_failure("unknown argument type");
-    }
-  }
 }
 
 std::string pants::ast::ClosedCall::format() const {
@@ -452,11 +421,6 @@ std::string pants::ast::ClosedCall::format() const {
     if(right_required_args.size() + right_optional_args.size() > 0 ||
         !!right_arbitrary_arg) os << ", ";
     os << right_keyword_arg.get().format();
-  }
-  os << "), HiddenObject(";
-  for(unsigned int i = 0; i < hidden_object_optional_args.size(); ++i) {
-    if(i > 0) os << ", ";
-    os << hidden_object_optional_args[i].format();
   }
   os << "))";
   return os.str();
