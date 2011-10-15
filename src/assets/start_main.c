@@ -18,6 +18,7 @@ int gc_main(int argc, char **argv) {
   unsigned long long dynamic_var_counter = 0;
 
   EXTERNAL_FUNCTION_LABEL = &&c_external__function__call;
+  ARRAY_CONSTRUCTOR_LABEL = &&c_Array;
 
   initialize_array(&right_positional_args);
   initialize_array(&left_positional_args);
@@ -508,8 +509,12 @@ c_DynamicVar:
   dest.closure.func = &&c_DynamicVar_get;
   set_field(right_positional_args.data[0].object.data,
       (struct ByteArray){"u_get", 5}, dest);
-  seal_object(right_positional_args.data[0].object.data);
   right_positional_args.data[0].object.data->env = dest.closure.env;
+  dest.closure.env = NULL;
+  dest.closure.func = &&c_DynamicVar;
+  set_field(right_positional_args.data[0].object.data,
+      (struct ByteArray){"u_class", 7}, dest);
+  seal_object(right_positional_args.data[0].object.data);
   dest = continuation;
   continuation.t = NIL;
   CALL_FUNC(dest);

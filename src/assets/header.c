@@ -19,6 +19,7 @@ const unsigned int MIN_ARRAY_SIZE = 10;
 const unsigned int MAX_ARRAY_ADDITION = 4096;
 const char C_STRING_TRUNCATED_MESSAGE[] = "...";
 void* EXTERNAL_FUNCTION_LABEL;
+void* ARRAY_CONSTRUCTOR_LABEL;
 
 enum ValueTag {
   INTEGER,

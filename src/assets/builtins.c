@@ -108,6 +108,9 @@ static inline void make_array_object(union Value* v, struct Array** array) {
 
   make_object(v);
 
+  set_field(v->object.data, (struct ByteArray){"u_class", 7},
+      (union Value){.closure = (struct Closure){CLOSURE,
+      ARRAY_CONSTRUCTOR_LABEL, NULL, NULL}});
   set_field(v->object.data, (struct ByteArray){"u_size", 6},
       make_external_closure(&array_user_size, *array));
   set_field(v->object.data, (struct ByteArray){"u_append", 8},
