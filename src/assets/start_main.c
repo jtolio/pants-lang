@@ -61,6 +61,14 @@ int gc_main(int argc, char **argv) {
   DEFINE_BUILTIN(Array)
   DEFINE_BUILTIN(DynamicVar)
   DEFINE_BUILTIN(register__main)
+  DEFINE_BUILTIN(type)
+  DEFINE_BUILTIN(Integer)
+  DEFINE_BUILTIN(Float)
+  DEFINE_BUILTIN(ByteString)
+  DEFINE_BUILTIN(CharString)
+  DEFINE_BUILTIN(Boolean)
+  DEFINE_BUILTIN(Null)
+  DEFINE_BUILTIN(Function)
 
 #undef DEFINE_BUILTIN
 
@@ -578,5 +586,76 @@ c_register__main:
     right_positional_args.data[i] = make_byte_string(argv[i], strlen(argv[i]));
   }
   CALL_FUNC(dest);
+
+c_type:
+  MAX_LEFT_ARGS(0) MIN_RIGHT_ARGS(1) MAX_RIGHT_ARGS(1)
+  REQUIRED_FUNCTION(continuation) NO_KEYWORD_ARGUMENTS
+  switch(right_positional_args.data[0].t) {
+    case INTEGER:
+      right_positional_args.data[0] = globals.c_Integer; break;
+    case FLOAT:
+      right_positional_args.data[0] = globals.c_Float; break;
+    case STRING:
+      if(right_positional_args.data[0].string.byte_oriented) {
+        right_positional_args.data[0] = globals.c_ByteString;
+      } else {
+        right_positional_args.data[0] = globals.c_CharString;
+      }
+      break;
+    case BOOLEAN:
+      right_positional_args.data[0] = globals.c_Boolean; break;
+    case NIL:
+      right_positional_args.data[0] = globals.c_Null; break;
+    case CLOSURE:
+      right_positional_args.data[0] = globals.c_Function; break;
+    case OBJECT:
+      if(get_field(right_positional_args.data[0].object.data,
+          (struct ByteArray){"u_class", 7}, &dest)) {
+        right_positional_args.data[0] = dest;
+        break;
+      } else {
+        // fall through the switch statement
+      }
+    default:
+      dest = make_c_string("unknown value type");
+      THROW_ERROR(dynamic_vars, dest)
+  }
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest)
+
+c_Integer:
+  dest = make_c_string("TODO: constructor unimplemented!");
+  THROW_ERROR(dynamic_vars, dest)
+c_Float:
+  dest = make_c_string("TODO: constructor unimplemented!");
+  THROW_ERROR(dynamic_vars, dest)
+c_ByteString:
+  dest = make_c_string("TODO: constructor unimplemented!");
+  THROW_ERROR(dynamic_vars, dest)
+c_CharString:
+  dest = make_c_string("TODO: constructor unimplemented!");
+  THROW_ERROR(dynamic_vars, dest)
+c_Boolean:
+  MAX_LEFT_ARGS(0) MIN_RIGHT_ARGS(1) MAX_RIGHT_ARGS(1)
+  REQUIRED_FUNCTION(continuation) NO_KEYWORD_ARGUMENTS
+  dest.t = NIL;
+  right_positional_args.data[0].boolean.value = builtin_istrue(
+      &right_positional_args.data[0], &dest);
+  right_positional_args.data[0].t = BOOLEAN;
+  if(dest.t != NIL) { THROW_ERROR(dynamic_vars, dest); }
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest)
+c_Null:
+  MAX_LEFT_ARGS(0) MAX_RIGHT_ARGS(0)
+  REQUIRED_FUNCTION(continuation) NO_KEYWORD_ARGUMENTS
+  right_positional_args.data[0].t = NIL;
+  dest = continuation;
+  continuation.t = NIL;
+  CALL_FUNC(dest)
+c_Function:
+  dest = make_c_string("Cannot call function constructor directly!");
+  THROW_ERROR(dynamic_vars, dest)
 
 start:

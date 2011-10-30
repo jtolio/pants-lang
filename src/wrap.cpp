@@ -14,12 +14,20 @@ void pants::wrap::ir_prepend(std::vector<PTR<Expression> >& ir) {
 //  BIND_NAME_VAL(DICT_CONSTRUCTOR, Name("Dictionary", false));
   BIND_NAME_VAL(ARRAY_CONSTRUCTOR, Name("Array", false));
   BIND_NAME("DynamicVar");
+  BIND_NAME("Integer");
+  BIND_NAME("Float");
+  BIND_NAME("ByteString");
+  BIND_NAME("CharString");
+  BIND_NAME("Boolean");
+  BIND_NAME("Null");
+  BIND_NAME("Function");
   BIND_NAME("throw_dynamic_var");
   BIND_NAME("new_object");
   BIND_NAME("seal_object");
   BIND_NAME("if");
   BIND_NAME("register_main");
   BIND_NAME("print");
+  BIND_NAME("type");
   BIND_NAME("println");
   BIND_NAME("readln");
 //  BIND_NAME("construct");
@@ -68,6 +76,14 @@ void pants::wrap::provided_names(std::set<Name>& names) {
   ADD_NAME("false");
   ADD_NAME("equals");
   ADD_NAME("lessthan");
+  ADD_NAME("type");
+  ADD_NAME("Integer");
+  ADD_NAME("Float");
+  ADD_NAME("ByteString");
+  ADD_NAME("CharString");
+  ADD_NAME("Boolean");
+  ADD_NAME("Null");
+  ADD_NAME("Function");
 
 #undef ADD_NAME
 
