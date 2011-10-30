@@ -94,11 +94,11 @@ fold = {|:(iterables); func|
   result
 }
 
-# TODO: 'and' and 'or' currently do not support short circuiting.
+demand-thunk = {|val| if (== type(val) Function) val {val} }
 and = function {|:(l); return, :(r)|
-  [true] l r @fold {|x, y| if x {y} {return x}}}
+  [true] l r @fold {|x, y| ans = demand-thunk x; if ans {y} {return ans}}}
 or = function {|:(l); return, :(r)|
-  [false] l r @fold {|x, y| if x {return x} {y}}}
+  [false] l r @fold {|x, y| ans = demand-thunk x; if ans {return ans} {y}}}
 not = {|val| if val { false } { true }}
 
 throws = function {|return, thunk| try thunk {|e| return true}; false }
