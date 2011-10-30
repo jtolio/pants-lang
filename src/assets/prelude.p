@@ -1,12 +1,12 @@
 constructor = {|func|
-  class = {|:(largs); :(rargs), ::(kwargs)|
+  type_constructor = {|:(largs); :(rargs), ::(kwargs)|
     obj = new_object.
-    obj.class = class
+    obj.~type = type_constructor
     func(:(largs); obj, :(rargs), ::(kwargs))
     seal_object obj
     obj
   }
-  class
+  type_constructor
 }
 # TODO: actually clear this out of the scope or something
 new_object = null

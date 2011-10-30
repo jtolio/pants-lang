@@ -521,7 +521,7 @@ c_DynamicVar:
   dest.closure.env = NULL;
   dest.closure.func = &&c_DynamicVar;
   set_field(right_positional_args.data[0].object.data,
-      (struct ByteArray){"u_class", 7}, dest);
+      (struct ByteArray){"u__7etype", 9}, dest);
   seal_object(right_positional_args.data[0].object.data);
   dest = continuation;
   continuation.t = NIL;
@@ -610,7 +610,7 @@ c_type:
       right_positional_args.data[0] = globals.c_Function; break;
     case OBJECT:
       if(get_field(right_positional_args.data[0].object.data,
-          (struct ByteArray){"u_class", 7}, &dest)) {
+          (struct ByteArray){"u__7etype", 9}, &dest)) {
         right_positional_args.data[0] = dest;
         break;
       } else {

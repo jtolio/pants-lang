@@ -108,7 +108,7 @@ static inline void make_array_object(union Value* v, struct Array** array) {
 
   make_object(v);
 
-  set_field(v->object.data, (struct ByteArray){"u_class", 7},
+  set_field(v->object.data, (struct ByteArray){"u__7etype", 9},
       (union Value){.closure = (struct Closure){CLOSURE,
       ARRAY_CONSTRUCTOR_LABEL, NULL, NULL}});
   set_field(v->object.data, (struct ByteArray){"u_size", 6},
