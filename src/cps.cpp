@@ -26,7 +26,8 @@ std::string cps::Call::format(unsigned int indent_level) const {
     if(comma_needed) os << ",\n" << indent(indent_level+2);
     os << left_arbitrary_arg.get().format(indent_level+2);
   }
-  os << "),\n" << indent(indent_level+1) << "Right(\n" << indent(indent_level+2);
+  os << "),\n" << indent(indent_level+1) << "Right(\n"
+     << indent(indent_level + 2);
   comma_needed = false;
   for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
     if(comma_needed) os << ",\n" << indent(indent_level+2);
@@ -95,7 +96,8 @@ std::string cps::Callable::format(unsigned int indent_level) const {
     os << "Arbitrary(" << left_arbitrary_arg.get().format(indent_level+2)
        << ")";
   }
-  os << "),\n" << indent(indent_level+1) << "Right(\n" << indent(indent_level+2);
+  os << "),\n" << indent(indent_level+1) << "Right(\n"
+     << indent(indent_level + 2);
   comma_needed = false;
   for(unsigned int i = 0; i < right_positional_args.size(); ++i) {
     if(comma_needed) os << ",\n" << indent(indent_level+2);;
