@@ -53,18 +53,14 @@ namespace ir {
 
   struct Name {
     Name(const std::string& name_, bool user_provided_)
-      : name(name_), user_provided(user_provided_) { generate_varid(); }
+      : name(name_), user_provided(user_provided_) {}
     Name(const pants::ast::Variable& var)
       : name(var.name), user_provided(var.user_provided)
-    {
-      if(!name.size()) throw expectation_failure("expected variable name");
-      generate_varid();
-    }
+      { if(!name.size()) throw expectation_failure("expected variable name"); }
     std::string format(unsigned int indent_level = 0) const;
     std::string c_name() const;
     std::string name;
     bool user_provided;
-    unsigned int varid;
     bool operator<(const Name& rhs) const {
       if (name < rhs.name) return true;
       if (rhs.name < name) return false;
@@ -72,9 +68,6 @@ namespace ir {
     }
     bool operator==(const Name& rhs) const
       { return name == rhs.name && user_provided == rhs.user_provided; }
-    void generate_varid();
-    private:
-      static std::map<std::string, unsigned int> m_varids;
   };
 
   struct Assignment : public Expression {

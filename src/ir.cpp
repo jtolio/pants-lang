@@ -2,9 +2,6 @@
 
 using namespace pants;
 
-std::map<std::string, unsigned int> ir::Name::m_varids =
-    std::map<std::string, unsigned int>();
-
 class ConversionVisitor : public ast::AstVisitor {
 public:
   ConversionVisitor(std::vector<PTR<ir::Expression> >* ir,
@@ -375,17 +372,6 @@ std::string pants::ir::Name::format(unsigned int) const {
      << "_"
      << name;
   return os.str();
-}
-
-void pants::ir::Name::generate_varid() {
-  if(!user_provided) return;
-  std::map<std::string, unsigned int>::iterator it(m_varids.find(name));
-  if(it != m_varids.end()) {
-    varid = it->second;
-  } else {
-    varid = m_varids.size();
-    m_varids[name] = varid;
-  }
 }
 
 std::string pants::ir::Name::c_name() const {
