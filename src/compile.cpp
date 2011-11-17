@@ -27,8 +27,9 @@ public:
     return os.str();
   }
   std::string valAccess(const Name& name) {
-    if(name.user_provided) {
-      std::ostringstream os; // TODO
+    bool is_mutated(name.user_provided); // TODO
+    if(is_mutated) {
+      std::ostringstream os;
       os << "(*" << varAccess(name) << ".cell.addr)";
       return os.str();
     } else {
