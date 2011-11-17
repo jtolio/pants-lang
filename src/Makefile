@@ -48,4 +48,4 @@ test: run_tests
 	./run_tests
 
 clean:
-	rm -f *.o pants run_tests assets.h assets.cpp
+	git clean -dfX
