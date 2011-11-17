@@ -8,13 +8,13 @@ namespace pants {
 namespace cps {
 
   typedef pants::ir::Name Name;
-  struct Callable; struct Field; struct Variable; struct Integer;
+  struct Callable; struct Field; struct VariableValue; struct Integer;
   struct String; struct Float; struct Callable; struct Call;
   struct Assignment; struct ObjectMutation;
 
   struct ValueVisitor {
     virtual void visit(Field*) = 0;
-    virtual void visit(Variable*) = 0;
+    virtual void visit(VariableValue*) = 0;
     virtual void visit(Integer*) = 0;
     virtual void visit(String*) = 0;
     virtual void visit(Float*) = 0;
@@ -44,8 +44,8 @@ namespace cps {
     Name field;
   };
 
-  struct Variable : public Value {
-    Variable(const Name& variable_) : variable(variable_) {}
+  struct VariableValue : public Value {
+    VariableValue(const Name& variable_) : variable(variable_) {}
     Name variable;
     std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* v) { v->visit(this); }

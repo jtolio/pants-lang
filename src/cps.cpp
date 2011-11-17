@@ -75,9 +75,9 @@ std::string cps::Assignment::format(unsigned int indent_level) const {
   return os.str();
 }
 
-std::string cps::Variable::format(unsigned int indent_level) const {
+std::string cps::VariableValue::format(unsigned int indent_level) const {
   std::ostringstream os;
-  os << "Variable(" << variable.format(indent_level+1) << ")";
+  os << "VariableValue(" << variable.format(indent_level+1) << ")";
   return os.str();
 }
 
@@ -161,7 +161,7 @@ class ValueTranslation : public ir::ValueVisitor {
 public:
   ValueTranslation(PTR<cps::Value>* rv_) : rv(rv_) {}
   void visit(ir::Variable* var) {
-    *rv = PTR<cps::Value>(new cps::Variable(var->variable));
+    *rv = PTR<cps::Value>(new cps::VariableValue(var->variable));
   }
   void visit(ir::Integer* val) {
     *rv = PTR<cps::Value>(new cps::Integer(val->value));

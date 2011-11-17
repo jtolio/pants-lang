@@ -125,7 +125,7 @@ class ValueWriter : public ValueVisitor {
                "  }\n";
       m_lastval = "dest";
     }
-    void visit(Variable* var) {
+    void visit(VariableValue* var) {
       m_lastval = m_context->valAccess(var->variable);
     }
     void visit(Integer* integer) {
