@@ -35,14 +35,17 @@ cps.o: cps.cpp cps.h common.h ir.h
 optimize.o: optimize.cpp optimize.h cps.h ir.h common.h
 	$(CPP) $(CFLAGS) -c optimize.cpp
 
-run_tests.o: run_tests.cpp common.h parser.h ast.h wrap.h ir.h cps.h compile.h optimize.h
+annotate.o: annotate.cpp annotate.h cps.h common.h
+	$(CPP) $(CFLAGS) -c annotate.cpp
+
+run_tests.o: run_tests.cpp common.h parser.h ast.h wrap.h ir.h cps.h compile.h optimize.h annotate.h
 	$(CPP) $(CFLAGS) -c run_tests.cpp
 
-pants: main.o parser.o ast.o wrap.o ir.o cps.o compile.o assets.o optimize.o
-	$(CPP) $(CFLAGS) -o pants main.o ast.o parser.o wrap.o ir.o cps.o compile.o assets.o optimize.o -ldl
+pants: main.o parser.o ast.o wrap.o ir.o cps.o compile.o assets.o optimize.o annotate.o
+	$(CPP) $(CFLAGS) -o pants main.o ast.o parser.o wrap.o ir.o cps.o compile.o assets.o optimize.o annotate.o -ldl
 
-run_tests: run_tests.o parser.o ast.o wrap.o ir.o cps.o compile.o assets.o optimize.o
-	$(CPP) $(CFLAGS) -o run_tests run_tests.o ast.o parser.o wrap.o ir.o cps.o compile.o assets.o optimize.o -lcppunit -ldl
+run_tests: run_tests.o parser.o ast.o wrap.o ir.o cps.o compile.o assets.o optimize.o annotate.o
+	$(CPP) $(CFLAGS) -o run_tests run_tests.o ast.o parser.o wrap.o ir.o cps.o compile.o assets.o optimize.o annotate.o -lcppunit -ldl
 
 test: run_tests
 	./run_tests

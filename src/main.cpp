@@ -7,6 +7,7 @@
 #include "optimize.h"
 #include <iostream>
 #include "assets.h"
+#include "annotate.h"
 
 using namespace pants;
 
@@ -57,6 +58,8 @@ int main(int argc, char** argv) {
     PTR<cps::Expression> cps;
     cps::transform(ir, lastval, cps);
     ir.clear();
+    annotate::varids(cps);
+
     optimize::cps(cps);
 
     compile::compile(cps, std::cout, use_gc);
