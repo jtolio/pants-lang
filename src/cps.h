@@ -27,6 +27,25 @@ namespace cps {
     virtual void visit(ObjectMutation*) = 0;
   };
 
+  class Variable : boost::noncopyable {
+  public:
+    Variable(const Name& name_) : name(name_), m_varidSet(false) {}
+    Name name;
+    void setVarid(unsigned int varid) {
+      m_varidSet = true;
+      m_varid = varid;
+    }
+    unsigned int getVarid() const {
+      if(!m_varidSet) throw expectation_failure("varid unset!");
+      return m_varid;
+    }
+    std::string format(unsigned int indent_level = 0) const
+      { return name.format(indent_level); }
+  private:
+    bool m_varidSet;
+    unsigned int m_varid;
+  };
+
   struct Value {
     virtual ~Value() {}
     virtual std::string format(unsigned int indent_level) const = 0;
@@ -35,21 +54,21 @@ namespace cps {
     protected: Value() {} };
 
   struct Field : public Value {
-    Field(const Name& object_, const Name& field_)
+    Field(PTR<Variable> object_, const Name& field_)
       : object(object_), field(field_) {}
     std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* v) { v->visit(this); }
-    void free_names(std::set<Name>& names) { names.insert(object); }
-    Name object;
+    void free_names(std::set<Name>& names) { names.insert(object->name); }
+    PTR<Variable> object;
     Name field;
   };
 
   struct VariableValue : public Value {
-    VariableValue(const Name& variable_) : variable(variable_) {}
-    Name variable;
+    VariableValue(PTR<Variable> variable_) : variable(variable_) {}
+    PTR<Variable> variable;
     std::string format(unsigned int indent_level) const;
     void accept(ValueVisitor* v) { v->visit(this); }
-    void free_names(std::set<Name>& names) { names.insert(variable); }
+    void free_names(std::set<Name>& names) { names.insert(variable->name); }
   };
 
   struct Integer : public Value {
@@ -78,11 +97,19 @@ namespace cps {
     void free_names(std::set<Name>& names) {}
   };
 
-  struct Definition {
-    Definition(const Name& key_, const Name& value_)
+  struct InDefinition {
+    InDefinition(PTR<Variable> key_, PTR<Variable> value_)
+      : key(key_), value(value_) {}
+    PTR<Variable> key;
+    PTR<Variable> value;
+    std::string format(unsigned int indent_level) const;
+  };
+
+  struct OutDefinition {
+    OutDefinition(const Name& key_, PTR<Variable> value_)
       : key(key_), value(value_) {}
     Name key;
-    Name value;
+    PTR<Variable> value;
     std::string format(unsigned int indent_level) const;
   };
 
@@ -96,14 +123,14 @@ namespace cps {
     protected: Expression() {} };
 
   struct Call : public Expression {
-    Call(const Name& callable_) : callable(callable_) {}
-    Name callable;
-    std::vector<Name> left_positional_args;
-    boost::optional<Name> left_arbitrary_arg;
-    std::vector<Name> right_positional_args;
-    std::vector<Definition> right_optional_args;
-    boost::optional<Name> right_arbitrary_arg;
-    boost::optional<Name> right_keyword_arg;
+    Call(PTR<Variable> callable_) : callable(callable_) {}
+    PTR<Variable> callable;
+    std::vector<PTR<Variable> > left_positional_args;
+    PTR<Variable> left_arbitrary_arg;
+    std::vector<PTR<Variable> > right_positional_args;
+    std::vector<OutDefinition> right_optional_args;
+    PTR<Variable> right_arbitrary_arg;
+    PTR<Variable> right_keyword_arg;
     PTR<Callable> continuation;
     void callables(std::vector<PTR<Callable> >& callables);
     void free_names(std::set<Name>& names);
@@ -113,18 +140,18 @@ namespace cps {
   };
 
   struct Assignment : public Expression {
-    Assignment(const Name& assignee_, PTR<Value> value_, bool local_,
+    Assignment(PTR<Variable> assignee_, PTR<Value> value_, bool local_,
         PTR<Expression> next_expression_)
       : assignee(assignee_), value(value_), local(local_),
         next_expression(next_expression_) {}
-    Name assignee;
+    PTR<Variable> assignee;
     PTR<Value> value;
     bool local;
     PTR<Expression> next_expression;
     void callables(std::vector<PTR<Callable> >& callables);
     void free_names(std::set<Name>& names);
     void frame_names(std::set<Name>& names) {
-      if(local) names.insert(assignee);
+      if(local) names.insert(assignee->name);
       next_expression->frame_names(names);
     }
     std::string format(unsigned int indent_level) const;
@@ -132,20 +159,20 @@ namespace cps {
   };
 
   struct ObjectMutation : public Expression {
-    ObjectMutation(const Name& object_, const Name& field_, const Name& value_,
-        PTR<Expression> next_expression_)
+    ObjectMutation(PTR<Variable> object_, const Name& field_,
+        PTR<Variable> value_, PTR<Expression> next_expression_)
       : object(object_), field(field_), value(value_),
         next_expression(next_expression_) {}
-    Name object;
+    PTR<Variable> object;
     Name field;
-    Name value;
+    PTR<Variable> value;
     PTR<Expression> next_expression;
     void callables(std::vector<PTR<Callable> >& callables)
       { next_expression->callables(callables); }
     void free_names(std::set<Name>& names) {
       next_expression->free_names(names);
-      names.insert(object);
-      names.insert(value);
+      names.insert(object->name);
+      names.insert(value->name);
     }
     void frame_names(std::set<Name>& names) {
       next_expression->frame_names(names);
@@ -157,13 +184,13 @@ namespace cps {
   struct Callable : public Value {
     Callable(bool function_) : varid(m_varcount++), function(function_) {}
     PTR<Expression> expression;
-    std::vector<Name> left_positional_args;
-    std::vector<Definition> left_optional_args;
-    boost::optional<Name> left_arbitrary_arg;
-    std::vector<Name> right_positional_args;
-    std::vector<Definition> right_optional_args;
-    boost::optional<Name> right_arbitrary_arg;
-    boost::optional<Name> right_keyword_arg;
+    std::vector<PTR<Variable> > left_positional_args;
+    std::vector<InDefinition> left_optional_args;
+    PTR<Variable> left_arbitrary_arg;
+    std::vector<PTR<Variable> > right_positional_args;
+    std::vector<InDefinition> right_optional_args;
+    PTR<Variable> right_arbitrary_arg;
+    PTR<Variable> right_keyword_arg;
     unsigned int varid;
     bool function;
     std::string c_name() const {

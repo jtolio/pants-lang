@@ -9,6 +9,7 @@
 #include <map>
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
+#include <boost/noncopyable.hpp>
 #include <stdexcept>
 
 #define PTR boost::shared_ptr

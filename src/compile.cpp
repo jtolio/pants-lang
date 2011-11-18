@@ -106,7 +106,7 @@ class ValueWriter : public ValueVisitor {
         NameSetManager* namesets)
       : m_os(os), m_context(context), m_namesets(namesets) {}
     void visit(Field* field) {
-      *m_os << "  dest = " << m_context->valAccess(field->object) << ";\n"
+      *m_os << "  dest = " << m_context->valAccess(field->object->name) << ";\n"
                "  switch(dest.t) {\n"
                "    default:\n"
                "      THROW_ERROR("
@@ -126,7 +126,7 @@ class ValueWriter : public ValueVisitor {
       m_lastval = "dest";
     }
     void visit(VariableValue* var) {
-      m_lastval = m_context->valAccess(var->variable);
+      m_lastval = m_context->valAccess(var->variable->name);
     }
     void visit(Integer* integer) {
       std::ostringstream os;
@@ -202,10 +202,10 @@ static void write_callable(std::ostream& os, Callable* func,
   // were we given a right keyword argument? make space so we can add any
   // overflow keyword arguments if necessary
   if(!!func->right_keyword_arg) {
-    bool is_mutated(func->right_keyword_arg->user_provided); // TODO
-    context->localDefinition(*func->right_keyword_arg);
+    bool is_mutated(func->right_keyword_arg->name.user_provided); // TODO
+    context->localDefinition(func->right_keyword_arg->name);
     os << "  make_object(&dest);\n"
-          "  " << context->varAccess(*func->right_keyword_arg) << " = "
+          "  " << context->varAccess(func->right_keyword_arg->name) << " = "
        << (is_mutated ? "make_cell(dest);\n" : "dest;\n");
   }
 
@@ -213,48 +213,48 @@ static void write_callable(std::ostream& os, Callable* func,
   // keyword arguments. note that they only can live on the right side.
   std::map<Name, std::pair<unsigned int, unsigned int> > argument_slots;
   for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
-    if(argument_slots.find(func->right_positional_args[i]) !=
+    if(argument_slots.find(func->right_positional_args[i]->name) !=
         argument_slots.end()) {
       // hopefully this has already been checked earlier in the compilation
       // stack. TODO: check and make sure
       throw pants::expectation_failure("argument name collision");
     }
-    argument_slots[func->right_positional_args[i]].first = i;
-    argument_slots[func->right_positional_args[i]].second = 1;
+    argument_slots[func->right_positional_args[i]->name].first = i;
+    argument_slots[func->right_positional_args[i]->name].second = 1;
   }
   for(unsigned int i = 0; i < func->right_optional_args.size(); ++i) {
-    if(argument_slots.find(func->right_optional_args[i].key) !=
+    if(argument_slots.find(func->right_optional_args[i].key->name) !=
         argument_slots.end()) {
       // hopefully this has already been checked earlier in the compilation
       // stack. TODO: check and make sure
       throw pants::expectation_failure("argument name collision");
     }
-    argument_slots[func->right_optional_args[i].key].first = i +
+    argument_slots[func->right_optional_args[i].key->name].first = i +
         func->right_positional_args.size();
-    argument_slots[func->right_optional_args[i].key].second = 1;
+    argument_slots[func->right_optional_args[i].key->name].second = 1;
   }
   for(unsigned int i = 0; i < func->left_positional_args.size(); ++i) {
-    if(argument_slots.find(func->left_positional_args[i]) !=
+    if(argument_slots.find(func->left_positional_args[i]->name) !=
         argument_slots.end()) {
       // hopefully this has already been checked earlier in the compilation
       // stack. TODO: check and make sure
       throw pants::expectation_failure("argument name collision");
     }
-    argument_slots[func->left_positional_args[i]].first =
+    argument_slots[func->left_positional_args[i]->name].first =
         func->left_positional_args.size() - i - 1;
-    argument_slots[func->left_positional_args[i]].second = 0;
+    argument_slots[func->left_positional_args[i]->name].second = 0;
   }
   for(unsigned int i = 0; i < func->left_optional_args.size(); ++i) {
-    if(argument_slots.find(func->left_optional_args[i].key) !=
+    if(argument_slots.find(func->left_optional_args[i].key->name) !=
         argument_slots.end()) {
       // hopefully this has already been checked earlier in the compilation
       // stack. TODO: check and make sure
       throw pants::expectation_failure("argument name collision");
     }
-    argument_slots[func->left_optional_args[i].key].first =
+    argument_slots[func->left_optional_args[i].key->name].first =
         func->left_optional_args.size() - i - 1
         + func->left_positional_args.size();
-    argument_slots[func->left_optional_args[i].key].second = 0;
+    argument_slots[func->left_optional_args[i].key->name].second = 0;
   }
   unsigned int right_argument_slots =
       func->right_positional_args.size() + func->right_optional_args.size();
@@ -319,7 +319,7 @@ static void write_callable(std::ostream& os, Callable* func,
         "    if(j == " << argument_slots.size() << ") {\n";
   if(!!func->right_keyword_arg) {
     os << "      set_field("
-       << context->valAccess(*func->right_keyword_arg) << ".object.data, "
+       << context->valAccess(func->right_keyword_arg->name) << ".object.data, "
           "object_iterator_current_node(&it)->key, "
           "object_iterator_current_node(&it)->value);\n"
           "      continue;\n";
@@ -354,7 +354,7 @@ static void write_callable(std::ostream& os, Callable* func,
        << i + func->right_positional_args.size() << "))) {\n"
           "    right_positional_args.data["
        << i + func->right_positional_args.size() << "] = "
-       << context->valAccess(func->right_optional_args[i].value) << ";\n"
+       << context->valAccess(func->right_optional_args[i].value->name) << ";\n"
        << "    named_slots[1] |= (1 << "
        << i + func->right_positional_args.size() << ");\n"
        << "  }\n";
@@ -365,7 +365,7 @@ static void write_callable(std::ostream& os, Callable* func,
           "    left_positional_args.data["
        << i + func->left_positional_args.size() << "] = "
        << context->valAccess(func->left_optional_args[
-          func->left_optional_args.size() - i - 1].value) << ";\n"
+          func->left_optional_args.size() - i - 1].value->name) << ";\n"
        << "    named_slots[0] |= (1 << "
        << i + func->left_positional_args.size() << ");\n"
        << "  }\n";
@@ -373,7 +373,7 @@ static void write_callable(std::ostream& os, Callable* func,
 
   // let's seal the keyword object
   if(!!func->right_keyword_arg) {
-    os << "  seal_object(" << context->valAccess(*func->right_keyword_arg)
+    os << "  seal_object(" << context->valAccess(func->right_keyword_arg->name)
        << ".object.data);\n";
   }
 
@@ -401,18 +401,22 @@ static void write_callable(std::ostream& os, Callable* func,
 
   // okay, let's actually take our slots and fill in the real arguments
   for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
-    bool is_mutated(func->right_positional_args[i].user_provided); // TODO
-    context->localDefinition(func->right_positional_args[i]);
-    os << "  " << context->varAccess(func->right_positional_args[i]) << " = ";
+    // TODO
+    bool is_mutated(func->right_positional_args[i]->name.user_provided);
+    context->localDefinition(func->right_positional_args[i]->name);
+    os << "  " << context->varAccess(func->right_positional_args[i]->name)
+       << " = ";
     if(is_mutated) os << "make_cell(";
     os << "right_positional_args.data[" << i << "]";
     if(is_mutated) os << ")";
     os << ";\n";
   }
   for(unsigned int i = 0; i < func->right_optional_args.size(); ++i) {
-    bool is_mutated(func->right_optional_args[i].key.user_provided); // TODO
-    context->localDefinition(func->right_optional_args[i].key);
-    os << "  " << context->varAccess(func->right_optional_args[i].key) << " = ";
+    // TODO
+    bool is_mutated(func->right_optional_args[i].key->name.user_provided);
+    context->localDefinition(func->right_optional_args[i].key->name);
+    os << "  " << context->varAccess(func->right_optional_args[i].key->name)
+       << " = ";
     if(is_mutated) os << "make_cell(";
     os << "right_positional_args.data["
        << i + func->right_positional_args.size() << "]";
@@ -420,9 +424,11 @@ static void write_callable(std::ostream& os, Callable* func,
     os << ";\n";
   }
   for(unsigned int i = 0; i < func->left_positional_args.size(); ++i) {
-    bool is_mutated(func->left_positional_args[i].user_provided); // TODO
-    context->localDefinition(func->left_positional_args[i]);
-    os << "  " << context->varAccess(func->left_positional_args[i]) << " = ";
+    // TODO
+    bool is_mutated(func->left_positional_args[i]->name.user_provided);
+    context->localDefinition(func->left_positional_args[i]->name);
+    os << "  " << context->varAccess(func->left_positional_args[i]->name)
+       << " = ";
     if(is_mutated) os << "make_cell(";
     os << "left_positional_args.data["
        << (func->left_positional_args.size() - i - 1) << "]";
@@ -430,9 +436,11 @@ static void write_callable(std::ostream& os, Callable* func,
     os << ";\n";
   }
   for(unsigned int i = 0; i < func->left_optional_args.size(); ++i) {
-    bool is_mutated(func->left_optional_args[i].key.user_provided); // TODO
-    context->localDefinition(func->left_optional_args[i].key);
-    os << "  " << context->varAccess(func->left_optional_args[i].key) << " = ";
+    // TODO
+    bool is_mutated(func->left_optional_args[i].key->name.user_provided);
+    context->localDefinition(func->left_optional_args[i].key->name);
+    os << "  " << context->varAccess(func->left_optional_args[i].key->name)
+       << " = ";
     if(is_mutated) os << "make_cell(";
     os << "left_positional_args.data["
        << ((func->left_optional_args.size() - i - 1) +
@@ -443,20 +451,22 @@ static void write_callable(std::ostream& os, Callable* func,
 
   // okay, any overflow arguments go into an array
   if(!!func->right_arbitrary_arg) {
-    bool is_mutated(func->right_arbitrary_arg->user_provided); // TODO
-    context->localDefinition(*func->right_arbitrary_arg);
+    // TODO
+    bool is_mutated(func->right_arbitrary_arg->name.user_provided);
+    context->localDefinition(func->right_arbitrary_arg->name);
     os << "  make_array_object(&dest, (struct Array**)&raw_swap);\n"
           "  append_values(raw_swap, right_positional_args.data + "
        << right_argument_slots << ", right_positional_args.size - "
        << right_argument_slots << ");\n"
-          "  " << context->varAccess(*func->right_arbitrary_arg) << " = "
+          "  " << context->varAccess(func->right_arbitrary_arg->name) << " = "
        << (is_mutated ? "make_cell(dest);\n" : "dest;\n");
   } else {
     os << "  MAX_RIGHT_ARGS(" << right_argument_slots << ")\n";
   }
   if(!!func->left_arbitrary_arg) {
-    bool is_mutated(func->left_arbitrary_arg->user_provided); // TODO
-    context->localDefinition(*func->left_arbitrary_arg);
+    // TODO
+    bool is_mutated(func->left_arbitrary_arg->name.user_provided);
+    context->localDefinition(func->left_arbitrary_arg->name);
     os << "  make_array_object(&dest, (struct Array**)&raw_swap);\n"
           "  reserve_space(raw_swap, left_positional_args.size - "
        << left_argument_slots << ");\n"
@@ -467,7 +477,7 @@ static void write_callable(std::ostream& os, Callable* func,
           "  }\n"
           "  ((struct Array*)raw_swap)->size = left_positional_args.size - "
        << left_argument_slots << ";\n"
-          "  " << context->varAccess(*func->left_arbitrary_arg) << " = "
+          "  " << context->varAccess(func->left_arbitrary_arg->name) << " = "
        << (is_mutated ? "make_cell(dest);\n" : "dest;\n");
   } else {
     os << "  MAX_LEFT_ARGS(" << left_argument_slots << ")\n";
@@ -494,7 +504,7 @@ class ExpressionWriter : public ExpressionVisitor {
 
       if(!!call->right_keyword_arg) {
         *m_os << "  for(initialize_object_iterator(&it, "
-              << m_context->valAccess(*call->right_keyword_arg)
+              << m_context->valAccess(call->right_keyword_arg->name)
               << ".object.data);\n"
                  "      !object_iterator_complete(&it);\n"
                  "      object_iterator_step(&it)) {\n"
@@ -511,7 +521,8 @@ class ExpressionWriter : public ExpressionVisitor {
                 << ", "
                 << call->right_optional_args[i].key.c_name().size()
                 << "}, "
-                << m_context->valAccess(call->right_optional_args[i].value)
+                << m_context->valAccess(
+                    call->right_optional_args[i].value->name)
                 << ");\n";
         }
       }
@@ -522,7 +533,7 @@ class ExpressionWriter : public ExpressionVisitor {
           !!call->right_keyword_arg) {
         if(!!call->right_arbitrary_arg) {
           *m_os << "  get_field("
-                << m_context->valAccess(*call->right_arbitrary_arg)
+                << m_context->valAccess(call->right_arbitrary_arg->name)
                 << ".object.data, (struct ByteArray){\"u_size\", 6}, &dest);\n";
           *m_os << "  i += ((struct Array*)dest.closure.env)->size;\n";
         }
@@ -536,7 +547,8 @@ class ExpressionWriter : public ExpressionVisitor {
 
       for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
         *m_os << "  right_positional_args.data[" << i << "] = "
-              << m_context->valAccess(call->right_positional_args[i]) << ";\n";
+              << m_context->valAccess(call->right_positional_args[i]->name)
+              << ";\n";
       }
 
       if(!!call->right_arbitrary_arg) {
@@ -552,7 +564,7 @@ class ExpressionWriter : public ExpressionVisitor {
           !!call->left_arbitrary_arg) {
         if(!!call->left_arbitrary_arg) {
           *m_os << "  get_field("
-                << m_context->valAccess(*call->left_arbitrary_arg)
+                << m_context->valAccess(call->left_arbitrary_arg->name)
                 << ".object.data, (struct ByteArray){\"u_size\", 6}, &dest);\n";
           *m_os << "  i = ((struct Array*)dest.closure.env)->size;\n";
         }
@@ -574,12 +586,13 @@ class ExpressionWriter : public ExpressionVisitor {
       for(unsigned int i = 0; i < call->left_positional_args.size(); ++i) {
         *m_os << "  left_positional_args.data[" << i << "] = "
               << m_context->valAccess(call->left_positional_args[
-                 call->left_positional_args.size() - i - 1]) << ";\n";
+                 call->left_positional_args.size() - i - 1]->name) << ";\n";
       }
 
       *m_os << "  dynamic_vars = " << m_context->valAccess(DYNAMIC_VARS)
             << ";\n"
-               "  dest = " << m_context->valAccess(call->callable) << ";\n"
+               "  dest = " << m_context->valAccess(call->callable->name)
+            << ";\n"
                "  if(dest.t != CLOSURE) {\n"
                "    THROW_ERROR(" << m_context->valAccess(DYNAMIC_VARS)
             << ", make_c_string(\"cannot call a non-function!\"));\n"
@@ -594,22 +607,22 @@ class ExpressionWriter : public ExpressionVisitor {
       assignment->value->accept(&writer);
       bool written = false;
       if(assignment->local) {
-        bool is_mutated(assignment->assignee.user_provided); // TODO
-        m_context->localDefinition(assignment->assignee);
+        bool is_mutated(assignment->assignee->name.user_provided); // TODO
+        m_context->localDefinition(assignment->assignee->name);
         if(is_mutated) {
-          *m_os << "  " << m_context->varAccess(assignment->assignee)
+          *m_os << "  " << m_context->varAccess(assignment->assignee->name)
                 << " = make_cell(" << writer.lastval() << ");\n";
           written = true;
         }
       }
       if(!written) {
-        *m_os << "  " << m_context->valAccess(assignment->assignee) << " = "
-              << writer.lastval() << ";\n";
+        *m_os << "  " << m_context->valAccess(assignment->assignee->name)
+              << " = " << writer.lastval() << ";\n";
       }
       assignment->next_expression->accept(this);
     }
     void visit(ObjectMutation* mut) {
-      *m_os << "  dest = " << m_context->valAccess(mut->object) << ";\n"
+      *m_os << "  dest = " << m_context->valAccess(mut->object->name) << ";\n"
                "  switch(dest.t) {\n"
                "    default:\n"
                "      THROW_ERROR(" << m_context->valAccess(DYNAMIC_VARS)
@@ -618,10 +631,10 @@ class ExpressionWriter : public ExpressionVisitor {
                "      if(!set_field(dest.object.data, (struct ByteArray){"
             << to_bytestring(mut->field.c_name()) << ", "
             << mut->field.c_name().size() << "}, "
-            << m_context->valAccess(mut->value) << ")) {\n"
+            << m_context->valAccess(mut->value->name) << ")) {\n"
                "        THROW_ERROR(" << m_context->valAccess(DYNAMIC_VARS)
             << ", make_c_string(\"object %s sealed!\", "
-            << to_bytestring(mut->object.c_name()) << "));\n"
+            << to_bytestring(mut->object->name.c_name()) << "));\n"
                "      }\n"
                "      break;\n"
                "  }\n";
