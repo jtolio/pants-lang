@@ -3,11 +3,13 @@
 
 #include "common.h"
 #include "cps.h"
+#include "annotate.h"
 
 namespace pants {
 namespace compile {
 
-  void compile(PTR<cps::Expression> cps, std::ostream& os, bool use_gc);
+  void compile(PTR<cps::Expression> cps, annotate::DataStore& store,
+      std::ostream& os, bool use_gc);
 
 }}
 

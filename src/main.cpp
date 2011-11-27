@@ -58,11 +58,13 @@ int main(int argc, char** argv) {
     PTR<cps::Expression> cps;
     cps::transform(ir, lastval, cps);
     ir.clear();
-    annotate::varids(cps);
 
-    optimize::cps(cps);
+    annotate::DataStore store;
+    annotate::varids(cps, store);
 
-    compile::compile(cps, std::cout, use_gc);
+    optimize::cps(cps, store);
+
+    compile::compile(cps, store, std::cout, use_gc);
   } catch (const std::exception& e) {
     std::cerr << "failure: " << e.what() << std::endl;
     return 1;
