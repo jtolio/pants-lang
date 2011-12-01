@@ -184,8 +184,6 @@ class ValueWriter : public ValueVisitor {
 static void write_callable(std::ostream& os, Callable* func,
     VariableContext* context, NameSetManager* namesets, DataStore* store) {
   // TODO: don't generate code we know we don't need!
-  //   * don't generate keyword argument stuff for non-functions or functions
-  //     with no arguments.
   //   * don't deal with keyword arguments if none are passed in
   //   * don't require slot checking for arguments with default values.
 
@@ -213,47 +211,35 @@ static void write_callable(std::ostream& os, Callable* func,
   }
 
   // alright, go through and find all the names and positions of possible
-  // keyword arguments. note that they only can live on the right side.
+  // keyword arguments.
   std::map<Name, std::pair<unsigned int, unsigned int> > argument_slots;
   for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
     if(argument_slots.find(func->right_positional_args[i]->name) !=
-        argument_slots.end()) {
-      // hopefully this has already been checked earlier in the compilation
-      // stack. TODO: check and make sure
+        argument_slots.end())
       throw pants::expectation_failure("argument name collision");
-    }
     argument_slots[func->right_positional_args[i]->name].first = i;
     argument_slots[func->right_positional_args[i]->name].second = 1;
   }
   for(unsigned int i = 0; i < func->right_optional_args.size(); ++i) {
     if(argument_slots.find(func->right_optional_args[i].key->name) !=
-        argument_slots.end()) {
-      // hopefully this has already been checked earlier in the compilation
-      // stack. TODO: check and make sure
+        argument_slots.end())
       throw pants::expectation_failure("argument name collision");
-    }
     argument_slots[func->right_optional_args[i].key->name].first = i +
         func->right_positional_args.size();
     argument_slots[func->right_optional_args[i].key->name].second = 1;
   }
   for(unsigned int i = 0; i < func->left_positional_args.size(); ++i) {
     if(argument_slots.find(func->left_positional_args[i]->name) !=
-        argument_slots.end()) {
-      // hopefully this has already been checked earlier in the compilation
-      // stack. TODO: check and make sure
+        argument_slots.end())
       throw pants::expectation_failure("argument name collision");
-    }
     argument_slots[func->left_positional_args[i]->name].first =
         func->left_positional_args.size() - i - 1;
     argument_slots[func->left_positional_args[i]->name].second = 0;
   }
   for(unsigned int i = 0; i < func->left_optional_args.size(); ++i) {
     if(argument_slots.find(func->left_optional_args[i].key->name) !=
-        argument_slots.end()) {
-      // hopefully this has already been checked earlier in the compilation
-      // stack. TODO: check and make sure
+        argument_slots.end())
       throw pants::expectation_failure("argument name collision");
-    }
     argument_slots[func->left_optional_args[i].key->name].first =
         func->left_optional_args.size() - i - 1
         + func->left_positional_args.size();
@@ -271,143 +257,183 @@ static void write_callable(std::ostream& os, Callable* func,
   if(left_argument_slots >= 64)
     throw pants::expectation_failure("too many left arguments");
 
-  // if we have any possible named arguments, let's deal with them
-  os << "  if(right_positional_args.size > " << right_argument_slots
-     << ") {\n"
-        "    named_slots[1] = " << ((1 << right_argument_slots) - 1)
-     << ";\n"
-        "  } else {\n"
-        "    named_slots[1] = (1 << right_positional_args.size) - 1;\n"
-        "  }\n"
-        "  if(left_positional_args.size > " << left_argument_slots
-     << ") {\n"
-        "    named_slots[0] = " << ((1 << left_argument_slots) - 1)
-     << ";\n"
-        "  } else {\n"
-        "    named_slots[0] = (1 << left_positional_args.size) - 1;\n"
-        "  }\n"
-//   It's the caller's responsibility to make sure there's enough space for all
-//   the right argument slots (named arguments can be assumed by the caller to
-//   be right arguments)
-//        "  reserve_space(&right_positional_args, " << right_argument_slots
-//     << ");\n"
-        "  reserve_space(&left_positional_args, " << left_argument_slots
-     << ");\n"
-        "  for(initialize_object_iterator(&it, &keyword_args);\n"
-        "      !object_iterator_complete(&it);\n"
-        "      object_iterator_step(&it)) {\n"
-        "    j = " << argument_slots.size() << ";\n"
-        "    i = binary_search(object_iterator_current_node(&it)->key,\n"
-        "        (struct ByteArray[]){";
-  for(std::map<Name, std::pair<unsigned int, unsigned int> >::iterator it(
-      argument_slots.begin()); it != argument_slots.end();
-      ++it) {
-    if(it != argument_slots.begin()) os << ", ";
-    os << "(struct ByteArray){" << to_bytestring(it->first.c_name())
-       << ", " << it->first.c_name().size() << "}";
-  }
-  os << "}, " << argument_slots.size() << ");\n"
-        "    switch(i) {\n"
-        "      default: break;\n";
-  {
-    unsigned int i = 0;
+  // we only handle named arguments if any of the arguments defined in the
+  // function are user provided, there are default values, or someone is
+  // accepting a keyword object
+  bool handle_named_arguments = (func->left_optional_args.size() +
+      func->right_optional_args.size()) > 0 || func->right_keyword_arg;
+  if(!handle_named_arguments) {
     for(std::map<Name, std::pair<unsigned int, unsigned int> >::iterator it(
-        argument_slots.begin()); it != argument_slots.end();
-        ++it, ++i) {
-      os << "      case " << i << ": j = " << it->second.first << "; "
-            "i = " << it->second.second << "; break;\n";
+        argument_slots.begin()); it != argument_slots.end(); ++it) {
+      if(it->first.user_provided) {
+        handle_named_arguments = true;
+        break;
+      }
     }
   }
-  os << "    }\n"
-        "    if(j == " << argument_slots.size() << ") {\n";
-  if(!!func->right_keyword_arg) {
-    os << "      set_field("
-       << context->valAccess(func->right_keyword_arg->name,
-          store->is_mutable(func->right_keyword_arg->getVarid()))
-       << ".object.data, "
-          "object_iterator_current_node(&it)->key, "
-          "object_iterator_current_node(&it)->value);\n"
-          "      continue;\n";
-  } else {
-    os << "      THROW_ERROR("
+
+  if(handle_named_arguments) {
+    // if we have any possible named arguments, let's deal with them
+    if(right_argument_slots > 0) {
+      os << "  if(right_positional_args.size > " << right_argument_slots
+         << ") {\n"
+            "    named_slots[1] = " << ((1 << right_argument_slots) - 1)
+         << ";\n"
+            "  } else {\n"
+            "    named_slots[1] = (1 << right_positional_args.size) - 1;\n"
+            "  }\n";
+  //   It's the caller's responsibility to make sure there's enough space for all
+  //   the right argument slots (named arguments can be assumed by the caller to
+  //   be right arguments)
+  //        "  reserve_space(&right_positional_args, " << right_argument_slots
+  //     << ");\n"
+    }
+    if(left_argument_slots > 0) {
+      os << "  if(left_positional_args.size > " << left_argument_slots
+         << ") {\n"
+            "    named_slots[0] = " << ((1 << left_argument_slots) - 1)
+         << ";\n"
+            "  } else {\n"
+            "    named_slots[0] = (1 << left_positional_args.size) - 1;\n"
+            "  }\n"
+            "  reserve_space(&left_positional_args, " << left_argument_slots
+         << ");\n";
+    }
+    os << "  for(initialize_object_iterator(&it, &keyword_args);\n"
+          "      !object_iterator_complete(&it);\n"
+          "      object_iterator_step(&it)) {\n"
+          "    j = " << argument_slots.size() << ";\n"
+          "    i = binary_search(object_iterator_current_node(&it)->key,\n"
+          "        (struct ByteArray[]){";
+    for(std::map<Name, std::pair<unsigned int, unsigned int> >::iterator it(
+        argument_slots.begin()); it != argument_slots.end();
+        ++it) {
+      if(it != argument_slots.begin()) os << ", ";
+      os << "(struct ByteArray){" << to_bytestring(it->first.c_name())
+         << ", " << it->first.c_name().size() << "}";
+    }
+    os << "}, " << argument_slots.size() << ");\n"
+          "    switch(i) {\n"
+          "      default: break;\n";
+    {
+      unsigned int i = 0;
+      for(std::map<Name, std::pair<unsigned int, unsigned int> >::iterator it(
+          argument_slots.begin()); it != argument_slots.end();
+          ++it, ++i) {
+        os << "      case " << i << ": j = " << it->second.first << "; "
+              "i = " << it->second.second << "; break;\n";
+      }
+    }
+    os << "    }\n"
+          "    if(j == " << argument_slots.size() << ") {\n";
+    if(!!func->right_keyword_arg) {
+      os << "      set_field("
+         << context->valAccess(func->right_keyword_arg->name,
+            store->is_mutable(func->right_keyword_arg->getVarid()))
+         << ".object.data, "
+            "object_iterator_current_node(&it)->key, "
+            "object_iterator_current_node(&it)->value);\n"
+            "      continue;\n";
+    } else {
+      os << "      THROW_ERROR("
+         << context->valAccess(DYNAMIC_VARS, false) <<
+            ", make_c_string(\"argument %s unknown!\", "
+            "object_iterator_current_node(&it)->key.data));\n";
+    }
+    os << "    }\n"
+          "    if(named_slots[i] & (1 << j)) {\n"
+          "      THROW_ERROR("
        << context->valAccess(DYNAMIC_VARS, false) <<
-          ", make_c_string(\"argument %s unknown!\", "
-          "object_iterator_current_node(&it)->key.data));\n";
-  }
-  os << "    }\n"
-        "    if(named_slots[i] & (1 << j)) {\n"
-        "      THROW_ERROR("
-     << context->valAccess(DYNAMIC_VARS, false) <<
-        ", make_c_string(\"argument %s already provided!\", "
-        "object_iterator_current_node(&it)->key.data));\n"
-        "    }\n"
-        "    named_slots[i] |= (1 << j);\n"
-        "    if(i == 0) {\n"
-        "      left_positional_args.data[j] = "
-        "object_iterator_current_node(&it)->value;\n"
-        "    } else {\n"
-        "      right_positional_args.data[j] = "
-        "object_iterator_current_node(&it)->value;\n"
-        "    }\n"
-        "  }\n"
-        "  initialize_object(&keyword_args);\n";
+          ", make_c_string(\"argument %s already provided!\", "
+          "object_iterator_current_node(&it)->key.data));\n"
+          "    }\n"
+          "    named_slots[i] |= (1 << j);\n";
+    if(left_argument_slots > 0 && right_argument_slots > 0) {
+      os << "    if(i == 0) {\n"
+            "      left_positional_args.data[j] = "
+            "object_iterator_current_node(&it)->value;\n"
+            "    } else {\n"
+            "      right_positional_args.data[j] = "
+            "object_iterator_current_node(&it)->value;\n"
+            "    }\n";
+    } else {
+      if(left_argument_slots > 0) {
+        os << "    left_positional_args.data[j] = "
+              "object_iterator_current_node(&it)->value;\n";
+      } else {
+        os << "    right_positional_args.data[j] = "
+              "object_iterator_current_node(&it)->value;\n";
+      }
+    }
+    os << "  }\n"
+          "  initialize_object(&keyword_args);\n";
 
-  // okay, now we have all of the provided and named arguments in slots, let's
-  // throw in default values for anything still missing.
-  for(unsigned int i = 0; i < func->right_optional_args.size(); ++i) {
-    os << "  if(!(named_slots[1] & (1 << "
-       << i + func->right_positional_args.size() << "))) {\n"
-          "    right_positional_args.data["
-       << i + func->right_positional_args.size() << "] = "
-       << context->valAccess(func->right_optional_args[i].value->name,
-          store->is_mutable(func->right_optional_args[i].value->getVarid()))
-       << ";\n"
-       << "    named_slots[1] |= (1 << "
-       << i + func->right_positional_args.size() << ");\n"
-       << "  }\n";
-  }
-  for(unsigned int i = 0; i < func->left_optional_args.size(); ++i) {
-    os << "  if(!(named_slots[0] & (1 << "
-       << i + func->left_positional_args.size() << "))) {\n"
-          "    left_positional_args.data["
-       << i + func->left_positional_args.size() << "] = "
-       << context->valAccess(func->left_optional_args[
-          func->left_optional_args.size() - i - 1].value->name,
-          store->is_mutable(func->left_optional_args[
-          func->left_optional_args.size() - i - 1].value->getVarid())) << ";\n"
-       << "    named_slots[0] |= (1 << "
-       << i + func->left_positional_args.size() << ");\n"
-       << "  }\n";
-  }
+    // okay, now we have all of the provided and named arguments in slots, let's
+    // throw in default values for anything still missing.
+    for(unsigned int i = 0; i < func->right_optional_args.size(); ++i) {
+      os << "  if(!(named_slots[1] & (1 << "
+         << i + func->right_positional_args.size() << "))) {\n"
+            "    right_positional_args.data["
+         << i + func->right_positional_args.size() << "] = "
+         << context->valAccess(func->right_optional_args[i].value->name,
+            store->is_mutable(func->right_optional_args[i].value->getVarid()))
+         << ";\n"
+         << "    named_slots[1] |= (1 << "
+         << i + func->right_positional_args.size() << ");\n"
+         << "  }\n";
+    }
+    for(unsigned int i = 0; i < func->left_optional_args.size(); ++i) {
+      os << "  if(!(named_slots[0] & (1 << "
+         << i + func->left_positional_args.size() << "))) {\n"
+            "    left_positional_args.data["
+         << i + func->left_positional_args.size() << "] = "
+         << context->valAccess(func->left_optional_args[
+            func->left_optional_args.size() - i - 1].value->name,
+            store->is_mutable(func->left_optional_args[
+            func->left_optional_args.size() - i - 1].value->getVarid())) << ";\n"
+         << "    named_slots[0] |= (1 << "
+         << i + func->left_positional_args.size() << ");\n"
+         << "  }\n";
+    }
 
-  // let's seal the keyword object
-  if(!!func->right_keyword_arg) {
-    os << "  seal_object(" << context->valAccess(func->right_keyword_arg->name,
-          store->is_mutable(func->right_keyword_arg->getVarid()))
-       << ".object.data);\n";
-  }
+    // let's seal the keyword object
+    if(!!func->right_keyword_arg) {
+      os << "  seal_object(" << context->valAccess(func->right_keyword_arg->name,
+            store->is_mutable(func->right_keyword_arg->getVarid()))
+         << ".object.data);\n";
+    }
 
-  // check and make sure we got everything.
-  os << "  if((~(named_slots[1])) & ((1 << "
-     << right_argument_slots << ") - 1)) {\n"
-        "    THROW_ERROR(" << context->valAccess(DYNAMIC_VARS, false) << ", "
-        "make_c_string(\"argument missing!\"));\n"
-        "  }\n"
-        "  if(right_positional_args.size < " << right_argument_slots
-     << ") {\n"
-        "    right_positional_args.size = " << right_argument_slots
-     << ";\n"
-        "  }\n"
-        "  if((~(named_slots[0])) & ((1 << "
-     << left_argument_slots << ") - 1)) {\n"
-        "    THROW_ERROR(" << context->valAccess(DYNAMIC_VARS, false) << ", "
-        "make_c_string(\"argument missing!\"));\n"
-        "  }\n"
-        "  if(left_positional_args.size < " << left_argument_slots
-     << ") {\n"
-        "    left_positional_args.size = " << left_argument_slots
-     << ";\n"
-        "  }\n";
+    // check and make sure we got everything.
+    if(right_argument_slots > 0) {
+      os << "  if((~(named_slots[1])) & ((1 << "
+         << right_argument_slots << ") - 1)) {\n"
+            "    THROW_ERROR(" << context->valAccess(DYNAMIC_VARS, false) << ", "
+            "make_c_string(\"argument missing!\"));\n"
+            "  }\n"
+            "  if(right_positional_args.size < " << right_argument_slots
+         << ") {\n"
+            "    right_positional_args.size = " << right_argument_slots
+         << ";\n"
+            "  }\n";
+    }
+    if(left_argument_slots > 0) {
+      os << "  if((~(named_slots[0])) & ((1 << "
+         << left_argument_slots << ") - 1)) {\n"
+            "    THROW_ERROR(" << context->valAccess(DYNAMIC_VARS, false) << ", "
+            "make_c_string(\"argument missing!\"));\n"
+            "  }\n"
+            "  if(left_positional_args.size < " << left_argument_slots
+         << ") {\n"
+            "    left_positional_args.size = " << left_argument_slots
+         << ";\n"
+            "  }\n";
+    }
+  } else {
+    // we didn't deal with named objects, so we just have to check if we got
+    // everything
+    os << "  MIN_LEFT_ARGS(" << left_argument_slots << ")\n"
+          "  MIN_RIGHT_ARGS(" << right_argument_slots << ")\n";
+  }
 
   // okay, let's actually take our slots and fill in the real arguments
   for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
