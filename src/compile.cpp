@@ -107,7 +107,7 @@ class ValueWriter : public ValueVisitor {
       : m_os(os), m_context(context), m_namesets(namesets), m_store(store) {}
     void visit(Field* field) {
       *m_os << "  dest = " << m_context->valAccess(field->object->name,
-          m_store->is_mutable(field->object->getVarid())) << ";\n"
+          m_store->isMutated(field->object->getVarid())) << ";\n"
                "  switch(dest.t) {\n"
                "    default:\n"
                "      THROW_ERROR("
@@ -128,7 +128,7 @@ class ValueWriter : public ValueVisitor {
     }
     void visit(VariableValue* var) {
       m_lastval = m_context->valAccess(var->variable->name,
-          m_store->is_mutable(var->variable->getVarid()));
+          m_store->isMutated(var->variable->getVarid()));
     }
     void visit(Integer* integer) {
       std::ostringstream os;
@@ -203,7 +203,7 @@ static void write_callable(std::ostream& os, Callable* func,
   // were we given a right keyword argument? make space so we can add any
   // overflow keyword arguments if necessary
   if(!!func->right_keyword_arg) {
-    bool is_mutated(store->is_mutable(func->right_keyword_arg->getVarid()));
+    bool is_mutated(store->isMutated(func->right_keyword_arg->getVarid()));
     context->localDefinition(func->right_keyword_arg->name);
     os << "  make_object(&dest);\n"
           "  " << context->varAccess(func->right_keyword_arg->name) << " = "
@@ -329,7 +329,7 @@ static void write_callable(std::ostream& os, Callable* func,
     if(!!func->right_keyword_arg) {
       os << "      set_field("
          << context->valAccess(func->right_keyword_arg->name,
-            store->is_mutable(func->right_keyword_arg->getVarid()))
+            store->isMutated(func->right_keyword_arg->getVarid()))
          << ".object.data, "
             "object_iterator_current_node(&it)->key, "
             "object_iterator_current_node(&it)->value);\n"
@@ -376,7 +376,7 @@ static void write_callable(std::ostream& os, Callable* func,
             "    right_positional_args.data["
          << i + func->right_positional_args.size() << "] = "
          << context->valAccess(func->right_optional_args[i].value->name,
-            store->is_mutable(func->right_optional_args[i].value->getVarid()))
+            store->isMutated(func->right_optional_args[i].value->getVarid()))
          << ";\n"
          << "    named_slots[1] |= (1 << "
          << i + func->right_positional_args.size() << ");\n"
@@ -389,7 +389,7 @@ static void write_callable(std::ostream& os, Callable* func,
          << i + func->left_positional_args.size() << "] = "
          << context->valAccess(func->left_optional_args[
             func->left_optional_args.size() - i - 1].value->name,
-            store->is_mutable(func->left_optional_args[
+            store->isMutated(func->left_optional_args[
             func->left_optional_args.size() - i - 1].value->getVarid())) << ";\n"
          << "    named_slots[0] |= (1 << "
          << i + func->left_positional_args.size() << ");\n"
@@ -399,7 +399,7 @@ static void write_callable(std::ostream& os, Callable* func,
     // let's seal the keyword object
     if(!!func->right_keyword_arg) {
       os << "  seal_object(" << context->valAccess(func->right_keyword_arg->name,
-            store->is_mutable(func->right_keyword_arg->getVarid()))
+            store->isMutated(func->right_keyword_arg->getVarid()))
          << ".object.data);\n";
     }
 
@@ -437,7 +437,7 @@ static void write_callable(std::ostream& os, Callable* func,
 
   // okay, let's actually take our slots and fill in the real arguments
   for(unsigned int i = 0; i < func->right_positional_args.size(); ++i) {
-    bool is_mutated(store->is_mutable(
+    bool is_mutated(store->isMutated(
         func->right_positional_args[i]->getVarid()));
     context->localDefinition(func->right_positional_args[i]->name);
     os << "  " << context->varAccess(func->right_positional_args[i]->name)
@@ -448,7 +448,7 @@ static void write_callable(std::ostream& os, Callable* func,
     os << ";\n";
   }
   for(unsigned int i = 0; i < func->right_optional_args.size(); ++i) {
-    bool is_mutated(store->is_mutable(
+    bool is_mutated(store->isMutated(
         func->right_optional_args[i].key->getVarid()));
     context->localDefinition(func->right_optional_args[i].key->name);
     os << "  " << context->varAccess(func->right_optional_args[i].key->name)
@@ -460,7 +460,7 @@ static void write_callable(std::ostream& os, Callable* func,
     os << ";\n";
   }
   for(unsigned int i = 0; i < func->left_positional_args.size(); ++i) {
-    bool is_mutated(store->is_mutable(
+    bool is_mutated(store->isMutated(
         func->left_positional_args[i]->getVarid()));
     context->localDefinition(func->left_positional_args[i]->name);
     os << "  " << context->varAccess(func->left_positional_args[i]->name)
@@ -472,7 +472,7 @@ static void write_callable(std::ostream& os, Callable* func,
     os << ";\n";
   }
   for(unsigned int i = 0; i < func->left_optional_args.size(); ++i) {
-    bool is_mutated(store->is_mutable(
+    bool is_mutated(store->isMutated(
         func->left_optional_args[i].key->getVarid()));
     context->localDefinition(func->left_optional_args[i].key->name);
     os << "  " << context->varAccess(func->left_optional_args[i].key->name)
@@ -487,7 +487,7 @@ static void write_callable(std::ostream& os, Callable* func,
 
   // okay, any overflow arguments go into an array
   if(!!func->right_arbitrary_arg) {
-    bool is_mutated(store->is_mutable(func->right_arbitrary_arg->getVarid()));
+    bool is_mutated(store->isMutated(func->right_arbitrary_arg->getVarid()));
     context->localDefinition(func->right_arbitrary_arg->name);
     os << "  make_array_object(&dest, (struct Array**)&raw_swap);\n"
           "  append_values(raw_swap, right_positional_args.data + "
@@ -499,7 +499,7 @@ static void write_callable(std::ostream& os, Callable* func,
     os << "  MAX_RIGHT_ARGS(" << right_argument_slots << ")\n";
   }
   if(!!func->left_arbitrary_arg) {
-    bool is_mutated(store->is_mutable(func->left_arbitrary_arg->getVarid()));
+    bool is_mutated(store->isMutated(func->left_arbitrary_arg->getVarid()));
     context->localDefinition(func->left_arbitrary_arg->name);
     os << "  make_array_object(&dest, (struct Array**)&raw_swap);\n"
           "  reserve_space(raw_swap, left_positional_args.size - "
@@ -539,7 +539,7 @@ class ExpressionWriter : public ExpressionVisitor {
       if(!!call->right_keyword_arg) {
         *m_os << "  for(initialize_object_iterator(&it, "
               << m_context->valAccess(call->right_keyword_arg->name,
-                 m_store->is_mutable(call->right_keyword_arg->getVarid()))
+                 m_store->isMutated(call->right_keyword_arg->getVarid()))
               << ".object.data);\n"
                  "      !object_iterator_complete(&it);\n"
                  "      object_iterator_step(&it)) {\n"
@@ -558,7 +558,7 @@ class ExpressionWriter : public ExpressionVisitor {
                 << "}, "
                 << m_context->valAccess(
                     call->right_optional_args[i].value->name,
-                    m_store->is_mutable(
+                    m_store->isMutated(
                     call->right_optional_args[i].value->getVarid()))
                 << ");\n";
         }
@@ -571,7 +571,7 @@ class ExpressionWriter : public ExpressionVisitor {
         if(!!call->right_arbitrary_arg) {
           *m_os << "  get_field("
                 << m_context->valAccess(call->right_arbitrary_arg->name,
-                   m_store->is_mutable(call->right_arbitrary_arg->getVarid()))
+                   m_store->isMutated(call->right_arbitrary_arg->getVarid()))
                 << ".object.data, (struct ByteArray){\"u_size\", 6}, &dest);\n";
           *m_os << "  i += ((struct Array*)dest.closure.env)->size;\n";
         }
@@ -586,7 +586,7 @@ class ExpressionWriter : public ExpressionVisitor {
       for(unsigned int i = 0; i < call->right_positional_args.size(); ++i) {
         *m_os << "  right_positional_args.data[" << i << "] = "
               << m_context->valAccess(call->right_positional_args[i]->name,
-                 m_store->is_mutable(
+                 m_store->isMutated(
                  call->right_positional_args[i]->getVarid()))
               << ";\n";
       }
@@ -605,7 +605,7 @@ class ExpressionWriter : public ExpressionVisitor {
         if(!!call->left_arbitrary_arg) {
           *m_os << "  get_field("
                 << m_context->valAccess(call->left_arbitrary_arg->name,
-                   m_store->is_mutable(call->left_arbitrary_arg->getVarid()))
+                   m_store->isMutated(call->left_arbitrary_arg->getVarid()))
                 << ".object.data, (struct ByteArray){\"u_size\", 6}, &dest);\n";
           *m_os << "  i = ((struct Array*)dest.closure.env)->size;\n";
         }
@@ -628,7 +628,7 @@ class ExpressionWriter : public ExpressionVisitor {
         *m_os << "  left_positional_args.data[" << i << "] = "
               << m_context->valAccess(call->left_positional_args[
                  call->left_positional_args.size() - i - 1]->name,
-                 m_store->is_mutable(call->left_positional_args[
+                 m_store->isMutated(call->left_positional_args[
                  call->left_positional_args.size() - i - 1]->getVarid()))
               << ";\n";
       }
@@ -636,7 +636,7 @@ class ExpressionWriter : public ExpressionVisitor {
       *m_os << "  dynamic_vars = " << m_context->valAccess(DYNAMIC_VARS, false)
             << ";\n"
                "  dest = " << m_context->valAccess(call->callable->name,
-               m_store->is_mutable(call->callable->getVarid()))
+               m_store->isMutated(call->callable->getVarid()))
             << ";\n"
                "  if(dest.t != CLOSURE) {\n"
                "    THROW_ERROR(" << m_context->valAccess(DYNAMIC_VARS, false)
@@ -653,7 +653,7 @@ class ExpressionWriter : public ExpressionVisitor {
       assignment->value->accept(&writer);
       bool written = false;
       if(assignment->local) {
-        bool is_mutated(m_store->is_mutable(assignment->assignee->getVarid()));
+        bool is_mutated(m_store->isMutated(assignment->assignee->getVarid()));
         m_context->localDefinition(assignment->assignee->name);
         if(is_mutated) {
           *m_os << "  " << m_context->varAccess(assignment->assignee->name)
@@ -663,14 +663,14 @@ class ExpressionWriter : public ExpressionVisitor {
       }
       if(!written) {
         *m_os << "  " << m_context->valAccess(assignment->assignee->name,
-                 m_store->is_mutable(assignment->assignee->getVarid()))
+                 m_store->isMutated(assignment->assignee->getVarid()))
               << " = " << writer.lastval() << ";\n";
       }
       assignment->next_expression->accept(this);
     }
     void visit(ObjectMutation* mut) {
       *m_os << "  dest = " << m_context->valAccess(mut->object->name,
-               m_store->is_mutable(mut->object->getVarid())) << ";\n"
+               m_store->isMutated(mut->object->getVarid())) << ";\n"
                "  switch(dest.t) {\n"
                "    default:\n"
                "      THROW_ERROR(" << m_context->valAccess(DYNAMIC_VARS, false)
@@ -679,7 +679,7 @@ class ExpressionWriter : public ExpressionVisitor {
                "      if(!set_field(dest.object.data, (struct ByteArray){"
             << to_bytestring(mut->field.c_name()) << ", "
             << mut->field.c_name().size() << "}, "
-            << m_context->valAccess(mut->value->name, m_store->is_mutable(
+            << m_context->valAccess(mut->value->name, m_store->isMutated(
                mut->value->getVarid())) << ")) {\n"
                "        THROW_ERROR(" << m_context->valAccess(DYNAMIC_VARS,
                false)

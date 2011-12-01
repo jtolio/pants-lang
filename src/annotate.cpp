@@ -105,7 +105,7 @@ class VarIdExpressionVisitor : public ExpressionVisitor {
         newVar(assignment->assignee);
       } else {
         getVar(assignment->assignee);
-        m_store->was_mutated(assignment->assignee->getVarid());
+        m_store->setMutated(assignment->assignee->getVarid());
       }
       assignment->next_expression->accept(this);
     }
