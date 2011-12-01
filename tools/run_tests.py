@@ -143,7 +143,7 @@ def processor_count():
   return max(len(processors), 1)
 
 def main(argv):
-  if argv[1].find("--parallelism=") == 0:
+  if len(argv) > 1 and argv[1].find("--parallelism=") == 0:
     parallelism = int(argv[1].split("=")[1])
     run_tests(argv[2:], parallelism)
   else:
