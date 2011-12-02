@@ -1,10 +1,10 @@
 #!../tools/script_wrapper.sh ../src/pants
 
-quicksort = function { |return, list|
+quicksort = { |list| return = cont
   if (<= list.size() 1) { return list }
   left_side = []
   right_side = []
-  list @each_with_index { |item, i|
+  list @each-with-index { |item, i|
     {(if (< item list[0]) {left_side} {right_side}).append item} @if (> i 0)
   }
   result = quicksort left_side

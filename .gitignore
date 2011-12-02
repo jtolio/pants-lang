@@ -4,3 +4,4 @@ src/*.o
 src/*.pyc
 src/assets.h
 src/assets.cpp
+samples/*.pc
