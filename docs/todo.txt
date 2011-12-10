@@ -1,13 +1,13 @@
 todo
- * type method
- * arbitrary arg (any enumerable) sending
- * right keyword arg reception and sending
- * right optional args reception and sending
  * wiki pages and docs
- * malloc benchmarking
- * c primitives
- * pants primitives
- * all other primitives
+ * rewrite (python?)
+   * fix parser to keep track of code position
+   * fix parser to handle comments better
+   * provide interpreter
+   * sparse conditional constant propagation
+   * live variable analysis
+   * generate tail-recursive c code
+   * write cheney gc (ditch boehm)
 
 language decisions
  * either reject parsing {|:(left), a1, a2;| null}, or handle
@@ -26,5 +26,3 @@ language problems
 
 upcoming optimizations
  * globalization of as many vars as possible
- * env rewrite (minimize new environments)
- * elimination of useless assignments
