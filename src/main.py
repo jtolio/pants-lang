@@ -25,14 +25,14 @@
   Pants
   http://www.pants-lang.org/
 
-  Parser module
+  Main module
 """
 
 __author__ = "JT Olds"
 __author_email__ = "hello@jtolds.com"
 
 import sys
-from parser import parse
+from parse import parse
 
 def main(argv):
   print parse(sys.stdin).format()
