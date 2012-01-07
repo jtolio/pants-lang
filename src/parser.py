@@ -28,11 +28,11 @@
   Parser module
 """
 
-import ast
-
 __author__ = "JT Olds"
 __author_email__ = "hello@jtolds.com"
 __all__ = ["parse"]
+
+import ast
 
 DEBUG_LEVEL = 0
 
@@ -524,11 +524,11 @@ class Parser(object):
     if term.modifiers:
       modifier = term.modifiers[-1]
       if isinstance(modifier, ast.Index):
-        term.modifiers.pop()
-        return ast.IndexAssignee(term, modifier, term.line, term.col)
+        return ast.IndexAssignee(ast.Term(term.value, term.modifiers[:-1],
+            term.line, term.col), modifier, term.line, term.col)
       if isinstance(modifier, ast.Field):
-        term.modifiers.pop()
-        return ast.FieldAssignee(term, modifier, term.line, term.col)
+        return ast.FieldAssignee(ast.Term(term.value, term.modifiers[:-1],
+            term.line, term.col), modifier, term.line, term.col)
       return None
     if isinstance(term.value, ast.Variable):
       return ast.VariableAssignee(term.value, term.line, term.col)
@@ -677,7 +677,7 @@ class Parser(object):
     explist = self.parse_expression_list(True)
     if not self.eof(): self.assert_source("expression expected")
     self.restore(checkpoint)
-    return explist
+    return ast.Program(explist)
 
   # set up memoization (helps with assignment/application grammar overlap)
   _parser_methods = locals()

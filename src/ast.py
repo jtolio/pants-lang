@@ -31,6 +31,13 @@
 __author__ = "JT Olds"
 __author_email__ = "hello@jtolds.com"
 
+class Program(object):
+  __slots__ = ["expressions"]
+  def __init__(self, expressions):
+    self.expressions = expressions
+  def __str__(self):
+    return "; ".join(map(str, self.expressions))
+
 class Value(object): pass
 
 class Variable(Value):
@@ -39,6 +46,8 @@ class Variable(Value):
     self.identifier = identifier
     self.line = line
     self.col = col
+  def __str__(self):
+    return str(self.identifier)
 
 class Subexpression(Value):
   __slots__ = ["expressions", "line", "col"]
@@ -46,6 +55,8 @@ class Subexpression(Value):
     self.expressions = expressions
     self.line = line
     self.col = col
+  def __str__(self):
+    return "(%s)" % "; ".join(map(str, self.expressions))
 
 class Integer(Value):
   __slots__ = ["value", "line", "col"]
@@ -53,6 +64,7 @@ class Integer(Value):
     self.value = value
     self.line = line
     self.col = col
+  def __str__(self): return str(self.value)
 
 class Float(Value):
   __slots__ = ["value", "line", "col"]
@@ -60,6 +72,7 @@ class Float(Value):
     self.value = value
     self.line = line
     self.col = col
+  def __str__(self): return str(self.value)
 
 class String(Value):
   __slots__ = ["value", "line", "col", "byte_oriented"]
@@ -68,6 +81,10 @@ class String(Value):
     self.value = value
     self.line = line
     self.col = col
+  def __str__(self):
+    if self.byte_oriented:
+      return 'b"%s"' % self.value
+    return '"%s"' % self.value
 
 class Array(Value):
   __slots__ = ["applications", "line", "col"]
@@ -75,6 +92,7 @@ class Array(Value):
     self.applications = applications
     self.line = line
     self.col = col
+  def __str__(self): return "[%s]" % ", ".join(map(str, self.applications))
 
 class DictDefinition(object):
   __slots__ = ["key", "value", "line", "col"]
@@ -83,6 +101,7 @@ class DictDefinition(object):
     self.value = value
     self.line = line
     self.col = col
+  def __str__(self): return "%s: %s" % (self.key, self.value)
 
 class Dict(Value):
   __slots__ = ["definitions", "line", "col"]
@@ -90,6 +109,7 @@ class Dict(Value):
     self.definitions = definitions
     self.line = line
     self.col = col
+  def __str__(self): return "{%s}" % ", ".join(map(str, self.definitions))
 
 class Function(Value):
   __slots__ = ["expressions", "left_args", "right_args", "line", "col"]
@@ -99,6 +119,15 @@ class Function(Value):
     self.right_args = right_args
     self.line = line
     self.col = col
+  def __str__(self):
+    if self.left_args:
+      return "{|%s; %s| %s}" % (", ".join(map(str, self.left_args)),
+          ", ".join(map(str, self.right_args)),
+          "; ".join(map(str, self.expressions)))
+    if self.right_args:
+      return "{|%s| %s}" % (", ".join(map(str, self.right_args)),
+          "; ".join(map(str, self.expressions)))
+    return "{%s}" % "; ".join(map(str, self.expressions))
 
 class Expression(object): pass
 
@@ -110,6 +139,9 @@ class Assignment(Expression):
     self.expression = expression
     self.line = line
     self.col = col
+  def __str__(self):
+    return "%s %s %s" % (self.assignee, self.mutation and ":=" or "=",
+        self.expression)
 
 class Application(Expression):
   __slots__ = ["terms", "line", "col"]
@@ -117,6 +149,8 @@ class Application(Expression):
     self.terms = terms
     self.line = line
     self.col = col
+  def __str__(self):
+    return " ".join(map(str, self.terms))
 
 class Assignee(object): pass
 
@@ -127,6 +161,8 @@ class FieldAssignee(Assignee):
     self.field = field
     self.line = line
     self.col = col
+  def __str__(self):
+    return "%s%s" % (self.term, self.field)
 
 class VariableAssignee(Assignee):
   __slots__ = ["variable", "line", "col"]
@@ -134,6 +170,8 @@ class VariableAssignee(Assignee):
     self.variable = variable
     self.line = line
     self.col = col
+  def __str__(self):
+    return str(self.variable)
 
 class IndexAssignee(Assignee):
   __slots__ = ["term", "index", "line", "col"]
@@ -142,6 +180,7 @@ class IndexAssignee(Assignee):
     self.index = index
     self.line = line
     self.col = col
+  def __str__(self): return "%s%s" % (self.term, self.index)
 
 class Term(object):
   __slots__ = ["value", "modifiers", "line", "col"]
@@ -150,6 +189,8 @@ class Term(object):
     self.modifiers = modifiers
     self.line = line
     self.col = col
+  def __str__(self):
+    return "%s%s" % (self.value, "".join(map(str, self.modifiers)))
 
 class ValueModifier(object): pass
 
@@ -158,6 +199,7 @@ class OpenCall(ValueModifier):
   def __init__(self, line, col):
     self.line = line
     self.col = col
+  def __str__(self): return "."
 
 class Index(ValueModifier):
   __slots__ = ["expressions", "line", "col"]
@@ -165,13 +207,15 @@ class Index(ValueModifier):
     self.expressions = expressions
     self.line = line
     self.col = col
+  def __str__(self): return "[%s]" % "; ".join(map(str, self.expressions))
 
 class Field(ValueModifier):
   __slots__ = ["identifier", "line", "col"]
   def __init__(self, identifier, line, col):
-    self.name = identifier
+    self.identifier = identifier
     self.line = line
     self.col = col
+  def __str__(self): return ".%s" % self.identifier
 
 class ClosedCall(ValueModifier):
   __slots__ = ["left_args", "right_args", "line", "col"]
@@ -180,6 +224,11 @@ class ClosedCall(ValueModifier):
     self.right_args = right_args
     self.line = line
     self.col = col
+  def __str__(self):
+    if self.left_args:
+      return "(%s; %s)" % (", ".join(map(str, self.left_args)),
+          ", ".join(map(str, self.right_args)))
+    return "(%s)" % ", ".join(map(str, self.right_args))
 
 class InArgument(object): pass
 class OutArgument(object): pass
@@ -190,6 +239,7 @@ class KeywordOutArgument(OutArgument):
     self.expressions = expressions
     self.line = line
     self.col = col
+  def __str__(self): return "::(%s)" % "; ".join(map(str, self.expressions))
 
 class KeywordInArgument(InArgument):
   __slots__ = ["identifier", "line", "col"]
@@ -197,6 +247,7 @@ class KeywordInArgument(InArgument):
     self.identifier = identifier
     self.line = line
     self.col = col
+  def __str__(self): return "::(%s)" % self.identifier
 
 class ArbitraryOutArgument(OutArgument):
   __slots__ = ["expressions", "line", "col"]
@@ -204,6 +255,7 @@ class ArbitraryOutArgument(OutArgument):
     self.expressions = expressions
     self.line = line
     self.col = col
+  def __str__(self): return ":(%s)" % "; ".join(map(str, self.expressions))
 
 class ArbitraryInArgument(InArgument):
   __slots__ = ["identifier", "line", "col"]
@@ -211,6 +263,7 @@ class ArbitraryInArgument(InArgument):
     self.identifier = identifier
     self.line = line
     self.col = col
+  def __str__(self): return ":(%s)" % self.identifier
 
 class NamedOutArgument(OutArgument):
   __slots__ = ["name", "value", "line", "col"]
@@ -219,6 +272,7 @@ class NamedOutArgument(OutArgument):
     self.value = value
     self.line = line
     self.col = col
+  def __str__(self): return "%s: %s" % (self.name, self.value)
 
 class DefaultInArgument(InArgument):
   __slots__ = ["name", "value", "line", "col"]
@@ -227,6 +281,7 @@ class DefaultInArgument(InArgument):
     self.value = value
     self.line = line
     self.col = col
+  def __str__(self): return "%s: %s" % (self.name, self.value)
 
 class PositionalOutArgument(OutArgument):
   __slots__ = ["value", "line", "col"]
@@ -234,6 +289,7 @@ class PositionalOutArgument(OutArgument):
     self.value = value
     self.line = line
     self.col = col
+  def __str__(self): return str(self.value)
 
 class RequiredInArgument(InArgument):
   __slots__ = ["value", "line", "col"]
@@ -241,3 +297,4 @@ class RequiredInArgument(InArgument):
     self.value = value
     self.line = line
     self.col = col
+  def __str__(self): return str(self.value)
