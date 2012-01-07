@@ -33,11 +33,10 @@ __author_email__ = "hello@jtolds.com"
 __all__ = ["parse"]
 
 import types as ast
+from common.errors import ParserError
+from common.errors import assert_source
 
 DEBUG_LEVEL = 0
-
-class Error_(Exception): pass
-class ParserError(Error_): pass
 
 class Parser(object):
 
@@ -105,7 +104,7 @@ class Parser(object):
   def assert_source(self, message, line=None, col=None):
     if line is None: line = self.line
     if col is None: col = self.col
-    raise ParserError, "Error at line %d, column %d: %s" % (line, col, message)
+    assert_source(ParserError, message, line, col)
 
   def eof(self, lookahead=0):
     assert lookahead >= 0

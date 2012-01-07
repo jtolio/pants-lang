@@ -39,13 +39,25 @@ __all__ = ["Program", "Value", "Variable", "Subexpression", "Integer", "Float",
     "ArbitraryOutArgument", "DefaultInArgument", "NamedOutArgument",
     "RequiredInArgument", "PositionalOutArgument"]
 
+import itertools
+
 def formats(things, indent):
   return map(lambda thing: thing.format(indent), things)
 
+def references_in_expression_list(expressions, identifier):
+  for expression in expressions:
+    if expression.references(identifier): return True
+    if expression.binds(identifier): return False
+  return False
+
 class Program(object):
-  __slots__ = ["expressions"]
-  def __init__(self, expressions):
+  __slots__ = ["expressions", "line", "col"]
+  def __init__(self, expressions, line=0, col=0):
     self.expressions = expressions
+    self.line = line
+    self.col = col
+  def references(self, identifier):
+    return references_in_expression_list(self.expressions, identifier)
   def format(self, indent=""):
     return (";\n%s" % indent).join(formats(self.expressions, indent))
 
@@ -57,6 +69,7 @@ class Variable(Value):
     self.identifier = identifier
     self.line = line
     self.col = col
+  def references(self, identifier): return self.identifier == identifier
   def format(self, indent): return str(self.identifier)
 
 class Subexpression(Value):
@@ -65,6 +78,12 @@ class Subexpression(Value):
     self.expressions = expressions
     self.line = line
     self.col = col
+  def references(self, identifier):
+    return references_in_expression_list(self.expressions, identifier)
+  def binds_anything(self):
+    for expression in self.expressions:
+      if expression.binds_anything(): return True
+    return False
   def format(self, indent):
     return "(%s)" % ("; ").join(formats(self.expressions, indent))
 
@@ -74,6 +93,7 @@ class Integer(Value):
     self.value = value
     self.line = line
     self.col = col
+  def references(self, identifier): return False
   def format(self, indent): return str(self.value)
 
 class Float(Value):
@@ -82,6 +102,7 @@ class Float(Value):
     self.value = value
     self.line = line
     self.col = col
+  def references(self, identifier): return False
   def format(self, indent): return str(self.value)
 
 class String(Value):
@@ -91,6 +112,7 @@ class String(Value):
     self.value = value
     self.line = line
     self.col = col
+  def references(self, identifier): return False
   def format(self, indent):
     if self.byte_oriented:
       return 'b"%s"' % self.value
@@ -102,6 +124,10 @@ class Array(Value):
     self.applications = applications
     self.line = line
     self.col = col
+  def references(self, identifier):
+    for app in self.applications:
+      if app.references(identifier): return True
+    return False
   def format(self, indent):
     return "[%s]" % ", ".join(formats(self.applications, indent))
 
@@ -112,6 +138,8 @@ class DictDefinition(object):
     self.value = value
     self.line = line
     self.col = col
+  def references(self, identifier):
+    return self.key.references(identifier) or self.value.references(identifier)
   def format(self, indent):
     return "%s: %s" % (self.key.format(indent), self.value.format(indent))
 
@@ -121,6 +149,10 @@ class Dict(Value):
     self.definitions = definitions
     self.line = line
     self.col = col
+  def references(self, identifier):
+    for definition in self.definitions:
+      if definition.references(identifier): return True
+    return False
   def format(self, indent):
     return "{%s}" % ", ".join(formats(self.definitions, indent))
 
@@ -132,6 +164,13 @@ class Function(Value):
     self.right_args = right_args
     self.line = line
     self.col = col
+  def references(self, identifier):
+    is_bound = False
+    for arg in itertools.chain(self.left_args, self.right_args):
+      if arg.references(identifier): return True
+      if arg.binds(identifier): is_bound = True
+    if is_bound: return False
+    return references_in_expression_list(self.expressions, identifier)
   def format(self, indent):
     string = ["{"]
     if self.left_args or self.right_args:
@@ -162,6 +201,12 @@ class Assignment(Expression):
     self.expression = expression
     self.line = line
     self.col = col
+  def binds_anything(self):
+    return not self.mutation or self.expression.binds_anything()
+  def references(self, identifier):
+    return self.assignee.references(identifier, self)
+  def binds(self, identifier):
+    return self.assignee.binds(identifier, self)
   def format(self, indent):
     return "%s %s %s" % (self.assignee.format(indent),
         self.mutation and ":=" or "=", self.expression.format(indent))
@@ -172,6 +217,12 @@ class Application(Expression):
     self.terms = terms
     self.line = line
     self.col = col
+  def binds_anything(self): return False
+  def references(self, identifier):
+    for term in self.terms:
+      if term.references(identifier): return True
+    return False
+  def binds(self, identifier): return False
   def format(self, indent):
     return " ".join(formats(self.terms, indent))
 
@@ -184,6 +235,11 @@ class FieldAssignee(Assignee):
     self.field = field
     self.line = line
     self.col = col
+  def references(self, identifier, assignment):
+    if assignment.expression.references(identifier): return True
+    if self.term.references(identifier): return True
+    return False
+  def binds(self, identifier, assignment): return False
   def format(self, indent):
     return "%s%s" % (self.term.format(indent), self.field.format(indent))
 
@@ -193,6 +249,18 @@ class VariableAssignee(Assignee):
     self.variable = variable
     self.line = line
     self.col = col
+  def references(self, identifier, assignment):
+    if not assignment.mutation:
+      if self.variable.references(identifier): return False
+      return assignment.expression.references(identifier)
+    if assignment.expression.references(identifier): return True
+    if assignment.expression.binds(identifier): return False
+    return self.variable.references(identifier)
+  def binds(self, identifier, assignment):
+    if not assignment.mutation and self.variable.references(identifier):
+      return True
+    if assignment.expression.binds(identifier): return True
+    return False
   def format(self, indent):
     return self.variable.format(indent)
 
@@ -203,6 +271,12 @@ class IndexAssignee(Assignee):
     self.index = index
     self.line = line
     self.col = col
+  def references(self, identifier, assignment):
+    if assignment.expression.references(identifier): return True
+    if self.term.references(identifier): return True
+    if self.index.references(identifier): return True
+    return False
+  def binds(self, identifier, assignment): return False
   def format(self, indent):
     return "%s%s" % (self.term.format(indent), self.index.format(indent))
 
@@ -213,6 +287,10 @@ class Term(object):
     self.modifiers = modifiers
     self.line = line
     self.col = col
+  def references(self, identifier):
+    if self.value.references(identifier): return True
+    for modifier in self.modifiers:
+      if modifier.references(identifier): return True
   def format(self, indent):
     return "%s%s" % (self.value.format(indent),
         "".join(formats(self.modifiers, indent)))
@@ -224,6 +302,7 @@ class OpenCall(ValueModifier):
   def __init__(self, line, col):
     self.line = line
     self.col = col
+  def references(self, identifier): return False
   def format(self, indent): return "."
 
 class Index(ValueModifier):
@@ -232,6 +311,8 @@ class Index(ValueModifier):
     self.expressions = expressions
     self.line = line
     self.col = col
+  def references(self, identifier):
+    return references_in_expression_list(self.expressions, identifier)
   def format(self, indent):
     return "[%s]" % "; ".join(formats(self.expressions, indent))
 
@@ -241,6 +322,7 @@ class Field(ValueModifier):
     self.identifier = identifier
     self.line = line
     self.col = col
+  def references(self, identifier): return False
   def format(self, indent): return ".%s" % self.identifier
 
 class ClosedCall(ValueModifier):
@@ -250,6 +332,9 @@ class ClosedCall(ValueModifier):
     self.right_args = right_args
     self.line = line
     self.col = col
+  def references(self, identifier):
+    for arg in itertools.chain(self.left_args, self.right_args):
+      if arg.references(identifier): return True
   def format(self, indent):
     if self.left_args:
       return "(%s; %s)" % (", ".join(formats(self.left_args, indent)),
@@ -265,6 +350,8 @@ class KeywordOutArgument(OutArgument):
     self.expressions = expressions
     self.line = line
     self.col = col
+  def references(self, identifier):
+    return references_in_expression_list(self.expressions, identifier)
   def format(self, indent):
     return "::(%s)" % "; ".join(formats(self.expressions, indent))
 
@@ -274,6 +361,8 @@ class KeywordInArgument(InArgument):
     self.identifier = identifier
     self.line = line
     self.col = col
+  def references(self, identifier): return False
+  def binds(self, identifier): return identifier == self.identifier
   def format(self, indent): return "::(%s)" % self.identifier
 
 class ArbitraryOutArgument(OutArgument):
@@ -282,6 +371,8 @@ class ArbitraryOutArgument(OutArgument):
     self.expressions = expressions
     self.line = line
     self.col = col
+  def references(self, identifier):
+    return references_in_expression_list(self.expressions, identifier)
   def format(self, indent):
     return ":(%s)" % "; ".join(formats(self.expressions, indent))
 
@@ -291,6 +382,8 @@ class ArbitraryInArgument(InArgument):
     self.identifier = identifier
     self.line = line
     self.col = col
+  def references(self, identifier): return False
+  def binds(self, identifier): return identifier == self.identifier
   def format(self, indent): return ":(%s)" % self.identifier
 
 class NamedOutArgument(OutArgument):
@@ -300,6 +393,7 @@ class NamedOutArgument(OutArgument):
     self.value = value
     self.line = line
     self.col = col
+  def references(self, identifier): return self.value.references(identifier)
   def format(self, indent):
     return "%s:%s" % (self.name, self.value.format(indent))
 
@@ -310,6 +404,8 @@ class DefaultInArgument(InArgument):
     self.value = value
     self.line = line
     self.col = col
+  def references(self, identifier): return self.value.references(identifier)
+  def binds(self, identifier): return identifier == self.name
   def format(self, indent):
     return "%s:%s" % (self.name, self.value.format(indent))
 
@@ -319,6 +415,7 @@ class PositionalOutArgument(OutArgument):
     self.value = value
     self.line = line
     self.col = col
+  def references(self, identifier): return self.value.references(identifier)
   def format(self, indent): return self.value.format(indent)
 
 class RequiredInArgument(InArgument):
@@ -327,4 +424,6 @@ class RequiredInArgument(InArgument):
     self.name = name
     self.line = line
     self.col = col
+  def references(self, identifier): return False
+  def binds(self, identifier): return identifier == self.name
   def format(self, indent): return self.name

@@ -25,19 +25,15 @@
   Pants
   http://www.pants-lang.org/
 
-  Main module
+  Pants error types
 """
 
 __author__ = "JT Olds"
 __author_email__ = "hello@jtolds.com"
 
-import sys
-from ast.parse import parse
-from ir.convert import convert
+class PantsError(Exception): pass
+class ParserError(PantsError): pass
+class ConversionError(PantsError): pass
 
-def main(argv):
-  ir, lastval = convert(parse(sys.stdin))
-  print ";\n".join((exp.format("") for exp in ir))
-
-if __name__ == "__main__":
-  sys.exit(main(sys.argv))
+def assert_source(exception, message, line, col):
+  raise exception, "Error at line %d, column %d: %s" % (line, col, message)
