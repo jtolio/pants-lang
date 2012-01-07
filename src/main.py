@@ -35,8 +35,7 @@ import sys
 from parser import parse
 
 def main(argv):
-  program = parse(sys.stdin)
-  print program
+  print parse(sys.stdin).format()
 
 if __name__ == "__main__":
   sys.exit(main(sys.argv))
