@@ -92,9 +92,10 @@ class Parser(object):
   def source_ref(self, checkpoint):
     return checkpoint[2], checkpoint[1]
 
-  def assert_source(self, message):
-    raise ParserError, "Error at line %d, column %d: %s" % (self.line,
-        self.col, message)
+  def assert_source(self, message, line=None, col=None):
+    if line is None: line = self.line
+    if col is None: col = self.col
+    raise ParserError, "Error at line %d, column %d: %s" % (line, col, message)
 
   def eof(self, lookahead=0):
     assert lookahead >= 0
@@ -369,20 +370,67 @@ class Parser(object):
     return args
 
   def check_left_out_args(self, left_args):
-    # TODO, though not strictly required yet
-    pass
-
-  def check_right_out_args(self, right_args):
-    # TODO, though not strictly required yet
-    pass
+    pos = 0
+    if pos < len(left_args) and isinstance(left_args[pos],
+        ast.ArbitraryOutArgument):
+      pos += 1
+    while pos < len(left_args) and isinstance(left_args[pos],
+        ast.PositionalOutArgument):
+      pos += 1
+    if pos < len(left_args):
+      self.assert_source("unexpected argument type", left_args[pos].line,
+          left_args[pos].col)
 
   def check_left_in_args(self, left_args):
-    # TODO, though not strictly required yet
-    pass
+    pos = 0
+    if pos < len(left_args) and isinstance(left_args[pos],
+        ast.ArbitraryInArgument):
+      pos += 1
+    while pos < len(left_args) and isinstance(left_args[pos],
+        ast.DefaultInArgument):
+      pos += 1
+    while pos < len(left_args) and isinstance(left_args[pos],
+        ast.RequiredInArgument):
+      pos += 1
+    if pos < len(left_args):
+      self.assert_source("unexpected argument type", left_args[pos].line,
+          left_args[pos].col)
+
+  def check_right_out_args(self, right_args):
+    pos = 0
+    while pos < len(right_args) and isinstance(right_args[pos],
+        ast.PositionalOutArgument):
+      pos += 1
+    while pos < len(right_args) and isinstance(right_args[pos],
+        ast.NamedOutArgument):
+      pos += 1
+    if pos < len(right_args) and isinstance(right_args[pos],
+        ast.ArbitraryOutArgument):
+      pos += 1
+    if pos < len(right_args) and isinstance(right_args[pos],
+        ast.KeywordOutArgument):
+      pos += 1
+    if pos < len(right_args):
+      self.assert_source("unexpected argument type", right_args[pos].line,
+          right_args[pos].col)
 
   def check_right_in_args(self, right_args):
-    # TODO, though not strictly required yet
-    pass
+    pos = 0
+    while pos < len(right_args) and isinstance(right_args[pos],
+        ast.RequiredInArgument):
+      pos += 1
+    while pos < len(right_args) and isinstance(right_args[pos],
+        ast.DefaultInArgument):
+      pos += 1
+    if pos < len(right_args) and isinstance(right_args[pos],
+        ast.ArbitraryInArgument):
+      pos += 1
+    if pos < len(right_args) and isinstance(right_args[pos],
+        ast.KeywordInArgument):
+      pos += 1
+    if pos < len(right_args):
+      self.assert_source("unexpected argument type", right_args[pos].line,
+          right_args[pos].col)
 
   def parse_closed_call(self):
     if self.char() != "(": return None
