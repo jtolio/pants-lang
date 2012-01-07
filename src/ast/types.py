@@ -25,7 +25,7 @@
   Pants
   http://www.pants-lang.org/
 
-  AST module
+  AST types
 """
 
 __author__ = "JT Olds"

@@ -25,18 +25,14 @@
   Pants
   http://www.pants-lang.org/
 
-  Main module
+  IR conversion
 """
 
 __author__ = "JT Olds"
 __author_email__ = "hello@jtolds.com"
+__all__ = ["convert"]
 
-import sys
-from ast.parse import parse
-from ir.convert import convert
+import types as ir
 
-def main(argv):
-  convert(parse(sys.stdin))
-
-if __name__ == "__main__":
-  sys.exit(main(sys.argv))
+def convert(ast):
+  print ast.format()

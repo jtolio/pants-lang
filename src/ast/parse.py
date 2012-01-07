@@ -32,7 +32,7 @@ __author__ = "JT Olds"
 __author_email__ = "hello@jtolds.com"
 __all__ = ["parse"]
 
-import ast
+import types as ast
 
 DEBUG_LEVEL = 0
 

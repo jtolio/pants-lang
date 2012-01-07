@@ -1,7 +1,2 @@
-src/pants
-src/run_tests
-src/*.o
-src/*.pyc
-src/assets.h
-src/assets.cpp
+*.pyc
 samples/*.pc
