@@ -64,30 +64,40 @@ class Parser(object):
                   12: set("0123456789abAB"),
                   16: set("0123456789abcdefABCDEF") }
 
-  __slots__ = ["source", "pos", "line", "col", "_memoization"]
+  __slots__ = ["source", "pos", "line", "col", "_term_memoization",
+      "current_char"]
 
   def __init__(self, io):
     self.source = io.read()
     self.pos = 0
     self.line = 1
     self.col = 1
-    self._memoization = {}
+    self._term_memoization = {}
+    self.current_char = self.source[self.pos]
 
   def advance(self, distance=1):
     for _ in xrange(distance):
       assert not self.eof()
-      if self.char() == "\n":
+      if self.current_char == "\n":
         self.line += 1
         self.col = 1
       else:
         self.col += 1
       self.pos += 1
+      if self.pos >= len(self.source):
+        self.current_char = None
+      else:
+        self.current_char = self.source[self.pos]
 
   def checkpoint(self):
     return (self.pos, self.col, self.line)
 
   def restore(self, checkpoint):
     self.pos, self.col, self.line = checkpoint
+    if self.pos >= len(self.source):
+      self.current_char = None
+    else:
+      self.current_char = self.source[self.pos]
 
   def source_ref(self, checkpoint):
     return checkpoint[2], checkpoint[1]
@@ -109,17 +119,17 @@ class Parser(object):
     return self.source[self.pos + lookahead]
 
   def parse_string_escape(self):
-    if self.char() != "\\": return None
+    if self.current_char != "\\": return None
     self.advance()
     if Parser.ESCAPES.has_key(self.char(required=True)):
       return Parser.ESCAPES[self.char]
-    elif self.char() in Parser.SAFE_DIGITS[10]:
+    elif self.current_char in Parser.SAFE_DIGITS[10]:
       integer, base, log = self.parse_integer()
       assert integer is not None
       if integer >= 256:
         self.assert_source("byte escape sequence represents more than one byte")
       return chr(integer)
-    elif self.char() in ("U", "u", "N"):
+    elif self.current_char in ("U", "u", "N"):
       self.assert_source("TODO: unicode escape sequences unimplemented")
     else:
       self.assert_source("unknown escape sequence")
@@ -127,10 +137,10 @@ class Parser(object):
   def parse_string(self):
     checkpoint = self.checkpoint()
     bytestring = False
-    if self.char() == 'b':
+    if self.current_char == 'b':
       bytestring = True
       self.advance()
-    if self.char() != '"':
+    if self.current_char != '"':
       self.restore(checkpoint)
       return None
     opening_quote_count = 1
@@ -149,7 +159,7 @@ class Parser(object):
           found_ending = False
           break
       if found_ending: break
-      val_to_append = self.char()
+      val_to_append = self.current_char
       if opening_quote_count == 1:
         string_escape = self.parse_string_escape()
         if string_escape is not None:
@@ -160,18 +170,18 @@ class Parser(object):
     return ast.String(bytestring, "".join(value), *self.source_ref(checkpoint))
 
   def skip_comment(self):
-    if self.char() != "#": return False
+    if self.current_char != "#": return False
     self.advance()
     if self.parse_string() is not None: return True
     while True:
       if self.eof(): return True
       self.advance()
-      if self.char() == "\n": return True
+      if self.current_char == "\n": return True
 
   def skip_whitespace(self, other_skips=[]):
     if self.eof(): return False
     if self.skip_comment(): return True
-    if self.char() in " \t\r" or self.char() in other_skips:
+    if self.current_char in " \t\r" or self.current_char in other_skips:
       self.advance()
       return True
     return False
@@ -182,45 +192,45 @@ class Parser(object):
     return any_skipped
 
   def parse_subexpression(self):
-    if self.char() != "(": return None
+    if self.current_char != "(": return None
     checkpoint = self.checkpoint()
     self.advance()
     self.skip_all_whitespace("\n;")
     expressions = self.parse_expression_list(False)
     if not expressions:
       self.assert_source("expression list expected in subexpression")
-    if self.char() != ")":
+    if self.current_char != ")":
       self.assert_source("closing parenthesis expected for subexpression")
     self.advance()
     return ast.Subexpression(expressions, *self.source_ref(checkpoint))
 
   def parse_function(self):
-    if self.char() != "{": return None
+    if self.current_char != "{": return None
     checkpoint = self.checkpoint()
     self.advance()
     self.skip_all_whitespace("\n")
-    if self.char() == "}":
+    if self.current_char == "}":
       self.restore(checkpoint)
       return None # empty dictionary
     left_args = []
     right_args = []
-    if self.char() == "|":
+    if self.current_char == "|":
       self.advance()
       self.skip_all_whitespace("\n")
       right_args = self.parse_in_arg_list()
-      if self.char() == ";":
+      if self.current_char == ";":
         self.advance()
         self.skip_all_whitespace("\n")
         left_args = right_args
         right_args = self.parse_in_arg_list()
-      if self.char() != "|":
+      if self.current_char != "|":
         self.assert_source("closing bar ('|') expected for argument list")
       self.advance()
       self.check_left_in_args(left_args)
       self.check_right_in_args(right_args)
     self.skip_all_whitespace("\n;")
     expressions = self.parse_expression_list(True)
-    if self.char() != "}":
+    if self.current_char != "}":
       self.restore(checkpoint)
       return None
     self.advance()
@@ -228,7 +238,7 @@ class Parser(object):
         *self.source_ref(checkpoint))
 
   def parse_keyword_out_arg(self):
-    if (self.char() != ":" or self.char(lookahead=1) != ":" or
+    if (self.current_char != ":" or self.char(lookahead=1) != ":" or
         self.char(lookahead=2) != "("):
       return None
     checkpoint = self.checkpoint()
@@ -237,20 +247,20 @@ class Parser(object):
     expressions = self.parse_expression_list(False)
     if not expressions:
       self.assert_source("keyword argument expected")
-    if self.char() != ")":
+    if self.current_char != ")":
       self.assert_source("closing parenthesis expected for keyword argument")
     self.advance()
     return ast.KeywordOutArgument(expressions, *self.source_ref(checkpoint))
 
   def parse_arbitrary_out_arg(self):
-    if self.char() != ":" or self.char(lookahead=1) != "(": return None
+    if self.current_char != ":" or self.char(lookahead=1) != "(": return None
     checkpoint = self.checkpoint()
     self.advance(distance=2)
     self.skip_all_whitespace("\n;")
     expressions = self.parse_expression_list(False)
     if not expressions:
       self.assert_source("arbitrary argument expected")
-    if self.char() != ")":
+    if self.current_char != ")":
       self.assert_source("closing parenthesis expected for arbitrary argument")
     self.advance()
     return ast.ArbitraryOutArgument(expressions, *self.source_ref(checkpoint))
@@ -260,7 +270,7 @@ class Parser(object):
     field = self.parse_identifier()
     if not field: return None
     self.skip_all_whitespace("\n")
-    if self.char() != ":":
+    if self.current_char != ":":
       self.restore(checkpoint)
       return None
     self.advance()
@@ -278,7 +288,7 @@ class Parser(object):
     return ast.PositionalOutArgument(application, *self.source_ref(checkpoint))
 
   def parse_keyword_in_arg(self):
-    if (self.char() != ":" or self.char(lookahead=1) != ":" or
+    if (self.current_char != ":" or self.char(lookahead=1) != ":" or
         self.char(lookahead=2) != "("):
       return None
     checkpoint = self.checkpoint()
@@ -288,13 +298,13 @@ class Parser(object):
     if identifier is None:
       self.assert_source("expected keyword argument identifier")
     self.skip_all_whitespace("\n")
-    if self.char() != ")":
+    if self.current_char != ")":
       self.assert_source("closing parenthesis expected for keyword argument")
     self.advance()
     return ast.KeywordInArgument(identifier, *self.source_ref(checkpoint))
 
   def parse_arbitrary_in_arg(self):
-    if self.char() != ":" or self.char(lookahead=1) != "(": return None
+    if self.current_char != ":" or self.char(lookahead=1) != "(": return None
     checkpoint = self.checkpoint()
     self.advance(distance=2)
     self.skip_all_whitespace("\n")
@@ -302,7 +312,7 @@ class Parser(object):
     if identifier is None:
       self.assert_source("expected arbitrary argument identifier")
     self.skip_all_whitespace("\n")
-    if self.char() != ")":
+    if self.current_char != ")":
       self.assert_source("closing parenthesis expected for arbitrary argument")
     self.advance()
     return ast.ArbitraryInArgument(identifier, *self.source_ref(checkpoint))
@@ -312,7 +322,7 @@ class Parser(object):
     field = self.parse_identifier()
     if field is None: return None
     self.skip_all_whitespace("\n")
-    if self.char() != ":":
+    if self.current_char != ":":
       self.restore(checkpoint)
       return None
     self.advance()
@@ -353,7 +363,7 @@ class Parser(object):
       arg = self.parse_out_arg()
       if arg is None: break
       args.append(arg)
-      if self.char() != ",": break
+      if self.current_char != ",": break
       self.advance()
       self.skip_all_whitespace("\n")
     return args
@@ -364,7 +374,7 @@ class Parser(object):
       arg = self.parse_in_arg()
       if arg is None: break
       args.append(arg)
-      if self.char() != ",": break
+      if self.current_char != ",": break
       self.advance()
       self.skip_all_whitespace("\n")
     return args
@@ -433,18 +443,18 @@ class Parser(object):
           right_args[pos].col)
 
   def parse_closed_call(self):
-    if self.char() != "(": return None
+    if self.current_char != "(": return None
     checkpoint = self.checkpoint()
     self.advance()
     self.skip_all_whitespace("\n")
     left_args = []
     right_args = self.parse_out_arg_list()
-    if self.char() == ";":
+    if self.current_char == ";":
       self.advance()
       self.skip_all_whitespace("\n")
       left_args = right_args
       right_args = self.parse_out_arg_list()
-    if self.char() != ")":
+    if self.current_char != ")":
       self.assert_source("closing parenthesis expected for function call")
     self.advance()
     self.check_left_out_args(left_args)
@@ -452,7 +462,7 @@ class Parser(object):
     return ast.ClosedCall(left_args, right_args, *self.source_ref(checkpoint))
 
   def parse_identifier(self):
-    char = self.char()
+    char = self.current_char
     if (char in Parser.SAFE_DIGITS[10] or char in Parser.NON_ID_CHARS or
         not char):
       return None
@@ -461,7 +471,7 @@ class Parser(object):
     chars = [char]
     while True:
       self.advance()
-      char = self.char()
+      char = self.current_char
       if not char or char in Parser.NON_ID_CHARS: break
       chars.append(char)
     return "".join(chars)
@@ -473,12 +483,12 @@ class Parser(object):
     return ast.Variable(identifier, *self.source_ref(checkpoint))
 
   def parse_integer_in_base(self, base):
-    char = self.char()
+    char = self.current_char
     if char not in Parser.SAFE_DIGITS[base]: return None, None
     chars = [char]
     while True:
       self.advance()
-      char = self.char()
+      char = self.current_char
       if char not in Parser.SAFE_DIGITS[base]:
         if char and char not in Parser.NON_ID_CHARS:
           self.assert_source("invalid value in base %d" % base)
@@ -487,7 +497,8 @@ class Parser(object):
     return int("".join(chars).lower(), base), len(chars)
 
   def parse_integer(self):
-    if self.char() == "0" and self.char(lookahead=1) in Parser.INTEGER_BASES:
+    if self.current_char == "0" and (self.char(lookahead=1) in
+        Parser.INTEGER_BASES):
       base = Parser.INTEGER_BASES[self.char(lookahead=1)]
       self.advance(distance=2)
       integer, log = self.parse_integer_in_base(base)
@@ -499,14 +510,14 @@ class Parser(object):
   def parse_number(self):
     checkpoint = self.checkpoint()
     multiplier = 1
-    if self.char() == "-":
+    if self.current_char == "-":
       multiplier = -1
       self.advance()
     integer, base, log = self.parse_integer()
     if integer is None:
       self.restore(checkpoint)
       return None
-    if self.char() != ".":
+    if self.current_char != ".":
       return ast.Integer(multiplier * integer, *self.source_ref(checkpoint))
     self.advance()
     fractional, fractional_base, fractional_log = self.parse_integer()
@@ -521,7 +532,7 @@ class Parser(object):
     checkpoint = self.checkpoint()
     key = self.parse_application(False)
     if key is None: return None
-    if self.char() != ":":
+    if self.current_char != ":":
       self.assert_source("expected dictionary key/value separator (':')")
     self.advance()
     self.skip_all_whitespace("\n")
@@ -531,7 +542,7 @@ class Parser(object):
     return ast.DictDefinition(key, value, *self.source_ref(checkpoint))
 
   def parse_dict(self):
-    if self.char() != "{": return None
+    if self.current_char != "{": return None
     checkpoint = self.checkpoint()
     self.advance()
     definitions = []
@@ -540,16 +551,16 @@ class Parser(object):
       definition = self.parse_dict_definition()
       if definition is None: break
       definitions.append(definition)
-      if self.char() != ",": break
+      if self.current_char != ",": break
       self.advance()
     self.skip_all_whitespace("\n,")
-    if self.char() != "}":
+    if self.current_char != "}":
       self.assert_source("expected dict close ('}')")
     self.advance()
     return ast.Dict(definitions, *self.source_ref(checkpoint))
 
   def parse_array(self):
-    if self.char() != "[": return None
+    if self.current_char != "[": return None
     checkpoint = self.checkpoint()
     self.advance()
     applications = []
@@ -558,10 +569,10 @@ class Parser(object):
       application = self.parse_application(False)
       if application is None: break
       applications.append(application)
-      if self.char() != ",": break
+      if self.current_char != ",": break
       self.advance()
     self.skip_all_whitespace("\n,")
-    if self.char() != "]":
+    if self.current_char != "]":
       self.assert_source("expected list close (']')")
     self.advance()
     return ast.Array(applications, *self.source_ref(checkpoint))
@@ -598,20 +609,20 @@ class Parser(object):
     return self.parse_array()
 
   def parse_index(self):
-    if self.char() != "[": return None
+    if self.current_char != "[": return None
     checkpoint = self.checkpoint()
     self.advance()
     self.skip_all_whitespace("\n;")
     expressions = self.parse_expression_list(False)
     if not expressions:
       self.assert_source("expected expression for index lookup")
-    if self.char() != "]":
+    if self.current_char != "]":
       self.assert_source("expected end of index lookup (']')")
     self.advance()
     return ast.Index(expressions, *self.source_ref(checkpoint))
 
   def parse_field(self):
-    if self.char() == ".":
+    if self.current_char == ".":
       checkpoint = self.checkpoint()
       self.advance()
       identifier = self.parse_identifier()
@@ -621,15 +632,15 @@ class Parser(object):
     return None
 
   def parse_right_open_call(self):
-    if self.char() == "." and (self.char(lookahead=1) in Parser.NON_ID_CHARS or
-        self.char(lookahead=1) == None):
+    if self.current_char == "." and (self.char(lookahead=1) in
+        Parser.NON_ID_CHARS or self.char(lookahead=1) == None):
       checkpoint = self.checkpoint()
       self.advance()
       return ast.OpenCall(*self.source_ref(checkpoint))
     return None
 
   def parse_left_open_call(self):
-    if self.char() in ("@", "."):
+    if self.current_char in ("@", "."):
       checkpoint = self.checkpoint()
       self.advance()
       return ast.OpenCall(*self.source_ref(checkpoint))
@@ -648,6 +659,10 @@ class Parser(object):
     return self.parse_closed_call()
 
   def parse_term(self):
+    if self._term_memoization.has_key(self.pos):
+      rv, checkpoint = self._term_memoization[self.pos]
+      self.restore(checkpoint)
+      return rv
     checkpoint = self.checkpoint()
     headers = []
     trailers = []
@@ -659,13 +674,15 @@ class Parser(object):
     value = self.parse_value()
     if value is None:
       self.restore(checkpoint)
+      self._term_memoization[self.pos] = None, checkpoint
       return None
     while True:
       trailer = self.parse_trailer()
       if trailer is None: break
       trailers.append(trailer)
-    return ast.Term(value, trailers + headers,
-        *self.source_ref(checkpoint))
+    rv = ast.Term(value, trailers + headers, *self.source_ref(checkpoint))
+    self._term_memoization[checkpoint[0]] = (rv, self.checkpoint())
+    return rv
 
   def parse_assignment(self, newline_sep):
     if newline_sep: skips = []
@@ -677,14 +694,14 @@ class Parser(object):
       return None
     self.skip_all_whitespace(skips)
     mutation = False
-    if self.char() == ":":
+    if self.current_char == ":":
       mutation = True
       self.advance()
-    if self.char() != "=":
+    if self.current_char != "=":
       self.restore(checkpoint)
       return None
     self.advance()
-    if self.char() not in Parser.NON_ID_CHARS:
+    if self.current_char not in Parser.NON_ID_CHARS:
       self.restore(checkpoint)
       return None
     self.skip_all_whitespace(skips)
@@ -727,27 +744,8 @@ class Parser(object):
     self.restore(checkpoint)
     return ast.Program(explist)
 
-  # set up memoization (helps with assignment/application grammar overlap)
-  _parser_methods = locals()
-  for _parser_field, _parser_function in _parser_methods.copy().iteritems():
-    if _parser_field[:6] != "parse_": continue
-    def _closure(function=_parser_function, field=_parser_field,
-        locals_=_parser_methods):
-      def wrapper(self, *args, **kwargs):
-        checkpoint = self.checkpoint()
-        key = (checkpoint, field, args, tuple(kwargs.items()))
-        if not self._memoization.has_key(key):
-          rv = function(self, *args, **kwargs)
-          new_checkpoint = self.checkpoint()
-          self._memoization[key] = rv, new_checkpoint
-        else:
-          rv, new_checkpoint = self._memoization[key]
-        self.restore(new_checkpoint)
-        return rv
-      locals_[field] = wrapper
-    _closure()
-
   if DEBUG_LEVEL > 0:
+    _parser_methods = locals()
     _debug_indents = []
     for _parser_field, _parser_function in _parser_methods.copy().iteritems():
       if _parser_field[:6] != "parse_": continue
@@ -768,9 +766,8 @@ class Parser(object):
           return rv
         locals_[field] = wrapper
       _closure()
-    del _debug_indents
-
-  del _parser_methods, _parser_field, _parser_function, _closure
+    del _debug_indents, _parser_methods, _parser_field, _parser_function
+    del _closure
 
 def parse(io):
   return Parser(io).parse()
