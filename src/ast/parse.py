@@ -67,7 +67,10 @@ class Parser(object):
       "current_char"]
 
   def __init__(self, io):
-    self.source = io.read()
+    if hasattr(io, "read"):
+      self.source = io.read()
+    else:
+      self.source = io
     self.pos = 0
     self.line = 1
     self.col = 1
@@ -196,10 +199,10 @@ class Parser(object):
     self.advance()
     self.skip_all_whitespace("\n;")
     expressions = self.parse_expression_list(False)
+    if self.current_char != ")":
+      self.assert_source("unexpected input at end of subexpression")
     if not expressions:
       self.assert_source("expression list expected in subexpression")
-    if self.current_char != ")":
-      self.assert_source("closing parenthesis expected for subexpression")
     self.advance()
     return ast.Subexpression(expressions, *self.source_ref(checkpoint))
 
@@ -211,9 +214,11 @@ class Parser(object):
     if self.current_char == "}":
       self.restore(checkpoint)
       return None # empty dictionary
+    maybe_a_dict = True
     left_args = []
     right_args = []
     if self.current_char == "|":
+      maybe_a_dict = False
       self.advance()
       self.skip_all_whitespace("\n")
       right_args = self.parse_in_arg_list()
@@ -223,15 +228,17 @@ class Parser(object):
         left_args = right_args
         right_args = self.parse_in_arg_list()
       if self.current_char != "|":
-        self.assert_source("closing bar ('|') expected for argument list")
+        self.assert_source("unexpected input for argument list")
       self.advance()
       self.check_left_in_args(left_args)
       self.check_right_in_args(right_args)
     self.skip_all_whitespace("\n;")
     expressions = self.parse_expression_list(True)
     if self.current_char != "}":
-      self.restore(checkpoint)
-      return None
+      if maybe_a_dict:
+        self.restore(checkpoint)
+        return None
+      self.assert_source("unexpected input at close of function")
     self.advance()
     return ast.Function(expressions, left_args, right_args,
         *self.source_ref(checkpoint))
@@ -244,10 +251,10 @@ class Parser(object):
     self.advance(distance=3)
     self.skip_all_whitespace("\n;")
     expressions = self.parse_expression_list(False)
+    if self.current_char != ")":
+      self.assert_source("unexpected input for keyword argument")
     if not expressions:
       self.assert_source("keyword argument expected")
-    if self.current_char != ")":
-      self.assert_source("closing parenthesis expected for keyword argument")
     self.advance()
     return ast.KeywordOutArgument(expressions, *self.source_ref(checkpoint))
 
@@ -257,10 +264,10 @@ class Parser(object):
     self.advance(distance=2)
     self.skip_all_whitespace("\n;")
     expressions = self.parse_expression_list(False)
-    if not expressions:
-      self.assert_source("arbitrary argument expected")
     if self.current_char != ")":
-      self.assert_source("closing parenthesis expected for arbitrary argument")
+      self.assert_source("unexpected input for list argument")
+    if not expressions:
+      self.assert_source("list argument expected")
     self.advance()
     return ast.ArbitraryOutArgument(expressions, *self.source_ref(checkpoint))
 
@@ -298,7 +305,7 @@ class Parser(object):
       self.assert_source("expected keyword argument identifier")
     self.skip_all_whitespace("\n")
     if self.current_char != ")":
-      self.assert_source("closing parenthesis expected for keyword argument")
+      self.assert_source("unexpected input for keyword argument")
     self.advance()
     return ast.KeywordInArgument(identifier, *self.source_ref(checkpoint))
 
@@ -309,10 +316,10 @@ class Parser(object):
     self.skip_all_whitespace("\n")
     identifier = self.parse_identifier()
     if identifier is None:
-      self.assert_source("expected arbitrary argument identifier")
+      self.assert_source("expected list argument identifier")
     self.skip_all_whitespace("\n")
     if self.current_char != ")":
-      self.assert_source("closing parenthesis expected for arbitrary argument")
+      self.assert_source("unexpected input for list argument")
     self.advance()
     return ast.ArbitraryInArgument(identifier, *self.source_ref(checkpoint))
 
@@ -454,7 +461,7 @@ class Parser(object):
       left_args = right_args
       right_args = self.parse_out_arg_list()
     if self.current_char != ")":
-      self.assert_source("closing parenthesis expected for function call")
+      self.assert_source("unexpected input for function call")
     self.advance()
     self.check_left_out_args(left_args)
     self.check_right_out_args(right_args)
@@ -532,7 +539,7 @@ class Parser(object):
     key = self.parse_application(False)
     if key is None: return None
     if self.current_char != ":":
-      self.assert_source("expected dictionary key/value separator (':')")
+      self.assert_source("unexpected input while parsing dictionary")
     self.advance()
     self.skip_all_whitespace("\n")
     value = self.parse_application(False)
@@ -554,7 +561,7 @@ class Parser(object):
       self.advance()
     self.skip_all_whitespace("\n,")
     if self.current_char != "}":
-      self.assert_source("expected dict close ('}')")
+      self.assert_source("unexpected input for dictionary close ('}')")
     self.advance()
     return ast.Dict(definitions, *self.source_ref(checkpoint))
 
@@ -572,7 +579,7 @@ class Parser(object):
       self.advance()
     self.skip_all_whitespace("\n,")
     if self.current_char != "]":
-      self.assert_source("expected list close (']')")
+      self.assert_source("unexpected input for list close (']')")
     self.advance()
     return ast.Array(applications, *self.source_ref(checkpoint))
 
@@ -613,10 +620,10 @@ class Parser(object):
     self.advance()
     self.skip_all_whitespace("\n;")
     expressions = self.parse_expression_list(False)
+    if self.current_char != "]":
+      self.assert_source("unexpected input for index lookup")
     if not expressions:
       self.assert_source("expected expression for index lookup")
-    if self.current_char != "]":
-      self.assert_source("expected end of index lookup (']')")
     self.advance()
     return ast.Index(expressions, *self.source_ref(checkpoint))
 
@@ -705,7 +712,7 @@ class Parser(object):
       return None
     self.skip_all_whitespace(skips)
     exp = self.parse_expression(newline_sep)
-    if exp is None: self.assert_source("expression expected")
+    if exp is None: self.assert_source("unexpected input")
     return ast.Assignment(mutation, assignee, exp, *self.source_ref(checkpoint))
 
   def parse_application(self, newline_sep):
@@ -739,7 +746,7 @@ class Parser(object):
     checkpoint = self.checkpoint()
     self.skip_all_whitespace(";\n")
     explist = self.parse_expression_list(True)
-    if not self.eof(): self.assert_source("expression expected")
+    if not self.eof(): self.assert_source("unexpected input")
     self.restore(checkpoint)
     return ast.Program(explist)
 

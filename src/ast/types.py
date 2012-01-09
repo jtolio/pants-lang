@@ -52,10 +52,12 @@ def references_in_expression_list(expressions, identifier):
 
 class Program(object):
   __slots__ = ["expressions", "line", "col"]
-  def __init__(self, expressions, line=0, col=0):
+  def __init__(self, expressions, line=1, col=1):
     self.expressions = expressions
     self.line = line
     self.col = col
+  def __repr__(self):
+    return "Program(%r, %d, %d)" % (self.expressions, self.line, self.col)
   def references(self, identifier):
     return references_in_expression_list(self.expressions, identifier)
   def format(self, indent=""):
@@ -69,6 +71,8 @@ class Variable(Value):
     self.identifier = identifier
     self.line = line
     self.col = col
+  def __repr__(self):
+    return "Variable(%r, %d, %d)" % (self.identifier, self.line, self.col)
   def references(self, identifier): return self.identifier == identifier
   def format(self, indent): return str(self.identifier)
 
@@ -86,6 +90,8 @@ class Subexpression(Value):
     return False
   def format(self, indent):
     return "(%s)" % ("; ").join(formats(self.expressions, indent))
+  def __repr__(self):
+    return "Subexpression(%r, %d, %d)" % (self.expressions, self.line, self.col)
 
 class Integer(Value):
   __slots__ = ["value", "line", "col"]
@@ -95,6 +101,8 @@ class Integer(Value):
     self.col = col
   def references(self, identifier): return False
   def format(self, indent): return str(self.value)
+  def __repr__(self):
+    return "Integer(%r, %d, %d)" % (self.value, self.line, self.col)
 
 class Float(Value):
   __slots__ = ["value", "line", "col"]
@@ -104,6 +112,8 @@ class Float(Value):
     self.col = col
   def references(self, identifier): return False
   def format(self, indent): return str(self.value)
+  def __repr__(self):
+    return "Float(%r, %d, %d)" % (self.value, self.line, self.col)
 
 class String(Value):
   __slots__ = ["value", "line", "col", "byte_oriented"]
@@ -117,6 +127,9 @@ class String(Value):
     if self.byte_oriented:
       return 'b"%s"' % self.value
     return '"%s"' % self.value
+  def __repr__(self):
+    return "String(%r, %r, %d, %d)" % (self.byte_oriented, self.value,
+        self.line, self.col)
 
 class Array(Value):
   __slots__ = ["applications", "line", "col"]
@@ -130,6 +143,8 @@ class Array(Value):
     return False
   def format(self, indent):
     return "[%s]" % ", ".join(formats(self.applications, indent))
+  def __repr__(self):
+    return "Array(%r, %d, %d)" % (self.applications, self.line, self.col)
 
 class DictDefinition(object):
   __slots__ = ["key", "value", "line", "col"]
@@ -142,6 +157,9 @@ class DictDefinition(object):
     return self.key.references(identifier) or self.value.references(identifier)
   def format(self, indent):
     return "%s: %s" % (self.key.format(indent), self.value.format(indent))
+  def __repr__(self):
+    return "DictDefinition(%r, %r, %d, %d)" % (self.key, self.value, self.line,
+        self.col)
 
 class Dict(Value):
   __slots__ = ["definitions", "line", "col"]
@@ -155,6 +173,8 @@ class Dict(Value):
     return False
   def format(self, indent):
     return "{%s}" % ", ".join(formats(self.definitions, indent))
+  def __repr__(self):
+    return "Dict(%r, %d, %d)" % (self.definitions, self.line, self.col)
 
 class Function(Value):
   __slots__ = ["expressions", "left_args", "right_args", "line", "col"]
@@ -190,6 +210,9 @@ class Function(Value):
       string.append("\n%s" % indent)
     string.append("}")
     return "".join(string)
+  def __repr__(self):
+    return "Function(%r, %r, %r, %d, %d)" % (self.expressions, self.left_args,
+        self.right_args, self.line, self.col)
 
 class Expression(object): pass
 
@@ -210,6 +233,9 @@ class Assignment(Expression):
   def format(self, indent):
     return "%s %s %s" % (self.assignee.format(indent),
         self.mutation and ":=" or "=", self.expression.format(indent))
+  def __repr__(self):
+    return "Assignment(%r, %r, %r, %d, %d)" % (self.mutation, self.assignee,
+        self.expression, self.line, self.col)
 
 class Application(Expression):
   __slots__ = ["terms", "line", "col"]
@@ -225,6 +251,8 @@ class Application(Expression):
   def binds(self, identifier): return False
   def format(self, indent):
     return " ".join(formats(self.terms, indent))
+  def __repr__(self):
+    return "Application(%r, %d, %d)" % (self.terms, self.line, self.col)
 
 class Assignee(object): pass
 
@@ -242,6 +270,9 @@ class FieldAssignee(Assignee):
   def binds(self, identifier, assignment): return False
   def format(self, indent):
     return "%s%s" % (self.term.format(indent), self.field.format(indent))
+  def __repr__(self):
+    return "FieldAssignee(%r, %r, %d, %d)" % (self.term, self.field, self.line,
+        self.col)
 
 class VariableAssignee(Assignee):
   __slots__ = ["variable", "line", "col"]
@@ -263,6 +294,8 @@ class VariableAssignee(Assignee):
     return False
   def format(self, indent):
     return self.variable.format(indent)
+  def __repr__(self):
+    return "VariableAssignee(%r, %d, %d)" % (self.variable, self.line, self.col)
 
 class IndexAssignee(Assignee):
   __slots__ = ["term", "index", "line", "col"]
@@ -279,6 +312,9 @@ class IndexAssignee(Assignee):
   def binds(self, identifier, assignment): return False
   def format(self, indent):
     return "%s%s" % (self.term.format(indent), self.index.format(indent))
+  def __repr__(self):
+    return "IndexAssignee(%r, %r, %d, %d)" % (self.term, self.index, self.line,
+        self.col)
 
 class Term(object):
   __slots__ = ["value", "modifiers", "line", "col"]
@@ -294,6 +330,9 @@ class Term(object):
   def format(self, indent):
     return "%s%s" % (self.value.format(indent),
         "".join(formats(self.modifiers, indent)))
+  def __repr__(self):
+    return "Term(%r, %r, %d, %d)" % (self.value, self.modifiers, self.line,
+        self.col)
 
 class ValueModifier(object): pass
 
@@ -304,6 +343,7 @@ class OpenCall(ValueModifier):
     self.col = col
   def references(self, identifier): return False
   def format(self, indent): return "."
+  def __repr__(self): return "OpenCall(%d, %d)" % (self.line, self.col)
 
 class Index(ValueModifier):
   __slots__ = ["expressions", "line", "col"]
@@ -315,6 +355,8 @@ class Index(ValueModifier):
     return references_in_expression_list(self.expressions, identifier)
   def format(self, indent):
     return "[%s]" % "; ".join(formats(self.expressions, indent))
+  def __repr__(self):
+    return "Index(%r, %d, %d)" % (self.expressions, self.line, self.col)
 
 class Field(ValueModifier):
   __slots__ = ["identifier", "line", "col"]
@@ -324,6 +366,8 @@ class Field(ValueModifier):
     self.col = col
   def references(self, identifier): return False
   def format(self, indent): return ".%s" % self.identifier
+  def __repr__(self):
+    return "Field(%r, %d, %d)" % (self.identifier, self.line, self.col)
 
 class ClosedCall(ValueModifier):
   __slots__ = ["left_args", "right_args", "line", "col"]
@@ -340,6 +384,9 @@ class ClosedCall(ValueModifier):
       return "(%s; %s)" % (", ".join(formats(self.left_args, indent)),
           ", ".join(formats(self.right_args, indent)))
     return "(%s)" % ", ".join(formats(self.right_args, indent))
+  def __repr__(self):
+    return "ClosedCall(%r, %r, %d, %d)" % (self.left_args, self.right_args,
+        self.line, self.col)
 
 class InArgument(object): pass
 class OutArgument(object): pass
@@ -354,6 +401,9 @@ class KeywordOutArgument(OutArgument):
     return references_in_expression_list(self.expressions, identifier)
   def format(self, indent):
     return "::(%s)" % "; ".join(formats(self.expressions, indent))
+  def __repr__(self):
+    return "KeywordOutArgument(%r, %d, %d)" % (self.expressions, self.line,
+        self.col)
 
 class KeywordInArgument(InArgument):
   __slots__ = ["identifier", "line", "col"]
@@ -364,6 +414,9 @@ class KeywordInArgument(InArgument):
   def references(self, identifier): return False
   def binds(self, identifier): return identifier == self.identifier
   def format(self, indent): return "::(%s)" % self.identifier
+  def __repr__(self):
+    return "KeywordInArgument(%r, %d, %d)" % (self.identifier, self.line,
+        self.col)
 
 class ArbitraryOutArgument(OutArgument):
   __slots__ = ["expressions", "line", "col"]
@@ -375,6 +428,9 @@ class ArbitraryOutArgument(OutArgument):
     return references_in_expression_list(self.expressions, identifier)
   def format(self, indent):
     return ":(%s)" % "; ".join(formats(self.expressions, indent))
+  def __repr__(self):
+    return "ArbitraryOutArgument(%r, %d, %d)" % (self.expressions, self.line,
+        self.col)
 
 class ArbitraryInArgument(InArgument):
   __slots__ = ["identifier", "line", "col"]
@@ -385,6 +441,9 @@ class ArbitraryInArgument(InArgument):
   def references(self, identifier): return False
   def binds(self, identifier): return identifier == self.identifier
   def format(self, indent): return ":(%s)" % self.identifier
+  def __repr__(self):
+    return "ArbitraryInArgument(%r, %d, %d)" % (self.identifier, self.line,
+        self.col)
 
 class NamedOutArgument(OutArgument):
   __slots__ = ["name", "value", "line", "col"]
@@ -396,6 +455,9 @@ class NamedOutArgument(OutArgument):
   def references(self, identifier): return self.value.references(identifier)
   def format(self, indent):
     return "%s:%s" % (self.name, self.value.format(indent))
+  def __repr__(self):
+    return "NamedOutArgument(%r, %r, %d, %d)" % (self.name, self.value,
+        self.line, self.col)
 
 class DefaultInArgument(InArgument):
   __slots__ = ["name", "value", "line", "col"]
@@ -408,6 +470,9 @@ class DefaultInArgument(InArgument):
   def binds(self, identifier): return identifier == self.name
   def format(self, indent):
     return "%s:%s" % (self.name, self.value.format(indent))
+  def __repr__(self):
+    return "DefaultInArgument(%r, %r, %d, %d)" % (self.name, self.value,
+        self.line, self.col)
 
 class PositionalOutArgument(OutArgument):
   __slots__ = ["value", "line", "col"]
@@ -417,6 +482,9 @@ class PositionalOutArgument(OutArgument):
     self.col = col
   def references(self, identifier): return self.value.references(identifier)
   def format(self, indent): return self.value.format(indent)
+  def __repr__(self):
+    return "PositionalOutArgument(%r, %d, %d)" % (self.value, self.line,
+        self.col)
 
 class RequiredInArgument(InArgument):
   __slots__ = ["name", "line", "col"]
@@ -427,3 +495,5 @@ class RequiredInArgument(InArgument):
   def references(self, identifier): return False
   def binds(self, identifier): return identifier == self.name
   def format(self, indent): return self.name
+  def __repr__(self):
+    return "RequiredInArgument(%r, %d, %d)" % (self.name, self.line, self.col)
