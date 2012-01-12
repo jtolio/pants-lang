@@ -34,7 +34,6 @@ __author_email__ = "hello@jtolds.com"
 from unittest import TestCase
 from ast.parse import parse
 from common.errors import ParserError
-import ast.types as ast
 
 class ParsingTests(TestCase):
 
@@ -643,6 +642,9 @@ class ParsingTests(TestCase):
         "], 1, 1)")
 
   def testParses(self):
+    self.assertRaisesRegexp(ParserError,
+        r"Error at line 1, column 4: unexpected input",
+        parse, ".x := 3")
     self.assertEqual(repr(parse("x := 1")),
         "Program(["
           "Assignment(True, VariableAssignee(Variable('x', 1, 1), 1, 1), "

@@ -32,7 +32,73 @@ __author__ = "JT Olds"
 __author_email__ = "hello@jtolds.com"
 
 from unittest import TestCase
+from ast.parse import parse
 from ir.convert import convert
-import ir.types as ir
 
-class ConversionTests(TestCase): pass
+class ConversionTests(TestCase):
+  def convert(self, code):
+    ir, lastval = convert(parse(code))
+    self.assertEquals(repr(lastval),
+        "Variable(Identifier('null', False, 1, 1), 1, 1)")
+    return ir
+
+  def testSimple(self):
+    self.assertEquals(repr(self.convert("x = { 3 }\nx.\n")), "["
+        "Assignment("
+          "Identifier('x', True, 1, 1), "
+          "Function([], Integer(3, 1, 7), [], [], True, 1, 5), "
+          "True, 1, 5), "
+        "ReturnValue("
+          "Identifier('ir_1', False, 2, 2), "
+          "Variable(Identifier('x', True, 2, 1), 2, 1), "
+          "[], [], 2, 2)"
+      "]")
+    self.assertEquals(repr(self.convert("x = { 3 }\nx()\n")), "["
+        "Assignment("
+          "Identifier('x', True, 1, 1), "
+          "Function([], Integer(3, 1, 7), [], [], True, 1, 5), "
+          "True, 1, 5), "
+        "ReturnValue("
+          "Identifier('ir_1', False, 2, 2), "
+          "Variable(Identifier('x', True, 2, 1), 2, 1), "
+          "[], [], 2, 2)"
+      "]")
+    self.assertEquals(repr(self.convert("x = { 3 }\nx()\n")), "["
+        "Assignment("
+          "Identifier('x', True, 1, 1), "
+          "Function([], Integer(3, 1, 7), [], [], True, 1, 5), "
+          "True, 1, 5), "
+        "ReturnValue("
+          "Identifier('ir_1', False, 2, 2), "
+          "Variable(Identifier('x', True, 2, 1), 2, 1), "
+          "[], [], 2, 2)"
+      "]")
+    self.assertEquals(repr(self.convert("x = { 3 }\nx.")), "["
+        "Assignment("
+          "Identifier('x', True, 1, 1), "
+          "Function([], Integer(3, 1, 7), [], [], True, 1, 5), "
+          "True, 1, 5), "
+        "ReturnValue("
+          "Identifier('ir_1', False, 2, 2), "
+          "Variable(Identifier('x', True, 2, 1), 2, 1), "
+        "[], [], 2, 2)"
+      "]")
+    self.assertEquals(repr(self.convert("x.x := 3\n")), "["
+        "ObjectMutation("
+          "Variable(Identifier('x', True, 1, 1), 1, 1), "
+          "Identifier('x', True, 1, 1), "
+          "Integer(3, 1, 8), 1, 1)"
+      "]")
+    self.assertEquals(repr(self.convert("{||}.")), "["
+        "Assignment("
+          "Identifier('ir_1', False, 1, 1), "
+          "Function("
+            "[], "
+            "Variable(Identifier('null', False, 1, 1), 1, 1), "
+            "[], [], True, 1, 1), "
+          "True, 1, 1), "
+        "ReturnValue("
+          "Identifier('ir_2', False, 1, 5), "
+          "Variable(Identifier('ir_1', False, 1, 1), 1, 1), "
+          "[], [], 1, 5)"
+      "]")
