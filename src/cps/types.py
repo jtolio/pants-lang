@@ -25,16 +25,9 @@
   Pants
   http://www.pants-lang.org/
 
-  Pants error types
+  CPS types
 """
 
 __author__ = "JT Olds"
 __author_email__ = "hello@jtolds.com"
-
-class PantsError(Exception): pass
-class ParserError(PantsError): pass
-class ConversionError(PantsError): pass
-class TransformationError(PantsError): pass
-
-def assert_source(exception, message, line, col):
-  raise exception, "Error at line %d, column %d: %s" % (line, col, message)
+__all__ = []

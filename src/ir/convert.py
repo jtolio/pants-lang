@@ -306,4 +306,4 @@ def convert(ast_root):
     raise ConversionError, "unknown ast type"
   converter = Converter(ConversionGlobals())
   exps, lastval = converter.convert(ast_root)
-  return exps, converter.null_val(ast_root.line, ast_root.col)
+  return ir.Program(exps, lastval, ast_root.line, ast_root.col)

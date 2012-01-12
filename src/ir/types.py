@@ -35,12 +35,25 @@ __all__ = ["Identifier", "Expression", "Assignment", "ObjectMutation",
     "Function", "OutArgument", "PositionalOutArgument", "NamedOutArgument",
     "ArbitraryOutArgument", "KeywordOutArgument", "InArgument",
     "RequiredInArgument", "DefaultInArgument", "ArbitraryInArgument",
-    "KeywordInArgument"]
+    "KeywordInArgument", "Program"]
 
 import functools
 from ast import types as ast
 
 class Expression(object): pass
+
+class Program(object):
+  __slots__ = ["expressions", "lastval", "line", "col"]
+  def __init__(self, expressions, lastval, line, col):
+    self.expressions = expressions
+    self.lastval = lastval
+    self.line = line
+    self.col = col
+  def format(self, indent=""):
+    return ";\n".join((exp.format(indent) for exp in self.expressions))
+  def __repr__(self):
+    return "Program(%r, %r, %d, %d)" % (self.expressions, self.lastval,
+        self.line, self.col)
 
 @functools.total_ordering
 class Identifier(object):

@@ -37,10 +37,7 @@ from ir.convert import convert
 
 class ConversionTests(TestCase):
   def convert(self, code):
-    ir, lastval = convert(parse(code))
-    self.assertEquals(repr(lastval),
-        "Variable(Identifier('null', False, 1, 1), 1, 1)")
-    return ir
+    return convert(parse(code)).expressions
 
   def testSimple(self):
     self.assertEquals(repr(self.convert("x = { 3 }\nx.\n")), "["

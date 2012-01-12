@@ -34,10 +34,10 @@ __author_email__ = "hello@jtolds.com"
 import sys
 from ast.parse import parse
 from ir.convert import convert
+from cps.transform import transform
 
 def main(argv):
-  ir, lastval = convert(parse(sys.stdin))
-  print ";\n".join((exp.format("") for exp in ir))
+  print transform(convert(parse(sys.stdin))).format()
 
 if __name__ == "__main__":
   sys.exit(main(sys.argv))

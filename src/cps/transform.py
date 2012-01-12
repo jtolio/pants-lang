@@ -25,16 +25,19 @@
   Pants
   http://www.pants-lang.org/
 
-  Pants error types
+  CPS transformation
 """
 
 __author__ = "JT Olds"
 __author_email__ = "hello@jtolds.com"
+__all__ = ["transform"]
 
-class PantsError(Exception): pass
-class ParserError(PantsError): pass
-class ConversionError(PantsError): pass
-class TransformationError(PantsError): pass
+import itertools
+import types as cps
+import ir.types as ir
+from common.errors import TransformationError
+from common.errors import assert_source
 
-def assert_source(exception, message, line, col):
-  raise exception, "Error at line %d, column %d: %s" % (line, col, message)
+def transform(ir_root):
+  # TODO
+  return ir_root
