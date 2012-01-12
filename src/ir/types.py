@@ -52,19 +52,28 @@ class Identifier(object):
     self.user_provided = user_provided
     self.line = line
     self.col = col
-  def format(self, indent): return self.name
-  def c_name(self):
-    if not self.user_provided: return "c_%s" % self.name
-    name = ["u_"]
-    for char in self.name:
-      if char in Identifier.SAFE_C_CHARS:
-        name.append(char)
-      elif char == "_":
-        name.append("__")
-      else:
-        name.append("_")
-        name.append("%x" % ord(char))
-    return "".join(name)
+  def format(self, indent):
+    return self.c_name(False)
+  def c_name(self, escape=True):
+    if not self.user_provided:
+      assert self.name[-1] != "_"
+      for char in self.name:
+        assert char == "_" or char in Identifier.SAFE_C_CHARS
+      return "%s_" % self.name
+    if escape:
+      name = []
+      for char in self.name:
+        if char in Identifier.SAFE_C_CHARS:
+          name.append(char)
+        elif char == "_":
+          name.append("__")
+        else:
+          name.append("_")
+          name.append("%x" % ord(char))
+      return "".join(name)
+    else:
+      if self.name[-1] == "_": return "%s_" % self.name
+      return self.name
   def __eq__(self, other):
     return (self.name, self.user_provided) == (other.name, other.user_provided)
   def __lt__(self, other):

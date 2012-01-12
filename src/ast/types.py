@@ -117,16 +117,29 @@ class Float(Value):
 
 class String(Value):
   __slots__ = ["value", "line", "col", "byte_oriented"]
+  SAFE_CHARS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "0123456789~`!@#$%^&*()-_=+[{]}|;:'<,>./? ")
   def __init__(self, byte_oriented, value, line, col):
     self.byte_oriented = byte_oriented
     self.value = value
     self.line = line
     self.col = col
   def references(self, identifier): return False
-  def format(self, indent):
+  def safe_format(self, c_style=True):
+    string = []
+    hex_escape = "\\x"
+    if not c_style:
+      hex_escape = "\\0x"
+    for char in self.value:
+      if char in String.SAFE_CHARS:
+        string.append(char)
+      else:
+        string.append(hex_escape)
+        string.append("%x" % ord(char))
     if self.byte_oriented:
-      return 'b"%s"' % self.value
-    return '"%s"' % self.value
+      return 'b"%s"' % "".join(string)
+    return '"%s"' % "".join(string)
+  def format(self, indent): return self.safe_format(False)
   def __repr__(self):
     return "String(%r, %r, %d, %d)" % (self.byte_oriented, self.value,
         self.line, self.col)
