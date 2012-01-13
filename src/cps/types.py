@@ -71,6 +71,9 @@ class Call(Expression):
     self.continuation = continuation
     self.line = line
     self.col = col
+  def __repr__(self):
+    return "Call(%r, %r, %r, %r, %d, %d)" % (self.call, self.left_args,
+        self.right_args, self.continuation, self.line, self.col)
 
 class Assignment(Expression):
   __slots__ = ["assignee", "value", "local", "next_expression", "line", "col"]
@@ -81,6 +84,9 @@ class Assignment(Expression):
     self.next_expression = next_expression
     self.line = line
     self.col = col
+  def __repr__(self):
+    return "Assignment(%r, %r, %r, %r, %d, %d)" % (self.assignee, self.value,
+        self.local, self.next_expression, self.line, self.col)
 
 class ObjectMutation(Expression):
   __slots__ = ["object", "field", "value", "next_expression", "line", "col"]
@@ -91,18 +97,25 @@ class ObjectMutation(Expression):
     self.next_expression = next_expression
     self.line = line
     self.col = col
+  def __repr__(self):
+    return "ObjectMutation(%r, %r, %r, %r, %d, %d)" % (self.object, self.field,
+        self.value, self.next_expression, self.line, self.col)
 
 class Value(object): pass
 
 class Callable(Value):
-  __slots__ = ["expression", "left_args", "right_args", "function",
-      "cont_defined", "line", "col"]
-  def __init__(self, expression, left_args, right_args, function, cont_defined,
+  __slots__ = ["expression", "left_args", "right_args", "cont_defined",
+      "function", "line", "col"]
+  def __init__(self, expression, left_args, right_args, cont_defined, function,
       line, col):
     self.expression = expression
     self.left_args = left_args
     self.right_args = right_args
-    self.function = function
     self.cont_defined = cont_defined
+    self.function = function
     self.line = line
     self.col = col
+  def __repr__(self):
+    return "Callable(%r, %r, %r, %r, %r, %d, %d)" % (self.expression,
+        self.left_args, self.right_args, self.cont_defined, self.function,
+        self.line, self.col)
