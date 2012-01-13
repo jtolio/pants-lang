@@ -218,42 +218,6 @@ class Function(Value):
         self.lastval, self.left_args, self.right_args, self.cont_defined,
         self.line, self.col)
 
-class Array(Value):
-  __slots__ = ["values", "line", "col"]
-  def __init__(self, values, line, col):
-    self.values = values
-    self.line = line
-    self.col = col
-  def format(self, indent):
-    return "[%s]" % ", ".join((value.format(indent) for value in self.values))
-  def __repr__(self):
-    return "Array(%r, %d, %d)" % (self.values, self.line, self.col)
-
-class DictDefinition(object):
-  __slots__ = ["key", "value", "line", "col"]
-  def __init__(self, key, value, line, col):
-    self.key = key
-    self.value = value
-    self.line = line
-    self.col = col
-  def format(self, indent):
-    return "%s: %s" % (self.key.format(indent), self.value.format(indent))
-  def __repr__(self):
-    return "DictDefinition(%r, %r, %d, %d)" % (self.key, self.value, self.line,
-        self.col)
-
-class Dict(Value):
-  __slots__ = ["definitions", "line", "col"]
-  def __init__(self, definitions, line, col):
-    self.definitions = definitions
-    self.line = line
-    self.col = col
-  def format(self, indent):
-    return "{%s}" % ", ".join((definition.format(indent)
-        for definition in self.definitions))
-  def __repr__(self):
-    return "Dict(%r, %d, %d)" % (self.definitions, self.line, self.col)
-
 class OutArgument(object): pass
 
 class PositionalOutArgument(OutArgument):

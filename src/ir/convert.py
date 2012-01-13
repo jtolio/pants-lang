@@ -50,6 +50,8 @@ class Converter(object):
   __slots__ = ["globals", "ir"]
   LOOKUP_FIELD = "~index"
   UPDATE_FIELD = "~update"
+  ARRAY_CONSTRUCTOR = "Array"
+  DICT_CONSTRUCTOR = "Dictionary"
 
   def __init__(self, globals_):
     self.globals = globals_
@@ -238,19 +240,34 @@ class Converter(object):
 
   def convert_array(self, array, targets=[]):
     target = self.pop_target(targets, array.line, array.col)
-    values = [self.convert_application(app) for app in array.applications]
-    self.ir.append(ir.Assignment(target, ir.Array(values, array.line,
-        array.col), True, array.line, array.col))
+    values = [ir.PositionalOutArgument(self.convert_application(app), app.line,
+        app.col) for app in array.applications]
+    self.ir.append(ir.ReturnValue(target, ir.Variable(ir.Identifier(
+        Converter.ARRAY_CONSTRUCTOR, True, array.line, array.col), array.line,
+        array.col), [], values, array.line, array.col))
     return self.sync_targets(target, targets)
 
   def convert_dict(self, dict_, targets=[]):
     target = self.pop_target(targets, dict_.line, dict_.col)
-    definitions = [ir.DictDefinition(self.convert_application(definition.key),
-        self.convert_application(definition.value), definition.line,
-        definition.col) for definition in dict_.definitions]
-    self.ir.append(ir.Assignment(target, ir.Dict(definitions, dict_.line,
-        dict_.col), True, dict_.line, dict_.col))
-    return self.sync_targets(target, targets)
+    self.ir.append(ir.ReturnValue(target, ir.Variable(ir.Identifier(
+        Converter.DICT_CONSTRUCTOR, True, dict_.line, dict_.col), dict_.line,
+        dict_.col), [], [], dict_.line, dict_.col))
+    new_dict = self.sync_targets(target, targets)
+    if dict_.definitions:
+      update_field = ir.Variable(self.globals.gensym(dict_.line, dict_.col),
+          dict_.line, dict_.col)
+      self.ir.append(ir.Assignment(update_field.identifier, ir.Field(new_dict,
+          ir.Identifier(Converter.UPDATE_FIELD, True, dict_.line, dict_.col),
+          dict_.line, dict_.col), True, dict_.line, dict_.col))
+      result_target = self.globals.gensym(dict_.line, dict_.col)
+      for definition in dict_.definitions:
+        self.ir.append(ir.ReturnValue(result_target, update_field, [],
+            [ir.PositionalOutArgument(self.convert_application(definition.key),
+            definition.key.line, definition.key.col),
+            ir.PositionalOutArgument(self.convert_application(definition.value),
+            definition.value.line, definition.value.col)], definition.line,
+            definition.col))
+    return new_dict
 
   def convert_subexpression(self, subexp, targets=[]):
     assert subexp.expressions
