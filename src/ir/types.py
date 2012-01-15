@@ -35,7 +35,7 @@ __all__ = ["Identifier", "Expression", "Assignment", "ObjectMutation",
     "Function", "OutArgument", "PositionalOutArgument", "NamedOutArgument",
     "ArbitraryOutArgument", "KeywordOutArgument", "InArgument",
     "RequiredInArgument", "DefaultInArgument", "ArbitraryInArgument",
-    "KeywordInArgument", "Program"]
+    "KeywordInArgument", "Program", "null_val"]
 
 import functools
 from ast import types as ast
@@ -326,3 +326,6 @@ class KeywordInArgument(InArgument):
   def format(self, indent): return "::(%s)" % self.name.format(indent)
   def __repr__(self):
     return "KeywordInArgument(%r, %d, %d)" % (self.name, self.line, self.col)
+
+def null_val(line, col):
+  return Variable(Identifier("null", False, line, col), line, col)

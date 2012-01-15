@@ -57,9 +57,6 @@ class Converter(object):
     self.globals = globals_
     self.ir = []
 
-  def null_val(self, line, col):
-    return ir.Variable(ir.Identifier("null", False, line, col), line, col)
-
   def pop_target(self, targets, line, col):
     if targets: return targets.pop()
     return self.globals.gensym(line, col)
@@ -76,7 +73,7 @@ class Converter(object):
 
   def convert(self, expressions_obj):
     self.ir = []
-    lastval = self.null_val(expressions_obj.line, expressions_obj.col)
+    lastval = ir.null_val(expressions_obj.line, expressions_obj.col)
     for expression in expressions_obj.expressions:
       lastval = self.convert_expression(expression)
     return self.ir, lastval
@@ -121,7 +118,7 @@ class Converter(object):
           assignment.assignee.variable.identifier):
         return self.convert_expression(assignment.expression,
             targets + [new_target])
-      self.ir.append(ir.Assignment(new_target, self.null_val(assignment.line,
+      self.ir.append(ir.Assignment(new_target, ir.null_val(assignment.line,
           assignment.col), True, assignment.line, assignment.col))
     real_val = self.convert_expression(assignment.expression, targets)
     self.ir.append(ir.Assignment(new_target, real_val, False,
@@ -272,7 +269,7 @@ class Converter(object):
   def convert_subexpression(self, subexp, targets=[]):
     assert subexp.expressions
     if not subexp.binds_anything():
-      lastval = self.null_val(subexp.line, subexp.col)
+      lastval = ir.null_val(subexp.line, subexp.col)
       expressions = list(reversed(subexp.expressions))
       while expressions:
         expression = expressions.pop()

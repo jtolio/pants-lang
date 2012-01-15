@@ -35,10 +35,12 @@ import sys
 from ast.parse import parse
 from ir.convert import convert
 from cps.transform import transform
+from ir.types import null_val
 
 def main(argv):
   sys.setrecursionlimit(10000)
-  print transform(convert(parse(sys.stdin))).format()
+  ir_root = convert(parse(sys.stdin))
+  print transform(ir_root, null_val(ir_root.line, ir_root.col)).format()
 
 if __name__ == "__main__":
   sys.exit(main(sys.argv))

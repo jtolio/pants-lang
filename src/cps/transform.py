@@ -51,7 +51,6 @@ class Transformer(object):
     exp = self.transform(value)
     cont_identifier = cps.Identifier("cont", True, value.line, value.col)
     if value.cont_defined and exp.references(cont_identifier):
-      # TODO: only define cont here if it is referenced
       exp = cps.Assignment(cont_identifier, cps.Variable(cps.Identifier("cont",
           False, value.line, value.col), value.line, value.col), True, exp,
           value.line, value.col)
@@ -60,9 +59,18 @@ class Transformer(object):
 
   def transform(self, node, lastval=None):
     if lastval is None: lastval = node.lastval
-    exp = cps.Call(cps.Variable(cps.Identifier("cont", False, node.line,
-        node.col), node.line, node.col), [], [cps.PositionalOutArgument(
-        lastval, lastval.line, lastval.col)], None, node.line, node.col)
+    if (node.expressions and isinstance(node.expressions[-1], ir.ReturnValue)
+        and isinstance(lastval, ir.Variable)
+        and node.expressions[-1].assignee == lastval.identifier):
+      ir_exp = node.expressions[-1]
+      exp = cps.Call(ir_exp.call, ir_exp.left_args, ir_exp.right_args,
+          cps.Variable(cps.Identifier("cont", False, ir_exp.line, ir_exp.col),
+          ir_exp.line, ir_exp.col), ir_exp.line, ir_exp.col)
+      node.expressions.pop()
+    else:
+      exp = cps.Call(cps.Variable(cps.Identifier("cont", False, node.line,
+          node.col), node.line, node.col), [], [cps.PositionalOutArgument(
+          lastval, lastval.line, lastval.col)], None, node.line, node.col)
     for ir_exp in reversed(node.expressions):
       exp = self.transform_expression(ir_exp, exp)
     return exp
