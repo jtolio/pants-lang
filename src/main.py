@@ -37,6 +37,7 @@ from ir.convert import convert
 from cps.transform import transform
 
 def main(argv):
+  sys.setrecursionlimit(10000)
   print transform(convert(parse(sys.stdin))).format()
 
 if __name__ == "__main__":

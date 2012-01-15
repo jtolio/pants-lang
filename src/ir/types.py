@@ -87,6 +87,7 @@ class Identifier(object):
     else:
       if self.name[-1] == "_": return "%s_" % self.name
       return self.name
+  def references(self, identifier): return self == identifier
   def __eq__(self, other):
     return (self.name, self.user_provided) == (other.name, other.user_provided)
   def __lt__(self, other):
@@ -160,6 +161,7 @@ class Field(Value):
     self.col = col
   def format(self, indent):
     return "%s.%s" % (self.object.format(indent), self.field.format(indent))
+  def references(self, identifier): return self.object.references(identifier)
   def __repr__(self):
     return "Field(%r, %r, %d, %d)" % (self.object, self.field, self.line,
         self.col)
@@ -171,6 +173,8 @@ class Variable(Value):
     self.line = line
     self.col = col
   def format(self, indent): return self.identifier.format(indent)
+  def references(self, identifier):
+    return self.identifier.references(identifier)
   def __repr__(self):
     return "Variable(%r, %d, %d)" % (self.identifier, self.line, self.col)
 
@@ -226,6 +230,7 @@ class PositionalOutArgument(OutArgument):
     self.value = value
     self.line = line
     self.col = col
+  def references(self, identifier): return self.value.references(identifier)
   def format(self, indent): return self.value.format(indent)
   def __repr__(self):
     return "PositionalOutArgument(%r, %d, %d)" % (self.value, self.line,
@@ -238,6 +243,7 @@ class NamedOutArgument(OutArgument):
     self.value = value
     self.line = line
     self.col = col
+  def references(self, identifier): return self.value.references(identifier)
   def format(self, indent):
     return "%s:%s" % (self.name.format(indent), self.value.format(indent))
   def __repr__(self):
@@ -250,6 +256,7 @@ class ArbitraryOutArgument(OutArgument):
     self.value = value
     self.line = line
     self.col = col
+  def references(self, identifier): return self.value.references(identifier)
   def format(self, indent): return ":(%s)" % self.value.format(indent)
   def __repr__(self):
     return "ArbitraryOutArgument(%r, %d, %d)" % (self.value, self.line,
@@ -261,6 +268,7 @@ class KeywordOutArgument(OutArgument):
     self.value = value
     self.line = line
     self.col = col
+  def references(self, identifier): return self.value.references(identifier)
   def format(self, indent): return "::(%s)" % self.value.format(indent)
   def __repr__(self):
     return "KeywordOutArgument(%r, %d, %d)" % (self.value, self.line,
@@ -274,6 +282,8 @@ class RequiredInArgument(InArgument):
     self.name = name
     self.line = line
     self.col = col
+  def references(self, identifier): return False
+  def binds(self, identifier): return self.name.references(identifier)
   def format(self, indent): return self.name.format(indent)
   def __repr__(self):
     return "RequiredInArgument(%r, %d, %d)" % (self.name, self.line, self.col)
@@ -285,6 +295,8 @@ class DefaultInArgument(InArgument):
     self.value = value
     self.line = line
     self.col = col
+  def references(self, identifier): return self.value.references(identifier)
+  def binds(self, identifier): return self.name.references(identifier)
   def format(self, indent):
     return "%s:%s" % (self.name.format(indent), self.value.format(indent))
   def __repr__(self):
@@ -297,6 +309,8 @@ class ArbitraryInArgument(InArgument):
     self.name = name
     self.line = line
     self.col = col
+  def references(self, identifier): return False
+  def binds(self, identifier): return self.name.references(identifier)
   def format(self, indent): return ":(%s)" % self.name.format(indent)
   def __repr__(self):
     return "ArbitraryInArgument(%r, %d, %d)" % (self.name, self.line, self.col)
@@ -307,6 +321,8 @@ class KeywordInArgument(InArgument):
     self.name = name
     self.line = line
     self.col = col
+  def references(self, identifier): return False
+  def binds(self, identifier): return self.name.references(identifier)
   def format(self, indent): return "::(%s)" % self.name.format(indent)
   def __repr__(self):
     return "KeywordInArgument(%r, %d, %d)" % (self.name, self.line, self.col)

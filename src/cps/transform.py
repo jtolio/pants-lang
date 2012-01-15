@@ -38,6 +38,62 @@ import ir.types as ir
 from common.errors import TransformationError
 from common.errors import assert_source
 
-def transform(ir_root):
-  # TODO
-  return ir_root
+class Transformer(object):
+  def __init__(self):
+    self.varcount = 0
+
+  def gensym(self, line, col):
+    self.varcount += 1
+    return cps.Identifier("cps_%x" % self.varcount, False, line, col)
+
+  def transform_value(self, value):
+    if not isinstance(value, ir.Function): return value
+    exp = self.transform(value)
+    cont_identifier = cps.Identifier("cont", True, value.line, value.col)
+    if value.cont_defined and exp.references(cont_identifier):
+      # TODO: only define cont here if it is referenced
+      exp = cps.Assignment(cont_identifier, cps.Variable(cps.Identifier("cont",
+          False, value.line, value.col), value.line, value.col), True, exp,
+          value.line, value.col)
+    return cps.Callable(exp, value.left_args, value.right_args, True,
+        value.line, value.col)
+
+  def transform(self, node, lastval=None):
+    if lastval is None: lastval = node.lastval
+    exp = cps.Call(cps.Variable(cps.Identifier("cont", False, node.line,
+        node.col), node.line, node.col), [], [cps.PositionalOutArgument(
+        lastval, lastval.line, lastval.col)], None, node.line, node.col)
+    for ir_exp in reversed(node.expressions):
+      exp = self.transform_expression(ir_exp, exp)
+    return exp
+
+  def transform_expression(self, ir_exp, next_cps_exp):
+    if isinstance(ir_exp, ir.Assignment):
+      return self.transform_assignment(ir_exp, next_cps_exp)
+    if isinstance(ir_exp, ir.ObjectMutation):
+      return self.transform_object_mutation(ir_exp, next_cps_exp)
+    assert isinstance(ir_exp, ir.ReturnValue)
+    return self.transform_return_value(ir_exp, next_cps_exp)
+
+  def transform_assignment(self, ir_exp, next_cps_exp):
+    return cps.Assignment(ir_exp.assignee, self.transform_value(ir_exp.value),
+        ir_exp.local, next_cps_exp, ir_exp.line, ir_exp.col)
+
+  def transform_object_mutation(self, ir_exp, next_cps_exp):
+    return cps.ObjectMutation(ir_exp.object, ir_exp.field,
+        self.transform_value(ir_exp.value), next_cps_exp, ir_exp.line,
+        ir_exp.col)
+
+  def transform_return_value(self, ir_exp, next_cps_exp):
+    continuation = cps.Callable(next_cps_exp, [], [cps.RequiredInArgument(
+        ir_exp.assignee, ir_exp.line, ir_exp.col)], False, ir_exp.line,
+        ir_exp.col)
+    continuation_sym = self.gensym(ir_exp.line, ir_exp.col)
+    call = cps.Call(ir_exp.call, ir_exp.left_args, ir_exp.right_args,
+        cps.Variable(continuation_sym, ir_exp.line, ir_exp.col), ir_exp.line,
+        ir_exp.col)
+    return cps.Assignment(continuation_sym, continuation, True, call,
+        ir_exp.line, ir_exp.col)
+
+def transform(ir_root, lastval=None):
+  return Transformer().transform(ir_root, lastval)
