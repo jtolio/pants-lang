@@ -386,16 +386,10 @@ class Parser(object):
     return args
 
   def check_left_out_args(self, left_args):
-    pos = 0
-    if pos < len(left_args) and isinstance(left_args[pos],
-        ast.ArbitraryOutArgument):
-      pos += 1
-    while pos < len(left_args) and isinstance(left_args[pos],
-        ast.PositionalOutArgument):
-      pos += 1
-    if pos < len(left_args):
-      self.assert_source("unexpected argument type", left_args[pos].line,
-          left_args[pos].col)
+    for arg in left_args:
+      if not isinstance(arg, ast.PositionalOutArgument) and \
+          not isinstance(arg, ast.ArbitraryOutArgument):
+        self.assert_source("unexpected argument type", arg.line, arg.col)
 
   def check_left_in_args(self, left_args):
     pos = 0
@@ -414,14 +408,12 @@ class Parser(object):
 
   def check_right_out_args(self, right_args):
     pos = 0
-    while pos < len(right_args) and isinstance(right_args[pos],
-        ast.PositionalOutArgument):
+    while pos < len(right_args) and (isinstance(right_args[pos],
+        ast.PositionalOutArgument) or isinstance(right_args[pos],
+        ast.ArbitraryOutArgument)):
       pos += 1
     while pos < len(right_args) and isinstance(right_args[pos],
         ast.NamedOutArgument):
-      pos += 1
-    if pos < len(right_args) and isinstance(right_args[pos],
-        ast.ArbitraryOutArgument):
       pos += 1
     if pos < len(right_args) and isinstance(right_args[pos],
         ast.KeywordOutArgument):
