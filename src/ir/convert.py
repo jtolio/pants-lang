@@ -212,8 +212,8 @@ class Converter(object):
           arg.col), self.convert_application(arg.value), arg.line, arg.col)
     obj = self.convert_subexpression(ast.Subexpression(arg.expressions,
         arg.line, arg.col))
-    if isinstance(arg, ast.ArbitraryOutArgument):
-      return ir.ArbitraryOutArgument(obj, arg.line, arg.col)
+    if isinstance(arg, ast.SplatOutArgument):
+      return ir.SplatOutArgument(obj, arg.line, arg.col)
     assert isinstance(arg, ast.KeywordOutArgument)
     return ir.KeywordOutArgument(obj, arg.line, arg.col)
 
@@ -308,8 +308,8 @@ class Converter(object):
     if isinstance(arg, ast.DefaultInArgument):
       return ir.DefaultInArgument(ir.Identifier(arg.name, True, arg.line,
           arg.col), self.convert_application(arg.value), arg.line, arg.col)
-    if isinstance(arg, ast.ArbitraryInArgument):
-      return ir.ArbitraryInArgument(ir.Identifier(arg.identifier, True,
+    if isinstance(arg, ast.SplatInArgument):
+      return ir.SplatInArgument(ir.Identifier(arg.identifier, True,
           arg.line, arg.col), arg.line, arg.col)
     assert isinstance(arg, ast.KeywordInArgument)
     return ir.KeywordInArgument(ir.Identifier(arg.identifier, True,

@@ -33,8 +33,8 @@ __author_email__ = "hello@jtolds.com"
 __all__ = ["Identifier", "Expression", "Assignment", "ObjectMutation",
     "ReturnValue", "Value", "Field", "Variable", "Integer", "String", "Float",
     "Function", "OutArgument", "PositionalOutArgument", "NamedOutArgument",
-    "ArbitraryOutArgument", "KeywordOutArgument", "InArgument",
-    "RequiredInArgument", "DefaultInArgument", "ArbitraryInArgument",
+    "SplatOutArgument", "KeywordOutArgument", "InArgument",
+    "RequiredInArgument", "DefaultInArgument", "SplatInArgument",
     "KeywordInArgument", "Program", "null_val"]
 
 import functools
@@ -250,7 +250,7 @@ class NamedOutArgument(OutArgument):
     return "NamedOutArgument(%r, %r, %d, %d)" % (self.name, self.value,
         self.line, self.col)
 
-class ArbitraryOutArgument(OutArgument):
+class SplatOutArgument(OutArgument):
   __slots__ = ["value", "line", "col"]
   def __init__(self, value, line, col):
     self.value = value
@@ -259,7 +259,7 @@ class ArbitraryOutArgument(OutArgument):
   def references(self, identifier): return self.value.references(identifier)
   def format(self, indent): return ":(%s)" % self.value.format(indent)
   def __repr__(self):
-    return "ArbitraryOutArgument(%r, %d, %d)" % (self.value, self.line,
+    return "SplatOutArgument(%r, %d, %d)" % (self.value, self.line,
         self.col)
 
 class KeywordOutArgument(OutArgument):
@@ -303,7 +303,7 @@ class DefaultInArgument(InArgument):
     return "DefaultInArgument(%r, %r, %d, %d)" % (self.name, self.value,
         self.line, self.col)
 
-class ArbitraryInArgument(InArgument):
+class SplatInArgument(InArgument):
   __slots__ = ["name", "line", "col"]
   def __init__(self, name, line, col):
     self.name = name
@@ -313,7 +313,7 @@ class ArbitraryInArgument(InArgument):
   def binds(self, identifier): return self.name.references(identifier)
   def format(self, indent): return ":(%s)" % self.name.format(indent)
   def __repr__(self):
-    return "ArbitraryInArgument(%r, %d, %d)" % (self.name, self.line, self.col)
+    return "SplatInArgument(%r, %d, %d)" % (self.name, self.line, self.col)
 
 class KeywordInArgument(InArgument):
   __slots__ = ["name", "line", "col"]

@@ -35,8 +35,8 @@ __all__ = ["Program", "Value", "Variable", "Subexpression", "Integer", "Float",
     "Assignment", "Application", "Assignee", "FieldAssignee",
     "VariableAssignee", "IndexAssignee", "Term", "ValueModifier", "OpenCall",
     "Index", "Field", "ClosedCall", "InArgument", "OutArgument",
-    "KeywordInArgument", "KeywordOutArgument", "ArbitraryInArgument",
-    "ArbitraryOutArgument", "DefaultInArgument", "NamedOutArgument",
+    "KeywordInArgument", "KeywordOutArgument", "SplatInArgument",
+    "SplatOutArgument", "DefaultInArgument", "NamedOutArgument",
     "RequiredInArgument", "PositionalOutArgument"]
 
 import itertools
@@ -431,7 +431,7 @@ class KeywordInArgument(InArgument):
     return "KeywordInArgument(%r, %d, %d)" % (self.identifier, self.line,
         self.col)
 
-class ArbitraryOutArgument(OutArgument):
+class SplatOutArgument(OutArgument):
   __slots__ = ["expressions", "line", "col"]
   def __init__(self, expressions, line, col):
     self.expressions = expressions
@@ -442,10 +442,10 @@ class ArbitraryOutArgument(OutArgument):
   def format(self, indent):
     return ":(%s)" % "; ".join(formats(self.expressions, indent))
   def __repr__(self):
-    return "ArbitraryOutArgument(%r, %d, %d)" % (self.expressions, self.line,
+    return "SplatOutArgument(%r, %d, %d)" % (self.expressions, self.line,
         self.col)
 
-class ArbitraryInArgument(InArgument):
+class SplatInArgument(InArgument):
   __slots__ = ["identifier", "line", "col"]
   def __init__(self, identifier, line, col):
     self.identifier = identifier
@@ -455,7 +455,7 @@ class ArbitraryInArgument(InArgument):
   def binds(self, identifier): return identifier == self.identifier
   def format(self, indent): return ":(%s)" % self.identifier
   def __repr__(self):
-    return "ArbitraryInArgument(%r, %d, %d)" % (self.identifier, self.line,
+    return "SplatInArgument(%r, %d, %d)" % (self.identifier, self.line,
         self.col)
 
 class NamedOutArgument(OutArgument):

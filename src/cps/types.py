@@ -32,8 +32,8 @@ __author__ = "JT Olds"
 __author_email__ = "hello@jtolds.com"
 __all__ = ["Identifier", "Field", "Variable", "Integer", "Float", "String",
     "OutArgument", "PositionalOutArgument", "NamedOutArgument",
-    "ArbitraryOutArgument", "KeywordOutArgument", "InArgument",
-    "RequiredInArgument", "DefaultInArgument", "ArbitraryInArgument",
+    "SplatOutArgument", "KeywordOutArgument", "InArgument",
+    "RequiredInArgument", "DefaultInArgument", "SplatInArgument",
     "KeywordInArgument", "Expression", "Call", "Assignment", "ObjectMutation",
     "Value", "Callable"]
 
@@ -52,13 +52,13 @@ String = ir.String
 OutArgument = ir.OutArgument
 PositionalOutArgument = ir.PositionalOutArgument
 NamedOutArgument = ir.NamedOutArgument
-ArbitraryOutArgument = ir.ArbitraryOutArgument
+SplatOutArgument = ir.SplatOutArgument
 KeywordOutArgument = ir.KeywordOutArgument
 
 InArgument = ir.InArgument
 RequiredInArgument = ir.RequiredInArgument
 DefaultInArgument = ir.DefaultInArgument
-ArbitraryInArgument = ir.ArbitraryInArgument
+SplatInArgument = ir.SplatInArgument
 KeywordInArgument = ir.KeywordInArgument
 
 class Expression(object): pass

@@ -258,7 +258,7 @@ class Parser(object):
     self.advance()
     return ast.KeywordOutArgument(expressions, *self.source_ref(checkpoint))
 
-  def parse_arbitrary_out_arg(self):
+  def parse_splat_out_arg(self):
     if self.current_char != ":" or self.char(lookahead=1) != "(": return None
     checkpoint = self.checkpoint()
     self.advance(distance=2)
@@ -269,7 +269,7 @@ class Parser(object):
     if not expressions:
       self.assert_source("list argument expected")
     self.advance()
-    return ast.ArbitraryOutArgument(expressions, *self.source_ref(checkpoint))
+    return ast.SplatOutArgument(expressions, *self.source_ref(checkpoint))
 
   def parse_named_out_arg(self):
     checkpoint = self.checkpoint()
@@ -309,7 +309,7 @@ class Parser(object):
     self.advance()
     return ast.KeywordInArgument(identifier, *self.source_ref(checkpoint))
 
-  def parse_arbitrary_in_arg(self):
+  def parse_splat_in_arg(self):
     if self.current_char != ":" or self.char(lookahead=1) != "(": return None
     checkpoint = self.checkpoint()
     self.advance(distance=2)
@@ -321,7 +321,7 @@ class Parser(object):
     if self.current_char != ")":
       self.assert_source("unexpected input for list argument")
     self.advance()
-    return ast.ArbitraryInArgument(identifier, *self.source_ref(checkpoint))
+    return ast.SplatInArgument(identifier, *self.source_ref(checkpoint))
 
   def parse_default_in_arg(self):
     checkpoint = self.checkpoint()
@@ -348,7 +348,7 @@ class Parser(object):
   def parse_out_arg(self):
     arg = self.parse_keyword_out_arg()
     if arg is not None: return arg
-    arg = self.parse_arbitrary_out_arg()
+    arg = self.parse_splat_out_arg()
     if arg is not None: return arg
     arg = self.parse_named_out_arg()
     if arg is not None: return arg
@@ -357,7 +357,7 @@ class Parser(object):
   def parse_in_arg(self):
     arg = self.parse_keyword_in_arg()
     if arg is not None: return arg
-    arg = self.parse_arbitrary_in_arg()
+    arg = self.parse_splat_in_arg()
     if arg is not None: return arg
     arg = self.parse_default_in_arg()
     if arg is not None: return arg
@@ -388,13 +388,13 @@ class Parser(object):
   def check_left_out_args(self, left_args):
     for arg in left_args:
       if not isinstance(arg, ast.PositionalOutArgument) and \
-          not isinstance(arg, ast.ArbitraryOutArgument):
+          not isinstance(arg, ast.SplatOutArgument):
         self.assert_source("unexpected argument type", arg.line, arg.col)
 
   def check_left_in_args(self, left_args):
     pos = 0
     if pos < len(left_args) and isinstance(left_args[pos],
-        ast.ArbitraryInArgument):
+        ast.SplatInArgument):
       pos += 1
     while pos < len(left_args) and isinstance(left_args[pos],
         ast.DefaultInArgument):
@@ -410,7 +410,7 @@ class Parser(object):
     pos = 0
     while pos < len(right_args) and (isinstance(right_args[pos],
         ast.PositionalOutArgument) or isinstance(right_args[pos],
-        ast.ArbitraryOutArgument)):
+        ast.SplatOutArgument)):
       pos += 1
     while pos < len(right_args) and isinstance(right_args[pos],
         ast.NamedOutArgument):
@@ -431,7 +431,7 @@ class Parser(object):
         ast.DefaultInArgument):
       pos += 1
     if pos < len(right_args) and isinstance(right_args[pos],
-        ast.ArbitraryInArgument):
+        ast.SplatInArgument):
       pos += 1
     if pos < len(right_args) and isinstance(right_args[pos],
         ast.KeywordInArgument):
