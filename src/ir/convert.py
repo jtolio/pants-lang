@@ -291,14 +291,9 @@ class Converter(object):
     expressions, lastval = Converter(self.globals).convert(func)
     left_args = [self.translate_in_arg(arg) for arg in func.left_args]
     right_args = [self.translate_in_arg(arg) for arg in func.right_args]
-    cont_defined = True
-    for arg in itertools.chain(func.left_args, func.right_args):
-      if arg.binds("cont"):
-        cont_defined = False
-        break
     self.ir.append(ir.Assignment(target, ir.Function(expressions, lastval,
-        left_args, right_args, cont_defined, func.line, func.col), True,
-        func.line, func.col))
+        left_args, right_args, func.line, func.col), True, func.line,
+        func.col))
     return self.sync_targets(target, targets)
 
   def translate_in_arg(self, arg):

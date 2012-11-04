@@ -49,11 +49,6 @@ class Transformer(object):
   def transform_value(self, value):
     if not isinstance(value, ir.Function): return value
     exp = self.transform(value)
-    cont_identifier = cps.Identifier("cont", True, value.line, value.col)
-    if value.cont_defined and exp.references(cont_identifier):
-      exp = cps.Assignment(cont_identifier, cps.Variable(cps.Identifier("cont",
-          False, value.line, value.col), value.line, value.col), True, exp,
-          value.line, value.col)
     return cps.Callable(exp, value.left_args, value.right_args, True,
         value.line, value.col)
 
@@ -103,5 +98,16 @@ class Transformer(object):
     return cps.Assignment(continuation_sym, continuation, True, call,
         ir_exp.line, ir_exp.col)
 
-def transform(ir_root, lastval=None):
+def transform(ir_root, lastval=None, add_predefines=True):
+  if add_predefines:
+    predefs = [ir.Assignment(ir.Identifier("shift", True, 0, 0),
+                             ir.Variable(ir.Identifier("shift", False, 0, 0),
+                                         0, 0),
+                             True, 0, 0),
+               ir.Assignment(ir.Identifier("reset", True, 0, 0),
+                             ir.Variable(ir.Identifier("reset", False, 0, 0),
+                                         0, 0),
+                             True, 0, 0)]
+    ir_root = ir.Program(predefs + ir_root.expressions, ir_root.lastval,
+                         ir_root.line, ir_root.col)
   return Transformer().transform(ir_root, lastval)

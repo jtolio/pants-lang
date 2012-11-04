@@ -183,15 +183,13 @@ Float = ast.Float
 String = ast.String
 
 class Function(Value):
-  __slots__ = ["expressions", "lastval", "left_args", "right_args",
-      "cont_defined", "line", "col"]
-  def __init__(self, expressions, lastval, left_args, right_args, cont_defined,
-      line, col):
+  __slots__ = ["expressions", "lastval", "left_args", "right_args", "line",
+               "col"]
+  def __init__(self, expressions, lastval, left_args, right_args, line, col):
     self.expressions = expressions
     self.lastval = lastval
     self.left_args = left_args
     self.right_args = right_args
-    self.cont_defined = cont_defined
     self.line = line
     self.col = col
   def format(self, indent):
@@ -218,9 +216,8 @@ class Function(Value):
       string.append("%s}" % self.lastval.format(indent))
     return "".join(string)
   def __repr__(self):
-    return "Function(%r, %r, %r, %r, %r, %d, %d)" % (self.expressions,
-        self.lastval, self.left_args, self.right_args, self.cont_defined,
-        self.line, self.col)
+    return "Function(%r, %r, %r, %r, %d, %d)" % (self.expressions,
+        self.lastval, self.left_args, self.right_args, self.line, self.col)
 
 class OutArgument(object): pass
 
