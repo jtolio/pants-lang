@@ -45,6 +45,9 @@ class Expression(object): pass
 class Program(object):
   __slots__ = ["expressions", "lastval", "line", "col"]
   def __init__(self, expressions, lastval, line, col):
+    for exp in expressions:
+      assert isinstance(exp, Expression)
+    assert is_value(lastval)
     self.expressions = expressions
     self.lastval = lastval
     self.line = line
@@ -61,6 +64,8 @@ class Identifier(object):
       "0123456789")
   __slots__ = ["name", "user_provided", "line", "col"]
   def __init__(self, name, user_provided, line, col):
+    assert isinstance(name, str)
+    assert isinstance(user_provided, bool)
     self.name = name
     self.user_provided = user_provided
     self.line = line
@@ -99,6 +104,8 @@ class Identifier(object):
 class Assignment(Expression):
   __slots__ = ["assignee", "value", "local", "line", "col"]
   def __init__(self, assignee, value, local, line, col):
+    assert isinstance(assignee, Identifier)
+    assert is_value(value)
     self.assignee = assignee
     self.value = value
     self.local = local
@@ -114,6 +121,9 @@ class Assignment(Expression):
 class ObjectMutation(Expression):
   __slots__ = ["object", "field", "value", "line", "col"]
   def __init__(self, object_, field, value, line, col):
+    assert is_value(object_)
+    assert isinstance(field, Identifier)
+    assert is_value(value)
     self.object = object_
     self.field = field
     self.value = value
@@ -129,6 +139,10 @@ class ObjectMutation(Expression):
 class ReturnValue(Expression):
   __slots__ = ["assignee", "call", "left_args", "right_args", "line", "col"]
   def __init__(self, assignee, call, left_args, right_args, line, col):
+    assert isinstance(assignee, Identifier)
+    assert is_value(call)
+    for arg in left_args + right_args:
+      assert isinstance(arg, OutArgument)
     self.assignee = assignee
     self.call = call
     self.left_args = left_args
@@ -155,6 +169,8 @@ class Value(object): pass
 class Field(Value):
   __slots__ = ["object", "field", "line", "col"]
   def __init__(self, object_, field, line, col):
+    assert is_value(object_)
+    assert isinstance(field, Identifier)
     self.object = object_
     self.field = field
     self.line = line
@@ -169,6 +185,7 @@ class Field(Value):
 class Variable(Value):
   __slots__ = ["identifier", "line", "col"]
   def __init__(self, identifier, line, col):
+    assert isinstance(identifier, Identifier)
     self.identifier = identifier
     self.line = line
     self.col = col
@@ -182,10 +199,18 @@ Integer = ast.Integer
 Float = ast.Float
 String = ast.String
 
+def is_value(value):
+  return isinstance(value, (Value, Integer, Float, String))
+
 class Function(Value):
   __slots__ = ["expressions", "lastval", "left_args", "right_args", "line",
                "col"]
   def __init__(self, expressions, lastval, left_args, right_args, line, col):
+    for exp in expressions:
+      assert isinstance(exp, Expression)
+    assert is_value(lastval)
+    for arg in left_args + right_args:
+      assert isinstance(arg, InArgument)
     self.expressions = expressions
     self.lastval = lastval
     self.left_args = left_args
@@ -224,6 +249,7 @@ class OutArgument(object): pass
 class PositionalOutArgument(OutArgument):
   __slots__ = ["value", "line", "col"]
   def __init__(self, value, line, col):
+    assert is_value(value)
     self.value = value
     self.line = line
     self.col = col
@@ -236,6 +262,8 @@ class PositionalOutArgument(OutArgument):
 class NamedOutArgument(OutArgument):
   __slots__ = ["name", "value", "line", "col"]
   def __init__(self, name, value, line, col):
+    assert isinstance(name, Identifier)
+    assert is_value(value)
     self.name = name
     self.value = value
     self.line = line
@@ -250,6 +278,7 @@ class NamedOutArgument(OutArgument):
 class SplatOutArgument(OutArgument):
   __slots__ = ["value", "line", "col"]
   def __init__(self, value, line, col):
+    assert is_value(value)
     self.value = value
     self.line = line
     self.col = col
@@ -262,6 +291,7 @@ class SplatOutArgument(OutArgument):
 class KeywordOutArgument(OutArgument):
   __slots__ = ["value", "line", "col"]
   def __init__(self, value, line, col):
+    assert is_value(value)
     self.value = value
     self.line = line
     self.col = col
@@ -276,6 +306,7 @@ class InArgument(object): pass
 class RequiredInArgument(InArgument):
   __slots__ = ["name", "line", "col"]
   def __init__(self, name, line, col):
+    assert isinstance(name, Identifier)
     self.name = name
     self.line = line
     self.col = col
@@ -288,6 +319,8 @@ class RequiredInArgument(InArgument):
 class DefaultInArgument(InArgument):
   __slots__ = ["name", "value", "line", "col"]
   def __init__(self, name, value, line, col):
+    assert isinstance(name, Identifier)
+    assert is_value(value)
     self.name = name
     self.value = value
     self.line = line
@@ -303,6 +336,7 @@ class DefaultInArgument(InArgument):
 class SplatInArgument(InArgument):
   __slots__ = ["name", "line", "col"]
   def __init__(self, name, line, col):
+    assert isinstance(name, Identifier)
     self.name = name
     self.line = line
     self.col = col
@@ -315,6 +349,7 @@ class SplatInArgument(InArgument):
 class KeywordInArgument(InArgument):
   __slots__ = ["name", "line", "col"]
   def __init__(self, name, line, col):
+    assert isinstance(name, Identifier)
     self.name = name
     self.line = line
     self.col = col
