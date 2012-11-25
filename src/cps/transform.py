@@ -54,19 +54,19 @@ class Transformer(object):
 
   def transform(self, node, lastval=None):
     if lastval is None: lastval = node.lastval
-    if (node.expressions and isinstance(node.expressions[-1], ir.ReturnValue)
+    expressions = node.expressions
+    if (expressions and isinstance(expressions[-1], ir.ReturnValue)
         and isinstance(lastval, ir.Variable)
-        and node.expressions[-1].assignee == lastval.identifier):
-      ir_exp = node.expressions[-1]
+        and expressions[-1].assignee == lastval.identifier):
+      expressions, ir_exp = expressions[:-1], expressions[-1]
       exp = cps.Call(ir_exp.call, ir_exp.left_args, ir_exp.right_args,
           cps.Variable(cps.Identifier("cont", False, ir_exp.line, ir_exp.col),
           ir_exp.line, ir_exp.col), ir_exp.line, ir_exp.col)
-      node.expressions.pop()
     else:
       exp = cps.Call(cps.Variable(cps.Identifier("cont", False, node.line,
           node.col), node.line, node.col), [], [cps.PositionalOutArgument(
           lastval, lastval.line, lastval.col)], None, node.line, node.col)
-    for ir_exp in reversed(node.expressions):
+    for ir_exp in reversed(expressions):
       exp = self.transform_expression(ir_exp, exp)
     return exp
 
