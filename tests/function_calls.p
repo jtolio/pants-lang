@@ -10,7 +10,6 @@ try = {|body, handler|
   k = cont; h = freeze handler
   throw_dynamic_var.call {|e| k h(e)} body
 }
-throw = {|e| throw_dynamic_var.get() e}
 
 while = {|test, body|
   if test() {

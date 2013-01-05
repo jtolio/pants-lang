@@ -75,7 +75,7 @@ class Parser(object):
     self.line = 1
     self.col = 1
     self._term_memoization = {}
-    self.current_char = self.source[self.pos]
+    self.current_char = self.source[:1]
 
   def advance(self, distance=1):
     for _ in xrange(distance):

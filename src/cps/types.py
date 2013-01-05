@@ -64,30 +64,36 @@ KeywordInArgument = ir.KeywordInArgument
 class Expression(object): pass
 
 class Call(Expression):
-  __slots__ = ["call", "left_args", "right_args", "continuation", "line", "col"]
-  def __init__(self, call, left_args, right_args, continuation, line, col):
+  __slots__ = ["call", "left_args", "right_args", "comp_cont", "delim_cont",
+               "line", "col"]
+  def __init__(self, call, left_args, right_args, comp_cont, delim_cont, line,
+               col):
     self.call = call
     self.left_args = left_args
     self.right_args = right_args
-    self.continuation = continuation
+    self.comp_cont = comp_cont
+    self.delim_cont = delim_cont
     self.line = line
     self.col = col
   def __repr__(self):
-    return "Call(%r, %r, %r, %r, %d, %d)" % (self.call, self.left_args,
-        self.right_args, self.continuation, self.line, self.col)
+    return "Call(%r, %r, %r, %r, %r, %d, %d)" % (self.call, self.left_args,
+        self.right_args, self.comp_cont, self.delim_cont, self.line, self.col)
   def references(self, identifier):
     if self.call.references(identifier): return True
     for arg in itertools.chain(self.left_args, self.right_args):
       if arg.references(identifier): return True
-    if self.continuation and self.continuation.references(identifier):
-      return True
+    for cont in (self.comp_cont, self.delim_cont):
+      if cont and cont.references(identifier):
+        return True
     return False
   def format(self, indent=""):
-    return "%s(%s; %s; %s)" % (self.call.format(indent),
+    return "%s(%s; %s; %s, %s)" % (self.call.format(indent),
               ", ".join((arg.format(indent + "  ") for arg in self.left_args)),
               ", ".join((arg.format(indent + "  ") for arg in self.right_args)),
-              self.continuation is not None and
-              self.continuation.format(indent + "  ") or "")
+              self.comp_cont is not None and
+                self.comp_cont.format(indent + "  ") or "null",
+              self.delim_cont is not None and
+                self.delim_cont.format(indent + "  ") or "null")
 
 class Assignment(Expression):
   __slots__ = ["assignee", "value", "local", "next_expression", "line", "col"]
@@ -140,24 +146,27 @@ class ObjectMutation(Expression):
 class Value(object): pass
 
 class Callable(Value):
-  __slots__ = ["expression", "left_args", "right_args", "receives_cont", "line",
-      "col"]
-  def __init__(self, expression, left_args, right_args, receives_cont, line, col):
+  __slots__ = ["expression", "left_args", "right_args", "comp_cont",
+               "delim_cont", "line", "col"]
+  def __init__(self, expression, left_args, right_args, comp_cont, delim_cont,
+               line, col):
     self.expression = expression
     self.left_args = left_args
     self.right_args = right_args
-    self.receives_cont = receives_cont
+    self.comp_cont = comp_cont
+    self.delim_cont = delim_cont
     self.line = line
     self.col = col
   def __repr__(self):
-    return "Callable(%r, %r, %r, %r, %d, %d)" % (self.expression,
-        self.left_args, self.right_args, self.receives_cont,
+    return "Callable(%r, %r, %r, %r, %r, %d, %d)" % (self.expression,
+        self.left_args, self.right_args, self.comp_cont, self.delim_cont,
         self.line, self.col)
   def format(self, indent=""):
-    return "{|%s; %s; %s|\n%s  %s\n%s}" % (
+    return "{|%s; %s; %s, %s|\n%s  %s\n%s}" % (
         ", ".join((arg.format(indent) for arg in self.left_args)),
         ", ".join((arg.format(indent) for arg in self.right_args)),
-        self.receives_cont and Identifier("cont", False, 0, 0).format("") or "",
+        self.comp_cont is not None and self.comp_cont.format("") or "<null>",
+        self.delim_cont is not None and self.delim_cont.format("") or "<null>",
         indent,
         self.expression.format(indent + "  "),
         indent)
@@ -166,7 +175,7 @@ class Callable(Value):
       if arg.references(identifier): return True
     for arg in itertools.chain(self.left_args, self.right_args):
       if arg.binds(identifier): return False
-    if self.receives_cont and identifier == Identifier("null", False, 0, 0):
-      return False
-    if self.expression.references(identifier): return True
-    return False
+    for arg in (self.comp_cont, self.delim_cont):
+      if arg is not None and arg == identifier:
+        return True
+    return self.expression.references(identifier)

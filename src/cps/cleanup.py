@@ -24,23 +24,26 @@
 """
   Pants
   http://www.pants-lang.org/
-
-  Main module
 """
 
 __author__ = "JT Olds"
 __author_email__ = "hello@jtolds.com"
+__all__ = ["cleanup"]
 
 import sys
-from ast.parse import parse
-from ir.convert import convert
-from cps.transform import transform
-from cps.cleanup import cleanup
-from ir.types import null_val
+import types as cps
 
-def main(argv):
-  sys.setrecursionlimit(10000)
-  print cleanup(transform(convert(parse(sys.stdin)))).format()
 
-if __name__ == "__main__":
-  sys.exit(main(sys.argv))
+def cleanup(node):
+  if isinstance(node, cps.Call): return node
+  if isinstance(node, cps.ObjectMutation): return node
+  assert isinstance(node, cps.Assignment)
+  if isinstance(node.value, cps.Callable):
+    node.value.expression = cleanup(node.value.expression)
+  node.next_expression = cleanup(node.next_expression)
+  if not node.local or node.next_expression.references(node.assignee):
+    return node
+
+  print >>sys.stderr, "unnecessary definition: %s, line %d col %d" % (
+      node.assignee.format(), node.line, node.col)
+  return node.next_expression

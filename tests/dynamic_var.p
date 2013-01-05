@@ -18,9 +18,6 @@ while = {|test, body|
     }
   }
 }
-break = { while_dynamic_var.get() false }
-continue = { while_dynamic_var.get() true }
-loop = {|body| while {true} body }
 
 each = {|:(iterables); func|
   i = 0

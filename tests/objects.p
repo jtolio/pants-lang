@@ -8,9 +8,6 @@ constructor = {|func|
     obj
   }
 }
-# TODO: actually clear this out of the scope or something
-new_object = null
-seal_object = null
 
 obj = (constructor { |o|
   o.field1 = 3

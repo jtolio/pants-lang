@@ -1,5 +1,7 @@
 # PANTS OPTIONS: --skip-prelude
 
+ignore = {|x| null}
+
 x = (3)
 println x
 { |x| println x; x := 4; println x }(2)
@@ -60,6 +62,8 @@ println.
 x = 10
 (
   x = 11
+  ignore x
+
 )
 println x
 

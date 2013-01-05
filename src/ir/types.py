@@ -70,7 +70,7 @@ class Identifier(object):
     self.user_provided = user_provided
     self.line = line
     self.col = col
-  def format(self, indent):
+  def format(self, indent=""):
     return self.c_name(False)
   def c_name(self, escape=True):
     if not self.user_provided:

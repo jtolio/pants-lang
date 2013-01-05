@@ -280,7 +280,7 @@ class Converter(object):
     func = self.globals.gensym(subexp.line, subexp.col)
     expressions, lastval = Converter(self.globals).convert(subexp)
     self.ir.append(ir.Assignment(func, ir.Function(expressions, lastval, [], [],
-        False, subexp.line, subexp.col), True, subexp.line, subexp.col))
+        subexp.line, subexp.col), True, subexp.line, subexp.col))
     target = self.pop_target(targets, subexp.line, subexp.col)
     self.ir.append(ir.ReturnValue(target, ir.Variable(func, subexp.line,
         subexp.col), [], [], subexp.line, subexp.col))
