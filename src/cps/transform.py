@@ -92,6 +92,25 @@ class Transformer(object):
     for ir_exp in reversed(expressions):
       exp, comp_cont, delim_cont = self.transform_expression(
           ir_exp, exp, comp_cont, delim_cont)
+
+    # this provides access to the undelimited function-specific continuation
+    cont = cps.Identifier("cont", True, exp.line, exp.col)
+    if exp.references(cont):
+        arg = self.gensym(exp.line, exp.col)
+        cont_call = cps.Call(
+                cps.Variable(comp_cont, comp_cont.line, comp_cont.col), [],
+                [cps.PositionalOutArgument(
+                        cps.Variable(arg, arg.line, arg.col),
+                        arg.line, arg.col)],
+                cps.Variable(comp_cont, comp_cont.line, comp_cont.col),
+                cps.Variable(delim_cont, delim_cont.line, delim_cont.col),
+                exp.line, exp.col)
+        cont_callable = cps.Callable(
+                cont_call, [],
+                [cps.RequiredInArgument(arg, arg.line, arg.col)],
+                None, None, exp.line, exp.col)
+        exp = cps.Assignment(cont, cont_callable, True, exp, exp.line, exp.col)
+
     return exp, comp_cont, delim_cont
 
   def transform_expression(self, ir_exp, next_cps_exp, comp_cont, delim_cont):

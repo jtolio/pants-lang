@@ -108,7 +108,10 @@ class Assignment(Expression):
     return "Assignment(%r, %r, %r, %r, %d, %d)" % (self.assignee, self.value,
         self.local, self.next_expression, self.line, self.col)
   def references(self, identifier):
-    if not self.local and self.assignee.references(identifier): return True
+    if self.local:
+      if self.assignee.references(identifier): return False
+    else:
+      if self.assignee.references(identifier): return True
     if self.value.references(identifier): return True
     if self.next_expression.references(identifier): return True
     return False
