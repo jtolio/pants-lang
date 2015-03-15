@@ -24,7 +24,7 @@ For code samples, check out
 [tests/](https://github.com/jtolds/pants-lang/tree/master/tests), or the
 [standard prelude](https://github.com/jtolds/pants-lang/blob/master/first-c%2B%2B-impl/src/assets/prelude.p).
 
-The beginnings of a language tutorial are on the wiki at LanguageIntroduction.
+The beginnings of a language tutorial are on the wiki at [LanguageIntroduction](https://github.com/jtolds/pants-lang/wiki/LanguageIntroduction).
 
 ## Still to come
 
