@@ -1,4 +1,4 @@
-# Welcome to the Pants programming language!
+# ![logo](https://raw.githubusercontent.com/jtolds/pants-lang/master/art/logo.png) Pants programming language
 
 *Warning:* Pants is currently in a very early *alpha* stage.
 
